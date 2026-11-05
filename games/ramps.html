@@ -1,0 +1,3490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ramp Rush 3D</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #87ceeb;
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+}
+
+canvas {
+    display: block;
+}
+
+#hud {
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 10;
+    background: rgba(10, 20, 35, 0.78);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 15px 18px;
+    min-width: 215px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+    pointer-events: none;
+}
+
+#hud h1 {
+    margin: 0 0 9px;
+    font-size: 23px;
+    color: #ffd54a;
+    letter-spacing: 1px;
+}
+
+.stat {
+    margin: 6px 0;
+    font-size: 14px;
+}
+
+#speed {
+    font-size: 28px;
+    font-weight: bold;
+    color: #62f7ff;
+}
+
+#boostBar {
+    height: 9px;
+    background: #26394d;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 7px;
+}
+
+#boostFill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #00d9ff, #fff36b);
+    transition: width 0.08s linear;
+}
+
+#help {
+    position: fixed;
+    right: 18px;
+    top: 18px;
+    z-index: 10;
+    background: rgba(10, 20, 35, 0.78);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.8;
+    pointer-events: none;
+}
+
+.key {
+    display: inline-block;
+    background: #34465a;
+    border: 1px solid #71849a;
+    border-radius: 4px;
+    padding: 1px 6px;
+    min-width: 24px;
+    text-align: center;
+    font-weight: bold;
+}
+
+
+#chatPanel {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: min(340px, calc(100vw - 24px));
+    z-index: 12;
+    background: rgba(10, 20, 35, 0.82);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+
+#chatTitle {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #62f7ff;
+    margin: 0 0 7px;
+}
+
+#chatMessages {
+    height: 150px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 2px 2px 6px;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.chatLine { color: #f3f7fc; }
+.chatName { color: #ffd54a; font-weight: bold; }
+.chatSystem { color: #a8c0d8; font-style: italic; }
+
+#chatForm { display: flex; gap: 6px; margin-top: 5px; }
+#chatInput {
+    min-width: 0;
+    flex: 1;
+    padding: 9px 10px;
+    border: 1px solid #71849a;
+    border-radius: 7px;
+    color: white;
+    background: #1c2c40;
+    font: inherit;
+    outline: none;
+}
+#chatInput:focus { border-color: #62f7ff; }
+#chatSendButton {
+    margin: 0;
+    padding: 8px 11px;
+    font-size: 12px;
+    border-radius: 7px;
+}
+#chatHint {
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    z-index: 12;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(10,20,35,0.82);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #eaf4ff;
+    font-size: 12px;
+    pointer-events: none;
+}
+#chatHint kbd {
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #34465a;
+    border: 1px solid #71849a;
+    font-weight: bold;
+}
+
+#pauseControls {
+    margin-top: 18px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: #d4e2f0;
+    font-size: 13px;
+    line-height: 1.8;
+}
+#pauseControls h3 { margin: 0 0 5px; color: #62f7ff; font-size: 15px; }
+#pauseControls .key { margin-right: 3px; }
+.pauseField select { width: 100%; margin-top: 6px; padding: 9px 10px; border-radius: 6px; border: 1px solid #526980; background: #24374c; color: white; font: inherit; }
+
+#startScreen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    background: rgba(5, 12, 24, 0.76);
+}
+
+#startCard {
+    width: min(470px, 90vw);
+    padding: 30px;
+    text-align: center;
+    background: #142438;
+    border: 1px solid #435b73;
+    border-radius: 20px;
+    box-shadow: 0 20px 80px #0008;
+}
+
+#startCard h1 {
+    color: #ffd54a;
+    font-size: 38px;
+    margin: 0 0 10px;
+}
+
+#startCard p {
+    line-height: 1.65;
+    color: #d4e2f0;
+}
+
+button {
+    margin-top: 15px;
+    padding: 14px 30px;
+    border: none;
+    border-radius: 10px;
+    background: #ffd54a;
+    color: #182235;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #ffe783;
+    transform: translateY(-1px);
+}
+
+#multiplayerMenu {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(4, 10, 20, 0.82);
+}
+
+#multiplayerCard {
+    width: min(460px, 100%);
+    padding: 24px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 16px;
+    background: #142235;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+
+#multiplayerCard h2 {
+    margin: 0 0 8px;
+    color: #ffd54a;
+}
+
+#multiplayerCard p {
+    color: #c4d2e2;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.multiplayerField {
+    display: grid;
+    gap: 6px;
+    margin: 12px 0;
+    font-size: 14px;
+}
+
+.multiplayerField input {
+    width: 100%;
+    padding: 10px;
+    color: white;
+    background: #26394d;
+    border: 1px solid #71849a;
+    border-radius: 5px;
+    font: inherit;
+}
+
+#multiplayerColorInput {
+    width: 76px !important;
+    height: 42px;
+    padding: 3px !important;
+    cursor: pointer;
+}
+
+#multiplayerColorValue {
+    font-family: monospace;
+    color: #dce8f5;
+}
+
+#defaultLobbyHint {
+    margin: 5px 0 12px;
+    color: #c4d2e2;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+#multiplayerStatus {
+    min-height: 20px;
+    overflow-wrap: anywhere;
+    color: #8fe8ff;
+}
+
+.multiplayerActions {
+    display: flex;
+    gap: 10px;
+}
+
+.multiplayerActions button {
+    flex: 1;
+    padding: 12px 10px;
+}
+
+#pauseMenu {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(4, 10, 20, 0.78);
+}
+
+#pauseLayout {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+    max-width: calc(100vw - 36px);
+    max-height: calc(100vh - 36px);
+}
+
+#pauseCard {
+    width: 440px;
+    max-width: calc(100vw - 250px);
+    max-height: calc(100vh - 36px);
+    overflow-y: auto;
+    padding: 22px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    background: #142235;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+
+#vehicleMenuPanel {
+    flex: 0 0 190px;
+    align-self: flex-start;
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    background: #142235;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+#vehicleMenuPanel h3 { margin: 0 0 8px; color: #ffd54a; }
+#vehicleMenuPanel p { margin: 0 0 12px; color: #c4d2e2; font-size: 13px; }
+#vehicleMenuPanel button { width: 100%; margin: 5px 0; }
+#vehicleMenuPanel button.selectedVehicle { outline: 2px solid #62f7ff; background: #24647a; }
+@media (max-width: 720px) {
+    #pauseLayout { flex-direction: column; width: min(440px, calc(100vw - 36px)); overflow-y: auto; }
+    #pauseCard { width: 100%; max-width: none; max-height: none; }
+    #vehicleMenuPanel { flex: 0 0 auto; width: 100%; box-sizing: border-box; }
+}
+
+#pauseCard h2 {
+    margin: 0 0 8px;
+    color: #ffd54a;
+}
+
+#pauseCard p {
+    margin: 0 0 16px;
+    color: #c4d2e2;
+    font-size: 13px;
+}
+
+.pauseField {
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.pauseField input {
+    width: 100%;
+    padding: 8px;
+    color: white;
+    background: #26394d;
+    border: 1px solid #71849a;
+    border-radius: 5px;
+    font: inherit;
+}
+
+.pauseActions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.pauseActions button {
+    flex: 1;
+    margin: 0;
+}
+#lobbyLeaderPanel {
+    display: none;
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(98,247,255,0.07);
+    border: 1px solid rgba(98,247,255,0.25);
+}
+#lobbyLeaderPanel h3 { margin: 0 0 6px; color: #62f7ff; font-size: 14px; }
+#lobbyRoleStatus { margin: 0 0 8px !important; }
+.lobbyPlayerRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.1); font-size: 13px; }
+.lobbyPlayerName { min-width: 0; overflow-wrap: anywhere; }
+.lobbyKickButton { margin: 0; padding: 5px 8px; font-size: 11px; background: #ff9a9a; flex: 0 0 auto; }
+
+@media (max-width: 650px) {
+    #chatPanel {
+        top: 10px;
+        right: 10px;
+        width: min(290px, calc(100vw - 20px));
+        padding: 8px;
+    }
+    #chatMessages { height: 105px; font-size: 11px; }
+    #hud {
+        top: 10px;
+        left: 10px;
+        padding: 10px;
+        min-width: 160px;
+    }
+
+    #hud h1 {
+        font-size: 18px;
+    }
+
+    #speed {
+        font-size: 22px;
+    }
+
+    #message {
+        bottom: 15px;
+        font-size: 11px;
+        max-width: calc(100vw - 30px);
+        white-space: normal;
+        text-align: center;
+    }
+    #chatHint { bottom: 10px; left: 10px; font-size: 11px; }
+}
+
+#pauseMenu { overflow-y: auto; }
+#pauseCard { max-height: calc(100vh - 36px); overflow-y: auto; }
+
+
+#worldEditor {
+    position: fixed; top: 14px; right: 14px; z-index: 40;
+    display: none; width: min(340px, calc(100vw - 28px));
+    max-height: calc(100vh - 28px); overflow-y: auto;
+    padding: 15px; border-radius: 12px; border: 1px solid #66819c;
+    background: rgba(13, 27, 43, 0.96); box-shadow: 0 10px 35px #0008;
+    color: #f3f7fc; font-size: 13px;
+}
+#worldEditor h2 { margin: 0 0 6px; color: #72e6a5; font-size: 20px; }
+#worldEditor p { margin: 0 0 10px; color: #c4d2e2; line-height: 1.4; }
+#worldEditor label { display: block; margin: 8px 0; }
+#worldEditor input, #worldEditor select {
+    width: 100%; min-width: 0; padding: 7px; margin-top: 4px;
+    color: white; background: #26394d; border: 1px solid #71849a;
+    border-radius: 5px; font: inherit;
+}
+#worldEditor input[type="checkbox"] { width: auto; margin-right: 7px; }
+#worldEditor input[type="color"] { height: 36px; padding: 2px; }
+.editorTriple { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.editorTriple label { margin: 4px 0; color: #b9cee1; font-size: 11px; }
+.editorTriple input { margin-top: 3px; }
+.editorButtons { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+.editorButtons button { flex: 1 1 42%; padding: 9px 8px; margin: 0; font-size: 12px; }
+#editorStatus { margin-top: 8px; color: #8fe8ff; min-height: 17px; }
+#editorHelp { position: fixed; left: 14px; bottom: 14px; z-index: 39; display: none;
+    padding: 8px 11px; border-radius: 8px; background: #0a1423d9; font-size: 12px; pointer-events: none; }
+
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+    <h1>RAMP RUSH 3D</h1>
+    <div class="stat">SPEED</div>
+    <div id="speed">0 km/h</div>
+    <div class="stat">STATUS: <span id="status">READY</span></div>
+    <div class="stat">BOOST</div>
+    <div id="boostBar"><div id="boostFill"></div></div>
+    <div class="stat">Jumps: <span id="jumps">0</span></div>
+</div>
+
+<div id="chatPanel" aria-label="Live chat">
+    <div id="chatTitle">LIVE CHAT</div>
+    <div id="chatMessages" aria-live="polite" aria-relevant="additions"></div>
+    <form id="chatForm" autocomplete="off">
+        <input id="chatInput" type="text" maxlength="200" placeholder="Press / to chat…" aria-label="Chat message" disabled>
+        <button id="chatSendButton" type="submit" disabled>SEND</button>
+    </form>
+</div>
+<div id="chatHint"><kbd>/</kbd> to chat</div>
+
+
+<div id="startScreen">
+    <div id="startCard">
+        <h1>RAMP RUSH 3D</h1>
+        <p>
+            Drive a sports car across a huge stunt arena.
+            Accelerate up ramps, launch into the air, use
+            boost, and control your landing.
+        </p>
+        <p>
+            WASD to drive · SHIFT to boost · SPACE to jump
+        </p>
+        <button id="startButton">START DRIVING</button>
+        <button id="openMultiplayerButton" style="margin-left:8px;background:#62f7ff">MULTIPLAYER</button>
+    </div>
+</div>
+
+<div id="multiplayerMenu" role="dialog" aria-modal="true" aria-labelledby="multiplayerTitle">
+    <div id="multiplayerCard">
+        <h2 id="multiplayerTitle">MULTIPLAYER</h2>
+        <p>This is the multiplayer client interface. A compatible WebSocket server must be running before players can connect.</p>
+        <label class="multiplayerField">Player name
+            <input id="multiplayerName" type="text" maxlength="20" value="Player" autocomplete="nickname">
+        </label>
+        <label class="multiplayerField">Car color (hexadecimal)
+            <div style="display:flex;align-items:center;gap:12px">
+                <input id="multiplayerColorInput" type="color" value="#e82e42" aria-label="Choose car color">
+                <span id="multiplayerColorValue">#e82e42</span>
+            </div>
+        </label>
+        <label class="multiplayerField">Server WebSocket URL
+            <input id="multiplayerServerUrl" type="text" placeholder="wss://your-server-address" autocomplete="url">
+        </label>
+        <p id="defaultLobbyHint">Use wss://ramp-rush-3d-server.onrender.com/ws to join the default public lobby</p>
+        <p id="multiplayerStatus">Not connected</p>
+        <div class="multiplayerActions">
+            <button id="connectMultiplayerButton">CONNECT</button>
+            <button id="disconnectMultiplayerButton" style="background:#ff9a9a">DISCONNECT</button>
+            <button id="closeMultiplayerButton">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<div id="pauseMenu" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+    <div id="pauseLayout">
+    <div id="pauseCard">
+        <h2 id="pauseTitle">PAUSED — SETTINGS</h2>
+        <p>Enter your preferred driving and physics values. Press P to resume.</p>
+        <h3 style="color:#ffd54a;margin:0 0 10px">PHYSICS SETTINGS</h3>
+        <label class="pauseField">Jump height <input id="settingJump" type="number" step="0.1" value="7.0"></label>
+        <label class="pauseField">Ground friction <input id="settingFriction" type="number" min="0" step="0.05" value="0.95"></label>
+        <label class="pauseField">Base speed <input id="settingBaseSpeed" type="number" min="0" step="1" value="43"></label>
+        <label class="pauseField">Acceleration <input id="settingAcceleration" type="number" min="0" step="0.5" value="23"></label>
+        <label class="pauseField">Boost speed <input id="settingBoostSpeed" type="number" min="0" step="1" value="61"></label>
+        <label class="pauseField">Boost amount <input id="settingBoostAmount" type="number" min="0" step="1" value="100"></label>
+        <label class="pauseField">Boost time (seconds) <input id="settingBoostTime" type="number" min="0.1" step="0.1" value="2.94"></label>
+        <label class="pauseField">Gravity strength <input id="settingGravity" type="number" min="0" step="0.1" value="13.0"></label>
+        <div id="pauseControls">
+            <h3>DRIVING CONTROLS</h3>
+            <span id="carControlsHelp"><span class="key">W</span> Accelerate<br>
+            <span class="key">S</span> Brake / Reverse<br>
+            <span class="key">A</span> Steer Left &nbsp; <span class="key">D</span> Steer Right<br>
+            <span class="key">SHIFT</span> Boost<br>
+            <span class="key">SPACE</span> Jump<br>
+            <span class="key">R</span> Reset Car<br>
+            <span class="key">C</span> Change Camera<br></span>
+            <span id="planeControlsHelp" style="display:none"><span class="key">W</span>/<span class="key">↑</span> Pitch up; <span class="key">S</span>/<span class="key">↓</span> Pitch down<br><span class="key">A</span>/<span class="key">←</span> Bank left; <span class="key">D</span>/<span class="key">→</span> Bank right<br><span class="key">R</span> Reset Plane<br><span class="key">C</span> Change Camera<br></span>
+            <span class="key">P</span> Pause / Resume<br>
+            <span class="key">/</span> Open chat; <span class="key">ENTER</span> Send; <span class="key">ESC</span> Close chat
+        </div>
+        <div id="lobbyLeaderPanel">
+            <h3 id="lobbyRoleTitle">LOBBY</h3>
+            <p id="lobbyRoleStatus">Connect to a lobby to see party members.</p>
+            <label id="worldEditPermissionRow" style="display:none;margin:8px 0;color:#eaf4ff">
+                <input id="allowAnyoneWorldEdit" type="checkbox" style="width:auto;margin-right:7px">
+                Allow anyone to edit the world
+            </label>
+            <div id="lobbyPlayerList"></div>
+        </div>
+        <div class="pauseActions">
+            <button id="pauseEditorButton">WORLD EDITOR</button>
+            <button id="resumeButton">RESUME</button>
+            <button id="returnMainMenuButton">MAIN MENU</button>
+        </div>
+    </div>
+    <div id="vehicleMenuPanel" aria-label="Vehicle selection">
+        <h3>VEHICLE</h3>
+        <p>Choose a vehicle to respawn immediately.</p>
+        <button id="selectCarVehicle" type="button">CAR</button>
+        <button id="selectMotorcycleVehicle" type="button">MOTORCYCLE</button>
+        <button id="selectPlaneVehicle" type="button">PLANE</button>
+    </div>
+    </div>
+</div>
+
+
+<div id="worldEditor" role="region" aria-label="World editor">
+    <h2>WORLD EDITOR</h2>
+    <p id="editorIntro">Click an object in the scene or choose it below. In multiplayer, leader edits are shared only when PLAY TEST is pressed.</p>
+    <label>Selected object
+        <select id="editorObjectSelect"></select>
+    </label>
+    <label>Add object type
+        <select id="editorAddType">
+            <option value="box">Box</option>
+            <option value="cube">Cube</option>
+            <option value="rectangular-prism">Rectangular Prism</option>
+            <option value="cylinder">Cylinder</option>
+        </select>
+    </label>
+    <div class="editorButtons">
+        <button id="editorAddObject">ADD OBJECT</button>
+        <button id="editorDelete">DELETE SELECTED</button>
+    </div>
+    <label>Position</label>
+    <div class="editorTriple">
+        <label>X <input id="editorPosX" type="number" step="0.5"></label>
+        <label>Y <input id="editorPosY" type="number" step="0.5"></label>
+        <label>Z <input id="editorPosZ" type="number" step="0.5"></label>
+    </div>
+    <label>Rotation (degrees)</label>
+    <div class="editorTriple">
+        <label>X <input id="editorRotX" type="number" step="5"></label>
+        <label>Y <input id="editorRotY" type="number" step="5"></label>
+        <label>Z <input id="editorRotZ" type="number" step="5"></label>
+    </div>
+    <label>Scale</label>
+    <div class="editorTriple">
+        <label>X <input id="editorScaleX" type="number" min="0.1" max="50" step="0.1"></label>
+        <label>Y <input id="editorScaleY" type="number" min="0.1" max="50" step="0.1"></label>
+        <label>Z <input id="editorScaleZ" type="number" min="0.1" max="50" step="0.1"></label>
+    </div>
+    <label>Object color <input id="editorColor" type="color" value="#333b49"></label>
+    <label><input id="editorCollision" type="checkbox" checked> Has collision</label>
+    <div class="editorButtons">
+        <button id="editorPlayTest">PLAY TEST</button>
+        <button id="editorExit">EXIT EDITOR</button>
+    </div>
+    <div id="editorStatus" aria-live="polite">Select an object to edit.</div>
+</div>
+<div id="editorHelp">WORLD EDITOR · Drag an object to move X/Z · Drag empty space to pan · Right-drag to orbit · Scroll to zoom</div>
+
+<script type="module">
+import * as THREE from
+    "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
+
+import RAPIER from
+    "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/+esm";
+
+async function main() {
+    await RAPIER.init();
+
+    // --------------------------------------------------
+    // SCENE
+    // --------------------------------------------------
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x8ac7f5);
+    scene.fog = new THREE.Fog(0x8ac7f5, 100, 340);
+
+    const camera = new THREE.PerspectiveCamera(
+        70,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        600
+    );
+
+    const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance"
+    });
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0xd9edff, 0x4c593d, 2));
+
+    const sun = new THREE.DirectionalLight(0xffffff, 3.0);
+    sun.position.set(-45, 85, 30);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -120;
+    sun.shadow.camera.right = 120;
+    sun.shadow.camera.top = 120;
+    sun.shadow.camera.bottom = -120;
+    sun.shadow.bias = -0.0004;
+    scene.add(sun);
+
+    // --------------------------------------------------
+    // PHYSICS WORLD
+    // --------------------------------------------------
+
+    let gravityStrength = 13.0;
+    let groundFriction = 0.95;
+    const frictionColliders = [];
+    const editorObjects = [];
+    let editorObjectCounter = 0;
+
+    const world = new RAPIER.World({
+        x: 0,
+        y: -gravityStrength,
+        z: 0
+    });
+
+    world.timestep = 1 / 120;
+
+    // --------------------------------------------------
+    // MATERIALS
+    // --------------------------------------------------
+
+    const materials = {
+        ground: new THREE.MeshStandardMaterial({
+            color: 0x547c46,
+            roughness: 0.95
+        }),
+        road: new THREE.MeshStandardMaterial({
+            color: 0x333b49,
+            roughness: 0.85
+        }),
+        ramp: new THREE.MeshStandardMaterial({
+            color: 0xff9d28,
+            roughness: 0.7
+        }),
+        rampTop: new THREE.MeshStandardMaterial({
+            color: 0xffcf49,
+            roughness: 0.7
+        }),
+        white: new THREE.MeshStandardMaterial({
+            color: 0xf4f7ff,
+            roughness: 0.5
+        }),
+        dark: new THREE.MeshStandardMaterial({
+            color: 0x151d2a,
+            roughness: 0.6
+        }),
+        glass: new THREE.MeshStandardMaterial({
+            color: 0x6bd9ff,
+            metalness: 0.45,
+            roughness: 0.18
+        }),
+        tire: new THREE.MeshStandardMaterial({
+            color: 0x17191d,
+            roughness: 0.92
+        }),
+        metal: new THREE.MeshStandardMaterial({
+            color: 0x9eabbc,
+            metalness: 0.8,
+            roughness: 0.28
+        })
+    };
+
+    // --------------------------------------------------
+    // MULTIPLAYER COLLISION FILTERS
+    // --------------------------------------------------
+    // Rapier collision groups are packed as 16 membership bits followed by
+    // 16 filter bits. Remote players only interact with local/remote cars,
+    // so walls, ramps, and other world colliders cannot block their network
+    // reconciliation when a fast-moving player crosses an obstacle.
+    const COLLISION_GROUP_WORLD = 0x0001;
+    const COLLISION_GROUP_LOCAL_PLAYER = 0x0002;
+    const COLLISION_GROUP_REMOTE_PLAYER = 0x0004;
+
+    function collisionGroups(memberships, filters) {
+        return ((memberships & 0xffff) << 16) | (filters & 0xffff);
+    }
+
+    const WORLD_COLLISION_GROUPS = collisionGroups(
+        COLLISION_GROUP_WORLD,
+        COLLISION_GROUP_WORLD | COLLISION_GROUP_LOCAL_PLAYER
+    );
+    const LOCAL_PLAYER_COLLISION_GROUPS = collisionGroups(
+        COLLISION_GROUP_LOCAL_PLAYER,
+        COLLISION_GROUP_WORLD | COLLISION_GROUP_LOCAL_PLAYER | COLLISION_GROUP_REMOTE_PLAYER
+    );
+    const REMOTE_PLAYER_COLLISION_GROUPS = collisionGroups(
+        COLLISION_GROUP_REMOTE_PLAYER,
+        COLLISION_GROUP_LOCAL_PLAYER | COLLISION_GROUP_REMOTE_PLAYER
+    );
+
+    // --------------------------------------------------
+    // STATIC PHYSICS HELPERS
+    // --------------------------------------------------
+
+    function staticBox(
+        x, y, z,
+        hx, hy, hz,
+        rotation = null,
+        material = materials.road
+    ) {
+        const bodyDesc = RAPIER.RigidBodyDesc.fixed()
+            .setTranslation(x, y, z);
+
+        if (rotation) {
+            bodyDesc.setRotation(rotation);
+        }
+
+        const body = world.createRigidBody(bodyDesc);
+
+        const collider = world.createCollider(
+            RAPIER.ColliderDesc.cuboid(hx, hy, hz)
+                .setCollisionGroups(WORLD_COLLISION_GROUPS)
+                .setFriction(groundFriction)
+                .setRestitution(0.02),
+            body
+        );
+        frictionColliders.push(collider);
+
+        const editableMaterial = material.clone();
+        const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(hx * 2, hy * 2, hz * 2),
+            editableMaterial
+        );
+
+        mesh.position.set(x, y, z);
+
+        if (rotation) {
+            mesh.quaternion.set(
+                rotation.x,
+                rotation.y,
+                rotation.z,
+                rotation.w
+            );
+        }
+
+        mesh.receiveShadow = true;
+        mesh.castShadow = true;
+        scene.add(mesh);
+
+        const record = {
+            id: ++editorObjectCounter,
+            name: `Box ${editorObjectCounter}`,
+            type: "box",
+            body, collider, mesh, material: editableMaterial,
+            baseHalfExtents: { x: hx, y: hy, z: hz },
+            baseRadius: null, baseHeight: null,
+            scale: new THREE.Vector3(1, 1, 1),
+            collision: true,
+            originalGroups: WORLD_COLLISION_GROUPS
+        };
+        mesh.userData.editorObject = record;
+        editorObjects.push(record);
+        return record;
+    }
+
+    function staticCylinder(x, y, z, radius, height, material) {
+        const body = world.createRigidBody(
+            RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z)
+        );
+
+        const collider = world.createCollider(
+            RAPIER.ColliderDesc.cylinder(height / 2, radius)
+                .setCollisionGroups(WORLD_COLLISION_GROUPS)
+                .setFriction(groundFriction),
+            body
+        );
+        collider.setShape(new RAPIER.Cylinder(height / 2, radius));
+        frictionColliders.push(collider);
+
+        const editableMaterial = material.clone();
+        const mesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(radius, radius, height, 24),
+            editableMaterial
+        );
+
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+
+        const record = {
+            id: ++editorObjectCounter,
+            name: `Cylinder ${editorObjectCounter}`,
+            type: "cylinder",
+            body, collider, mesh, material: editableMaterial,
+            baseHalfExtents: null,
+            baseRadius: radius, baseHeight: height,
+            scale: new THREE.Vector3(1, 1, 1),
+            collision: true,
+            originalGroups: WORLD_COLLISION_GROUPS
+        };
+        mesh.userData.editorObject = record;
+        editorObjects.push(record);
+        return record;
+    }
+
+    // --------------------------------------------------
+    // ARENA
+    // --------------------------------------------------
+
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(700, 700),
+        materials.ground
+    );
+
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.16;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Physical ground collider: remains in the world but is intentionally not
+    // registered as an editable object, so it can never be selected, moved, or deleted.
+    const groundColliderRecord = staticBox(
+        0, -0.65, 0,
+        350, 0.5, 350,
+        null, materials.ground
+    );
+    const groundRecordIndex = editorObjects.indexOf(groundColliderRecord);
+    if (groundRecordIndex !== -1) editorObjects.splice(groundRecordIndex, 1);
+    groundColliderRecord.mesh.userData.editorObject = null;
+
+    // Main driving strip.
+    staticBox(
+        0, 0.015, 0,
+        10, 0.12, 150,
+        null, materials.road
+    );
+
+    // Road edge markings.
+    for (const x of [-9.2, 9.2]) {
+        staticBox(
+            x, 0.15, 0,
+            0.12, 0.025, 150,
+            null, materials.white
+        );
+    }
+
+    // Dashed centerline.
+    for (let z = -140; z <= 140; z += 12) {
+        staticBox(
+            0, 0.15, z,
+            0.14, 0.025, 4,
+            null, materials.rampTop
+        );
+    }
+
+    // --------------------------------------------------
+    // RAMP BUILDER
+    //
+    // Each ramp is a solid, rotated collider.
+    // The upper face is angled, so the car receives a
+    // physical upward launch from its forward velocity.
+    // --------------------------------------------------
+
+    function makeRamp(x, z, width, length, angleDegrees, color) {
+        const angle = THREE.MathUtils.degToRad(angleDegrees);
+
+        // Ramps rise toward negative Z.
+        // A negative rotation about X raises the -Z end.
+        const rotation = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(-angle, 0, 0)
+        );
+
+        const centerY = -0.35 + Math.sin(angle) * length / 2;
+        const centerZ = z;
+
+        const rampMaterial = new THREE.MeshStandardMaterial({
+            color,
+            roughness: 0.68
+        });
+
+        const result = staticBox(
+            x,
+            centerY,
+            centerZ,
+            width / 2,
+            0.55,
+            length / 2,
+            rotation,
+            rampMaterial
+        );
+
+        return result;
+    }
+
+    // Main launch ramp.
+    makeRamp(0, -53, 9, 17, 23, 0xff8527);
+
+    // A second, smaller launch ramp.
+    makeRamp(0, -100, 8, 14, 18, 0x22a8ff);
+
+    // Side ramps.
+    makeRamp(-24, -20, 8, 14, 22, 0xff4d78);
+    makeRamp(24, -42, 8, 14, 25, 0x9b69ff);
+
+    // Landing platform farther down the track.
+    staticBox(
+        0, 1.4, -113,
+        15, 0.6, 14,
+        null, materials.road
+    );
+
+    // --------------------------------------------------
+    // STUNT OBSTACLES
+    // --------------------------------------------------
+
+    // Collision-enabled pillars.
+    for (let i = 0; i < 9; i++) {
+        const z = -12 - i * 13;
+
+        if (i % 2 === 0) {
+            staticCylinder(
+                -7, 1.7, z,
+                0.8, 3.4,
+                materials.rampTop
+            );
+        } else {
+            staticCylinder(
+                7, 1.7, z,
+                0.8, 3.4,
+                materials.rampTop
+            );
+        }
+    }
+
+    // Boundary walls.
+    staticBox(-36, 2, 0, 0.5, 2, 150, null, materials.dark);
+    staticBox(36, 2, 0, 0.5, 2, 150, null, materials.dark);
+
+    // Remove every decorative mesh that has no registered physics-backed editor
+    // object, including meshes nested inside groups (for example rings and cones).
+    // Keep only the visual ground plane and meshes paired with real arena colliders.
+    // The physical ground collider is intentionally unselectable and stays in world.
+    const collisionBackedMeshes = new Set(editorObjects.map(record => record.mesh));
+    const decorativeMeshes = [];
+    scene.traverse(child => {
+        if (child.isMesh && child !== ground && !collisionBackedMeshes.has(child)) {
+            decorativeMeshes.push(child);
+        }
+    });
+    for (const mesh of decorativeMeshes) {
+        if (mesh.parent) mesh.parent.remove(mesh);
+        if (mesh.geometry && typeof mesh.geometry.dispose === "function") mesh.geometry.dispose();
+    }
+
+    // --------------------------------------------------
+    // CAR MODEL
+    // --------------------------------------------------
+
+    const car = new THREE.Group();
+    scene.add(car);
+
+    const chassis = new THREE.Mesh(
+        new THREE.BoxGeometry(1.9, 0.48, 3.8),
+        new THREE.MeshStandardMaterial({
+            color: 0xe82e42,
+            metalness: 0.48,
+            roughness: 0.24
+        })
+    );
+
+    chassis.position.y = 0.35;
+    chassis.castShadow = true;
+    chassis.userData.isCarPaint = true;
+    car.add(chassis);
+
+    const hood = new THREE.Mesh(
+        new THREE.BoxGeometry(1.7, 0.16, 1.25),
+        new THREE.MeshStandardMaterial({
+            color: 0xff5260,
+            metalness: 0.45,
+            roughness: 0.24
+        })
+    );
+
+    hood.position.set(0, 0.57, -1.0);
+    hood.castShadow = true;
+    hood.userData.isCarPaint = true;
+    car.add(hood);
+
+    const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(1.42, 0.62, 1.7),
+        materials.glass
+    );
+
+    cabin.position.set(0, 0.88, 0.15);
+    cabin.castShadow = true;
+    car.add(cabin);
+
+    const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(1.3, 0.12, 1.35),
+        new THREE.MeshStandardMaterial({
+            color: 0xe82e42,
+            metalness: 0.4,
+            roughness: 0.3
+        })
+    );
+
+    roof.position.set(0, 1.22, 0.15);
+    roof.userData.isCarPaint = true;
+    car.add(roof);
+
+    // Bumpers.
+    for (const z of [-1.95, 1.95]) {
+        const bumper = new THREE.Mesh(
+            new THREE.BoxGeometry(1.8, 0.18, 0.18),
+            materials.metal
+        );
+
+        bumper.position.set(0, 0.16, z);
+        car.add(bumper);
+    }
+
+    // Headlights and tail lights.
+    const headlightMaterial = new THREE.MeshStandardMaterial({
+        color: 0xe7faff,
+        emissive: 0xb9eeff,
+        emissiveIntensity: 1.8
+    });
+
+    const tailMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff162f,
+        emissive: 0xff001b,
+        emissiveIntensity: 1.5
+    });
+
+    for (const x of [-0.65, 0.65]) {
+        const headlight = new THREE.Mesh(
+            new THREE.BoxGeometry(0.36, 0.15, 0.08),
+            headlightMaterial
+        );
+
+        headlight.position.set(x, 0.48, -1.94);
+        car.add(headlight);
+
+        const tail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.36, 0.13, 0.08),
+            tailMaterial
+        );
+
+        tail.position.set(x, 0.43, 1.94);
+        car.add(tail);
+    }
+
+    // Four wheels.
+    const wheels = [];
+
+    for (const x of [-1.0, 1.0]) {
+        for (const z of [-1.25, 1.25]) {
+            const wheel = new THREE.Group();
+
+            const tire = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.42, 0.42, 0.26, 24),
+                materials.tire
+            );
+
+            tire.rotation.z = Math.PI / 2;
+            tire.castShadow = true;
+            wheel.add(tire);
+
+            const rim = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.23, 0.23, 0.28, 12),
+                materials.metal
+            );
+
+            rim.rotation.z = Math.PI / 2;
+            wheel.add(rim);
+
+            wheel.position.set(x, 0.0, z);
+            car.add(wheel);
+
+            wheels.push({
+                group: wheel,
+                x,
+                z,
+                front: z < 0
+            });
+        }
+    }
+
+    // --------------------------------------------------
+    // SIMPLE MOTORCYCLE MODEL
+    // --------------------------------------------------
+
+    const motorcycle = new THREE.Group();
+    scene.add(motorcycle);
+    motorcycle.visible = false;
+
+    function motorcyclePart(geometry, material, position, paint = false) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(position[0], position[1], position[2]);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        if (paint) mesh.userData.isCarPaint = true;
+        motorcycle.add(mesh);
+        return mesh;
+    }
+
+    const motorcyclePaint = new THREE.MeshStandardMaterial({ color: 0xe82e42, metalness: 0.42, roughness: 0.28 });
+    const motorcycleRubber = materials.tire;
+    const motorcycleMetal = materials.metal;
+    // Two inline wheels, with the same forward direction as the car (negative Z).
+    for (const z of [-1.05, 1.05]) {
+        const wheel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.43, 0.43, 0.2, 20),
+            motorcycleRubber
+        );
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(0, 0, z);
+        wheel.castShadow = true;
+        motorcycle.add(wheel);
+    }
+    motorcyclePart(new THREE.BoxGeometry(0.18, 0.72, 1.45), motorcycleMetal, [0, 0.35, 0.02]); // frame
+    motorcyclePart(new THREE.BoxGeometry(0.72, 0.28, 0.82), motorcyclePaint, [0, 0.58, -0.2], true); // tank
+    motorcyclePart(new THREE.BoxGeometry(0.52, 0.16, 0.62), materials.tire, [0, 0.64, 0.52]); // seat
+    motorcyclePart(new THREE.BoxGeometry(0.13, 0.64, 0.13), motorcycleMetal, [0, 0.34, -0.76]); // front fork
+    motorcyclePart(new THREE.BoxGeometry(0.95, 0.08, 0.12), motorcycleMetal, [0, 0.81, -0.82]); // handlebars
+    motorcyclePart(new THREE.BoxGeometry(0.3, 0.22, 0.1), materials.glass, [0, 0.62, -0.82]); // headlamp
+    motorcyclePart(new THREE.BoxGeometry(0.46, 0.12, 0.42), motorcyclePaint.clone(), [0, 0.52, 0.86], true); // rear fender
+
+    // --------------------------------------------------
+    // SIMPLE PLANE MODEL
+    // --------------------------------------------------
+
+    const plane = new THREE.Group();
+    scene.add(plane);
+    plane.visible = false;
+
+    function planePart(geometry, material, position, paint = false) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(position[0], position[1], position[2]);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        if (paint) mesh.userData.isCarPaint = true;
+        plane.add(mesh);
+        return mesh;
+    }
+
+    const planePaintMaterial = new THREE.MeshStandardMaterial({ color: 0xe82e42, metalness: 0.32, roughness: 0.36 });
+    const planeFuselage = planePart(new THREE.BoxGeometry(0.62, 0.62, 4.0), planePaintMaterial, [0, 0, 0], true);
+    planePart(new THREE.BoxGeometry(0.5, 0.32, 0.85), materials.glass, [0, 0.37, -0.45]);
+    planePart(new THREE.BoxGeometry(5.2, 0.13, 1.15), planePaintMaterial.clone(), [0, -0.05, 0.1], true);
+    planePart(new THREE.BoxGeometry(2.0, 0.1, 0.62), planePaintMaterial.clone(), [0, 0.12, 1.42], true);
+    planePart(new THREE.BoxGeometry(0.14, 0.85, 0.58), planePaintMaterial.clone(), [0, 0.48, 1.55], true);
+    planePart(new THREE.BoxGeometry(0.2, 0.2, 0.16), materials.metal, [0, 0, -2.08]);
+    const propeller = new THREE.Group();
+    propeller.position.set(0, 0, -2.17);
+    const propBladeMaterial = new THREE.MeshStandardMaterial({ color: 0x252a32, metalness: 0.5, roughness: 0.35 });
+    const propBladeA = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.45, 0.08), propBladeMaterial);
+    const propBladeB = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.12, 0.08), propBladeMaterial);
+    propBladeA.castShadow = propBladeB.castShadow = true;
+    propeller.add(propBladeA, propBladeB);
+    plane.add(propeller);
+
+    // --------------------------------------------------
+    // PHYSICS CAR BODY
+    // --------------------------------------------------
+
+    const carBodyDesc = RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(0, 1.5, 15)
+        .setCanSleep(false)
+        .setLinearDamping(0.12)
+        .setAngularDamping(1.15);
+
+    const carBody = world.createRigidBody(carBodyDesc);
+
+    // A box is used as the main chassis collider.
+    const carCollider = world.createCollider(
+        RAPIER.ColliderDesc.cuboid(0.88, 0.3, 1.75)
+            .setCollisionGroups(LOCAL_PLAYER_COLLISION_GROUPS)
+            .setMass(1150)
+            .setFriction(groundFriction)
+            .setRestitution(0.04),
+        carBody
+    );
+
+    // Additional colliders protect the car's upper body.
+    world.createCollider(
+        RAPIER.ColliderDesc.cuboid(0.65, 0.28, 0.7)
+            .setCollisionGroups(LOCAL_PLAYER_COLLISION_GROUPS)
+            .setTranslation(0, 0.48, 0.05)
+            .setMass(1)
+            .setFriction(0.6)
+            .setRestitution(0.02),
+        carBody
+    );
+
+    // --------------------------------------------------
+    // INPUT
+    // --------------------------------------------------
+
+    const keys = {};
+    let currentVehicle = "car";
+
+    window.addEventListener("keydown", event => {
+        const isChatInput = event.target === chatInput;
+        const editingSettings = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
+        if (isChatInput) return;
+        // P must always be able to resume, even while a settings field has focus.
+        if (event.code === "KeyP") {
+            event.preventDefault();
+            switchPauseSettings();
+            return;
+        }
+        if (event.code === "Slash" && !editingSettings && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault();
+            openChat();
+            return;
+        }
+        if (editingSettings) return;
+        if (editorMode) {
+            if (event.code === "Escape") exitWorldEditor(false);
+            return;
+        }
+        keys[event.code] = true;
+
+        if (
+            ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]
+                .includes(event.code)
+        ) {
+            event.preventDefault();
+        }
+
+        if (event.code === "KeyR") resetCar();
+
+        if (event.code === "KeyC") {
+            cameraMode = (cameraMode + 1) % 3;
+        }
+    });
+
+    window.addEventListener("keyup", event => {
+        keys[event.code] = false;
+    });
+
+    window.addEventListener("blur", () => {
+        for (const key in keys) keys[key] = false;
+    });
+
+    // --------------------------------------------------
+    // DRIVING PARAMETERS
+    // --------------------------------------------------
+
+    let MAX_SPEED = 43;
+    let BOOST_SPEED = 61;
+    let ACCELERATION = 23;
+    const BRAKE_FORCE = 30;
+    const AIR_CONTROL = 0.65;
+    let JUMP_IMPULSE = 7.0;
+    let boostCapacity = 100;
+    let boostDuration = 100 / 34;
+    let boost = boostCapacity;
+    let jumpCount = 0;
+    let grounded = false;
+    let wasGrounded = false;
+    let jumpPressed = false;
+    let cameraMode = 0;
+    let started = false;
+    let isGamePaused = false;
+    let elapsed = 0;
+    let landingMessageTimer = 0;
+    let impactDisabled = false;
+    const impactVisuals = new Set();
+
+    function createImpactVisual(at) {
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.8, 0.16, 8, 24),
+            new THREE.MeshBasicMaterial({ color: 0xffa33b, transparent: true, opacity: 0.95 })
+        );
+        ring.position.copy(at);
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+        impactVisuals.add(ring);
+        const startTime = performance.now();
+        const frame = () => {
+            const t = Math.min(1, (performance.now() - startTime) / 520);
+            ring.scale.setScalar(1 + t * 3.8);
+            ring.material.opacity = 0.95 * (1 - t);
+            if (t >= 1) {
+                scene.remove(ring);
+                ring.geometry.dispose();
+                ring.material.dispose();
+                impactVisuals.delete(ring);
+            } else requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+    }
+
+    function beginVehicleImpact(vehicleId) {
+        const targetId = String(vehicleId);
+        if (targetId === String(multiplayerPlayerId)) {
+            if (impactDisabled) return;
+            impactDisabled = true;
+            const pose = carBody.translation();
+            createImpactVisual(new THREE.Vector3(pose.x, pose.y, pose.z));
+            car.visible = false;
+            motorcycle.visible = false;
+            plane.visible = false;
+            for (const key in keys) keys[key] = false;
+            return;
+        }
+        const remote = remotePlayers.get(targetId);
+        if (remote && remote.group.visible) {
+            createImpactVisual(remote.group.position.clone());
+            remote.group.visible = false;
+        }
+    }
+
+    function finishVehicleImpact(vehicleId, spawn) {
+        const targetId = String(vehicleId);
+        if (targetId === String(multiplayerPlayerId)) {
+            impactDisabled = false;
+            if (spawn) localSpawnPosition = spawn;
+            resetCar(localSpawnPosition);
+            setVehicle(currentVehicle, false);
+            syncCar();
+            return;
+        }
+        const remote = remotePlayers.get(targetId);
+        if (remote) {
+            remote.group.visible = true;
+            if (spawn) snapRemotePlayerToState({ id: targetId, spawn });
+        }
+    }
+
+    const carPosition = new THREE.Vector3();
+    const carQuaternion = new THREE.Quaternion();
+    const carVelocity = new THREE.Vector3();
+    const upVector = new THREE.Vector3(0, 1, 0);
+    const forwardVector = new THREE.Vector3();
+    const rightVector = new THREE.Vector3();
+    const desiredCameraPosition = new THREE.Vector3();
+    const cameraLookAt = new THREE.Vector3();
+
+    function resetCar(spawn = null) {
+        const spawnPosition = spawn && [spawn.x, spawn.y, spawn.z].every(Number.isFinite)
+            ? spawn
+            : { x: 0, y: currentVehicle === "plane" ? 2.8 : 1.5, z: 15 };
+        carBody.setTranslation(
+            { x: spawnPosition.x, y: spawnPosition.y, z: spawnPosition.z },
+            true
+        );
+
+        carBody.setRotation(
+            { x: 0, y: 0, z: 0, w: 1 },
+            true
+        );
+
+        carBody.setLinvel(
+            { x: 0, y: 0, z: 0 },
+            true
+        );
+
+        carBody.setAngvel(
+            { x: 0, y: 0, z: 0 },
+            true
+        );
+        // Re-apply the selected vehicle's gravity mode and wake the body after a reset.
+        carBody.setGravityScale(currentVehicle === "plane" ? 0 : 1, true);
+        carBody.wakeUp();
+
+        boost = boostCapacity;
+        jumpPressed = false;
+        jumpCount = 0;
+        grounded = false;
+        wasGrounded = false;
+    }
+
+    function setVehicle(vehicle, shouldReset = true) {
+        const nextVehicle = ["plane", "motorcycle"].includes(vehicle) ? vehicle : "car";
+        const changed = currentVehicle !== nextVehicle;
+        currentVehicle = nextVehicle;
+        // Planes are not affected by world gravity; cars retain normal gravity.
+        carBody.setGravityScale(currentVehicle === "plane" ? 0 : 1, true);
+        car.visible = !impactDisabled && currentVehicle === "car";
+        motorcycle.visible = !impactDisabled && currentVehicle === "motorcycle";
+        plane.visible = !impactDisabled && currentVehicle === "plane";
+        document.getElementById("selectCarVehicle").classList.toggle("selectedVehicle", currentVehicle === "car");
+        document.getElementById("selectMotorcycleVehicle").classList.toggle("selectedVehicle", currentVehicle === "motorcycle");
+        document.getElementById("selectPlaneVehicle").classList.toggle("selectedVehicle", currentVehicle === "plane");
+        document.getElementById("planeControlsHelp").style.display = currentVehicle === "plane" ? "inline" : "none";
+        document.getElementById("carControlsHelp").style.display = currentVehicle === "plane" ? "none" : "inline";
+        document.getElementById("pauseControls").querySelector("h3").textContent = currentVehicle === "plane" ? "FLIGHT CONTROLS" : "DRIVING CONTROLS";
+        document.getElementById("status").textContent = currentVehicle === "plane" ? "FLIGHT READY" : "READY";
+        if (shouldReset && changed) resetVehicleForSwitch();
+    }
+
+    // Vehicle switching resets the single shared physics body from scratch,
+    // clearing all previous motion before showing the selected vehicle.
+    function resetVehicleForSwitch() {
+        for (const key in keys) keys[key] = false;
+        jumpPressed = false;
+        jumpCount = 0;
+        grounded = false;
+        wasGrounded = false;
+        const spawn = multiplayerIsConnected()
+            ? {
+                x: Number.isFinite(Number(localSpawnPosition.x)) ? Number(localSpawnPosition.x) : 0,
+                y: currentVehicle === "plane"
+                    ? Math.max(2.8, Number(localSpawnPosition.y) || 0)
+                    : (Number(localSpawnPosition.y) || 1.5),
+                z: Number.isFinite(Number(localSpawnPosition.z)) ? Number(localSpawnPosition.z) : 15
+            }
+            : { x: 0, y: currentVehicle === "plane" ? 2.8 : 1.5, z: 15 };
+        carBody.setGravityScale(currentVehicle === "plane" ? 0 : 1, true);
+        carBody.setTranslation(spawn, true);
+        carBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+        carBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        carBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        carBody.wakeUp();
+        boost = boostCapacity;
+        syncCar();
+        if (multiplayerIsConnected()) sendMultiplayerState(performance.now());
+    }
+
+    function applyLocalForce(x, y, z) {
+        const localForce = new THREE.Vector3(x, y, z);
+        localForce.applyQuaternion(carQuaternion);
+
+        carBody.applyImpulse(
+            {
+                x: localForce.x,
+                y: localForce.y,
+                z: localForce.z
+            },
+            true
+        );
+    }
+
+    // --------------------------------------------------
+    // SIMPLE SUSPENSION / WHEEL CONTACT DETECTION
+    //
+    // Raycasts detect the ground under the four wheels.
+    // Suspension impulses keep the chassis supported and
+    // let it pitch naturally over ramps.
+    // --------------------------------------------------
+
+    function updateSuspension() {
+        const t = carBody.translation();
+        const q = carBody.rotation();
+
+        carPosition.set(t.x, t.y, t.z);
+        carQuaternion.set(q.x, q.y, q.z, q.w);
+
+        if (currentVehicle === "plane") {
+            grounded = false;
+            return 0;
+        }
+
+        let contactCount = 0;
+
+        const localWheelPositions = [
+            [-0.78, -0.18, -1.35],
+            [ 0.78, -0.18, -1.35],
+            [-0.78, -0.18,  1.35],
+            [ 0.78, -0.18,  1.35]
+        ];
+
+        const rayDirection = { x: 0, y: -1, z: 0 };
+
+        for (const local of localWheelPositions) {
+            const offset = new THREE.Vector3(
+                local[0], local[1], local[2]
+            ).applyQuaternion(carQuaternion);
+
+            const origin = {
+                x: t.x + offset.x,
+                y: t.y + offset.y,
+                z: t.z + offset.z
+            };
+
+            const ray = new RAPIER.Ray(origin, rayDirection);
+
+            const hit = world.castRay(
+                ray,
+                0.55,
+                true,
+                undefined,
+                undefined,
+                undefined,
+                carBody
+            );
+
+            if (hit) {
+                const distance = hit.timeOfImpact;
+
+                if (distance < 0.5) {
+                    contactCount++;
+
+                    const springCompression = 0.5 - distance;
+                    const verticalVelocity = carBody.linvel().y;
+
+                    const springForce = Math.max(
+                        0,
+                        springCompression * 23000 -
+                        verticalVelocity * 1400
+                    );
+
+                    const suspensionImpulse = Math.min(
+                        springForce / 120,
+                        240
+                    );
+
+                    carBody.applyImpulseAtPoint(
+                        {
+                            x: 0,
+                            y: suspensionImpulse,
+                            z: 0
+                        },
+                        origin,
+                        true
+                    );
+                }
+            }
+        }
+
+        grounded = contactCount >= 2;
+
+        // Extra stability from aerodynamic damping.
+        const velocity = carBody.linvel();
+
+        if (!grounded && velocity.y < 0) {
+            // Air drag increases gently with speed.
+            const drag = 0.0012 * velocity.y * velocity.y;
+
+            carBody.applyImpulse(
+                {
+                    x: -velocity.x * 0.002,
+                    y: 0,
+                    z: -velocity.z * 0.002
+                },
+                true
+            );
+
+            // The car remains free to fall under gravity.
+            void drag;
+        }
+
+        return contactCount;
+    }
+
+    // --------------------------------------------------
+    // GAMEPLAY
+    // --------------------------------------------------
+
+    function updateDriving(dt) {
+        if (currentVehicle === "plane") {
+            updatePlaneFlight(dt);
+            return;
+        }
+        const linvel = carBody.linvel();
+
+        carVelocity.set(linvel.x, linvel.y, linvel.z);
+
+        const horizontalSpeed = Math.hypot(
+            linvel.x,
+            linvel.z
+        );
+
+        forwardVector.set(0, 0, -1)
+            .applyQuaternion(carQuaternion);
+
+        rightVector.set(1, 0, 0)
+            .applyQuaternion(carQuaternion);
+
+        const throttle = (keys.KeyW || keys.ArrowUp) ? 1 : 0;
+        const brake = (keys.KeyS || keys.ArrowDown) ? 1 : 0;
+
+        const steering =
+            ((keys.KeyA || keys.ArrowLeft) ? 1 : 0) -
+            ((keys.KeyD || keys.ArrowRight) ? 1 : 0);
+
+        const boosting =
+            keys.ShiftLeft ||
+            keys.ShiftRight;
+
+        const jumpDown = keys.Space;
+
+        // Jump is edge-triggered: hold SPACE to jump once.
+        if (jumpDown && !jumpPressed && grounded) {
+            applyLocalForce(0, JUMP_IMPULSE * 1150, 0);
+            grounded = false;
+        }
+
+        jumpPressed = jumpDown;
+
+        // Boost recharges when not in use.
+        if (boosting && boost > 0 && throttle) {
+            boost = Math.max(0, boost - (boostCapacity / boostDuration) * dt);
+        } else {
+            boost = Math.min(boostCapacity, boost + (boostCapacity / (100 / 11)) * dt);
+        }
+
+        const boostingNow =
+            boosting && boost > 0 && throttle;
+
+        const maxSpeed = boostingNow
+            ? BOOST_SPEED
+            : MAX_SPEED;
+
+        // Engine force follows the car's forward axis.
+        if (throttle && horizontalSpeed < maxSpeed) {
+            const force = ACCELERATION *
+                (boostingNow ? 1.65 : 1) *
+                dt * 1150;
+
+            const direction = forwardVector.clone();
+
+            if (!grounded) {
+                direction.multiplyScalar(0.4);
+            }
+
+            carBody.applyImpulse(
+                {
+                    x: direction.x * force,
+                    y: direction.y * force,
+                    z: direction.z * force
+                },
+                true
+            );
+        }
+
+        // Brake while moving forward; reverse once nearly stopped.
+        const forwardSpeed = carVelocity.dot(forwardVector);
+
+        if (brake && forwardSpeed > 0.2) {
+            const brakeAmount = Math.min(
+                BRAKE_FORCE * dt,
+                forwardSpeed
+            );
+
+            carBody.applyImpulse(
+                {
+                    x: -forwardVector.x * brakeAmount * 1150,
+                    y: 0,
+                    z: -forwardVector.z * brakeAmount * 1150
+                },
+                true
+            );
+        }
+
+        // Holding S drives the car backward after it slows down.
+        if (brake && forwardSpeed <= 0.2) {
+            applyLocalForce(0, 0, 13 * dt * 1150);
+        }
+
+        // Steering authority decreases at low speed and
+        // is reduced while airborne.
+
+        const steeringFactor = Math.min(
+            1,
+            Math.abs(forwardSpeed) / 5
+        );
+
+        if (Math.abs(forwardSpeed) > 0.3) {
+            const yawTorque =
+                steering *
+                steeringFactor *
+                (grounded ? 4.8 : AIR_CONTROL * 2.0) *
+                Math.sign(forwardSpeed);
+
+            carBody.applyTorqueImpulse(
+                { x: 0, y: yawTorque * dt * 1150, z: 0 },
+                true
+            );
+        }
+
+        // Ground friction limits sideways sliding.
+        if (grounded) {
+            const lateralSpeed = carVelocity.dot(rightVector);
+
+            carBody.applyImpulse(
+                {
+                    x: -rightVector.x * lateralSpeed * (5.0 * groundFriction / 0.95) * dt * 1150,
+                    y: 0,
+                    z: -rightVector.z * lateralSpeed * (5.0 * groundFriction / 0.95) * dt * 1150
+                },
+                true
+            );
+
+            // Keep extreme ground roll and pitch under control.
+            const angvel = carBody.angvel();
+
+            carBody.applyTorqueImpulse(
+                {
+                    x: -angvel.x * 20 * dt * 1150,
+                    y: 0,
+                    z: -angvel.z * 20 * dt * 1150
+                },
+                true
+            );
+        } else {
+            // Natural aerodynamic stabilization.
+            const angular = carBody.angvel();
+
+            carBody.applyTorqueImpulse(
+                {
+                    x: -angular.x * 0.7 * dt * 1150,
+                    y: -angular.y * 0.15 * dt * 1150,
+                    z: -angular.z * 0.7 * dt * 1150
+                },
+                true
+            );
+        }
+
+        // Keep the car inside the play area.
+        if (Math.abs(carPosition.x) > 33) {
+            carBody.applyImpulse(
+                {
+                    x: -Math.sign(carPosition.x) * 12,
+                    y: 0,
+                    z: 0
+                },
+                true
+            );
+        }
+
+        // Reset if the car falls out of the world.
+        if (carPosition.y < -15) {
+            resetCar();
+        }
+
+        if (horizontalSpeed > 1 && grounded && !wasGrounded) {
+            landingMessageTimer = 1.5;
+        }
+
+        wasGrounded = grounded;
+
+        if (landingMessageTimer > 0) {
+            landingMessageTimer -= dt;
+        }
+    }
+
+    function updatePlaneFlight(dt) {
+        const t = carBody.translation();
+        const q = carBody.rotation();
+        carPosition.set(t.x, t.y, t.z);
+        carQuaternion.set(q.x, q.y, q.z, q.w).normalize();
+        const linvel = carBody.linvel();
+        carVelocity.set(linvel.x, linvel.y, linvel.z);
+        forwardVector.set(0, 0, -1).applyQuaternion(carQuaternion).normalize();
+        // Keep aircraft motion aligned with its nose so old lateral momentum cannot
+        // carry it sideways when the player changes pitch or heading.
+        const forwardSpeed = Math.max(0, carVelocity.dot(forwardVector));
+        carVelocity.copy(forwardVector).multiplyScalar(forwardSpeed);
+        carBody.setLinvel({ x: carVelocity.x, y: carVelocity.y, z: carVelocity.z }, true);
+        const speed = forwardSpeed;
+        const pitchInput = ((keys.KeyW || keys.ArrowUp) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 1 : 0);
+        // Positive roll torque banks left, so invert the input mapping accordingly.
+        const bankInput = ((keys.KeyA || keys.ArrowLeft) ? 1 : 0) - ((keys.KeyD || keys.ArrowRight) ? 1 : 0);
+
+        // SPACE is the plane's throttle; releasing it stops powered acceleration.
+        if (keys.Space) {
+            const thrust = 19.5 * dt * 1150;
+            carBody.applyImpulse({ x: forwardVector.x * thrust, y: forwardVector.y * thrust, z: forwardVector.z * thrust }, true);
+        }
+
+        // Gravity is disabled for the plane, so do not add artificial upward lift.
+        // Pitching the nose up redirects thrust upward; level flight keeps its altitude.
+
+        // Pitch and bank are controlled by the pilot; when released, spring-like torque
+        // gently levels the aircraft without preventing a deliberate climb or turn.
+        const euler = new THREE.Euler().setFromQuaternion(carQuaternion, "YXZ");
+        const angular = carBody.angvel();
+        const localAngular = new THREE.Vector3(angular.x, angular.y, angular.z).applyQuaternion(carQuaternion.clone().invert());
+        const pitchTorque = pitchInput * 10.5 - (pitchInput ? euler.x * 2.2 : euler.x * 13.5) - localAngular.x * 4.5;
+        const rollTorque = bankInput * 9.0 - (bankInput ? euler.z * 1.2 : euler.z * 12.0) - localAngular.z * 4.0;
+        const yawTorque = bankInput * 2.5 - localAngular.y * 1.4;
+        const localTorque = new THREE.Vector3(pitchTorque, yawTorque, rollTorque).applyQuaternion(carQuaternion);
+        carBody.applyTorqueImpulse({ x: localTorque.x * dt * 1150, y: localTorque.y * dt * 1150, z: localTorque.z * dt * 1150 }, true);
+
+        // Light drag prevents unlimited speed while retaining enough momentum to glide.
+        carBody.applyImpulse({ x: -linvel.x * 0.0018 * dt * 1150, y: -linvel.y * 0.0005 * dt * 1150, z: -linvel.z * 0.0018 * dt * 1150 }, true);
+        if (Math.abs(carPosition.x) > 33) carBody.applyImpulse({ x: -Math.sign(carPosition.x) * 12, y: 0, z: 0 }, true);
+        if (carPosition.y < -15) resetCar();
+        boost = Math.min(boostCapacity, boost + (boostCapacity / (100 / 11)) * dt);
+        grounded = false;
+        wasGrounded = false;
+    }
+
+    // --------------------------------------------------
+    // VISUAL SYNCHRONIZATION
+    // --------------------------------------------------
+
+    function syncCar() {
+        const t = carBody.translation();
+        const q = carBody.rotation();
+
+        car.position.set(t.x, t.y, t.z);
+        car.quaternion.set(q.x, q.y, q.z, q.w);
+        car.visible = !impactDisabled && currentVehicle === "car";
+        motorcycle.visible = !impactDisabled && currentVehicle === "motorcycle";
+        plane.visible = !impactDisabled && currentVehicle === "plane";
+        motorcycle.position.copy(car.position);
+        motorcycle.quaternion.copy(car.quaternion);
+        plane.position.copy(car.position);
+        plane.quaternion.copy(car.quaternion);
+        propeller.rotation.z += currentVehicle === "plane" ? Math.max(0.12, Math.hypot(carBody.linvel().x, carBody.linvel().z) * 0.09) : 0;
+
+        const linvel = carBody.linvel();
+        const speed = Math.round(
+            (currentVehicle === "plane" ? Math.hypot(linvel.x, linvel.y, linvel.z) : Math.hypot(linvel.x, linvel.z)) * 3.6
+        );
+
+        document.getElementById("speed").textContent =
+            speed + " km/h";
+
+        document.getElementById("boostFill").style.width =
+            (boostCapacity > 0 ? (boost / boostCapacity) * 100 : 0) + "%";
+
+        document.getElementById("jumps").textContent =
+            jumpCount;
+
+        document.getElementById("status").textContent = currentVehicle === "plane"
+            ? (carBody.linvel().y > 1.5 ? "CLIMBING" : carBody.linvel().y < -1.5 ? "DESCENDING" : "FLYING")
+            : (!grounded ? "AIRBORNE" : speed > 3 ? "DRIVING" : "READY");
+
+        // Rotate wheels according to speed.
+        for (const wheel of wheels) {
+            const tire = wheel.group.children[0];
+
+            tire.rotation.x += -linvel.z * 0.02;
+        }
+
+        // Keep the car visually aligned with the rigid body.
+    }
+
+    // --------------------------------------------------
+    // MULTIPLAYER CLIENT SUPPORT
+    //
+    // The game connects to a separate WebSocket server. The
+    // hosting/server implementation will be created separately.
+    // Expected server messages are JSON objects using the types
+    // "welcome", "players", "player_joined", "player_state",
+    // and "player_left". State messages contain id, name, position,
+    // and quaternion fields.
+    // --------------------------------------------------
+
+    let multiplayerSocket = null;
+    let multiplayerPlayerId = null;
+    let partyLeaderId = null;
+    let isPartyLeader = false;
+    let worldEditAccessOpen = false;
+    let stagedWorldEditAccess = null;
+    let localSpawnPosition = { x: 0, y: 1.5, z: 15 };
+    let lastNetworkSend = 0;
+    let lastWorldRevision = 0;
+    const remotePlayers = new Map();
+    const lobbyPlayers = new Map();
+    // Tracks only outstanding kick requests; the server remains authoritative.
+    const kickButtonRequests = new Map();
+    const multiplayerMenu = document.getElementById("multiplayerMenu");
+    const multiplayerStatus = document.getElementById("multiplayerStatus");
+
+    function setMultiplayerStatus(text) {
+        multiplayerStatus.textContent = text;
+    }
+
+    function multiplayerIsConnected() {
+        return !!(multiplayerSocket && multiplayerSocket.readyState === WebSocket.OPEN && multiplayerPlayerId != null);
+    }
+
+    function clientMayEditArena() {
+        return !multiplayerIsConnected() || isPartyLeader || worldEditAccessOpen;
+    }
+
+    function updatePauseEditorButton() {
+        const editorButton = document.getElementById("pauseEditorButton");
+        editorButton.textContent = editorPlayTesting ? "RETURN TO EDITOR" : "WORLD EDITOR";
+        editorButton.hidden = !clientMayEditArena();
+        document.getElementById("lobbyLeaderPanel").style.display = multiplayerIsConnected() ? "block" : "none";
+        renderLobbyLeaderPanel();
+    }
+
+    function renderLobbyLeaderPanel() {
+        const panel = document.getElementById("lobbyLeaderPanel");
+        const title = document.getElementById("lobbyRoleTitle");
+        const status = document.getElementById("lobbyRoleStatus");
+        const list = document.getElementById("lobbyPlayerList");
+        if (!panel || !title || !status || !list) return;
+        const connected = multiplayerIsConnected();
+        panel.style.display = connected ? "block" : "none";
+        title.textContent = isPartyLeader ? "PARTY LEADER" : "LOBBY PLAYERS";
+        const leader = lobbyPlayers.get(String(partyLeaderId));
+        status.textContent = isPartyLeader
+            ? "You are the party leader. You can edit the arena and kick players. Changes publish when you press PLAY TEST."
+            : `Party leader: ${leader ? leader.name : "Waiting for leader info…"}`;
+        const permissionRow = document.getElementById("worldEditPermissionRow");
+        const permissionToggle = document.getElementById("allowAnyoneWorldEdit");
+        const mayChangeAccess = multiplayerIsConnected() && isPartyLeader;
+        permissionRow.style.display = mayChangeAccess ? "block" : "none";
+        permissionToggle.disabled = !mayChangeAccess;
+        permissionToggle.checked = stagedWorldEditAccess === null
+            ? worldEditAccessOpen
+            : stagedWorldEditAccess === true;
+        list.replaceChildren();
+        const ordered = [...lobbyPlayers.values()].sort((a, b) => {
+            if (String(a.id) === String(partyLeaderId)) return -1;
+            if (String(b.id) === String(partyLeaderId)) return 1;
+            return String(a.name).localeCompare(String(b.name));
+        });
+        for (const player of ordered) {
+            const row = document.createElement("div");
+            row.className = "lobbyPlayerRow";
+            const name = document.createElement("span");
+            name.className = "lobbyPlayerName";
+            const isSelf = String(player.id) === String(multiplayerPlayerId);
+            name.textContent = `${player.name || "Player"}${isSelf ? " (you)" : ""}${String(player.id) === String(partyLeaderId) ? " ★" : ""}`;
+            row.appendChild(name);
+            if (isPartyLeader && !isSelf) {
+                const kick = document.createElement("button");
+                kick.className = "lobbyKickButton";
+                kick.textContent = "KICK";
+                kick.addEventListener("click", () => {
+                    if (!multiplayerIsConnected() || !isPartyLeader) return;
+                    if (!confirm(`Kick ${player.name || "this player"} from the lobby?`)) return;
+                    kick.disabled = true;
+                    kick.textContent = "KICKING…";
+                    setMultiplayerStatus(`Requesting to kick ${player.name || "player"}…`);
+                    try {
+                        const requestId = `kick-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                        kickButtonRequests.set(requestId, { targetId: String(player.id), name: String(player.name || "player") });
+                        multiplayerSocket.send(JSON.stringify({ type: "kick_request", requestId, targetId: String(player.id) }));
+                    } catch (error) {
+                        kick.disabled = false;
+                        kick.textContent = "KICK";
+                        setMultiplayerStatus("Could not send kick request. Check the connection.");
+                    }
+                });
+                row.appendChild(kick);
+            }
+            list.appendChild(row);
+        }
+    }
+
+    function updateLobbyPlayer(player) {
+        if (!player || player.id == null) return;
+        lobbyPlayers.set(String(player.id), {
+            id: String(player.id),
+            name: String(player.name || "Player").slice(0, 20),
+            color: player.color || "#e82e42",
+            spawn: player.spawn || null
+        });
+        renderLobbyLeaderPanel();
+    }
+
+    function setPartyLeader(leaderId) {
+        const nextLeader = leaderId == null ? null : String(leaderId);
+        const leadershipChanged = nextLeader !== partyLeaderId;
+        partyLeaderId = nextLeader;
+        isPartyLeader = Boolean(multiplayerPlayerId && partyLeaderId === String(multiplayerPlayerId));
+        if (!isPartyLeader) stagedWorldEditAccess = null;
+        updatePauseEditorButton();
+        if (leadershipChanged && editorMode && !clientMayEditArena()) {
+            editorSetStatus("Editor access is no longer available to this player.");
+            exitWorldEditor(false);
+        }
+    }
+
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const chatForm = document.getElementById("chatForm");
+    const chatSendButton = document.getElementById("chatSendButton");
+    let chatIsOpen = false;
+
+    function addChatLine(name, text, isSystem = false) {
+        const line = document.createElement("div");
+        line.className = isSystem ? "chatLine chatSystem" : "chatLine";
+        if (isSystem) {
+            line.textContent = text;
+        } else {
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "chatName";
+            nameSpan.textContent = (String(name || "Player").slice(0, 20)) + ": ";
+            const textSpan = document.createElement("span");
+            textSpan.textContent = String(text || "").slice(0, 200);
+            line.append(nameSpan, textSpan);
+        }
+        chatMessages.appendChild(line);
+        while (chatMessages.children.length > 40) chatMessages.firstElementChild.remove();
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function setChatConnected(connected) {
+        chatInput.disabled = !connected;
+        chatSendButton.disabled = !connected;
+        chatInput.placeholder = connected ? "Type a message…" : "Connect to chat first…";
+    }
+
+    function openChat() {
+        if (!started || isGamePaused || document.getElementById("multiplayerMenu").style.display === "flex") return;
+        if (!multiplayerSocket || multiplayerSocket.readyState !== WebSocket.OPEN || multiplayerPlayerId == null) {
+            addChatLine("Chat", "Connect to a multiplayer server before chatting.", true);
+            return;
+        }
+        chatIsOpen = true;
+        chatInput.disabled = false;
+        chatSendButton.disabled = false;
+        chatInput.focus();
+    }
+
+    function closeChat() {
+        chatIsOpen = false;
+        chatInput.blur();
+        chatInput.value = "";
+        setChatConnected(!!(multiplayerSocket && multiplayerSocket.readyState === WebSocket.OPEN && multiplayerPlayerId != null));
+    }
+
+    chatForm.addEventListener("submit", event => {
+        event.preventDefault();
+        const text = chatInput.value.trim().slice(0, 200);
+        if (!text) { closeChat(); return; }
+        if (!multiplayerSocket || multiplayerSocket.readyState !== WebSocket.OPEN || multiplayerPlayerId == null) {
+            addChatLine("Chat", "Not connected to a multiplayer server.", true);
+            closeChat();
+            return;
+        }
+        multiplayerSocket.send(JSON.stringify({ type: "chat_message", text }));
+        chatInput.value = "";
+        closeChat();
+    });
+
+    chatInput.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeChat();
+        }
+        // Enter submits the form and sends the message.
+    });
+
+    setChatConnected(false);
+    addChatLine("Chat", "Press / to chat after connecting to multiplayer.", true);
+
+    const multiplayerColorInput = document.getElementById("multiplayerColorInput");
+    const multiplayerColorValue = document.getElementById("multiplayerColorValue");
+
+    function getSelectedCarColor() {
+        const value = multiplayerColorInput.value;
+        return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : "#e82e42";
+    }
+
+    function applyCarPaintColor(group, color) {
+        if (!group || !/^#[0-9a-f]{6}$/i.test(String(color || ""))) return;
+        group.traverse(object => {
+            if (object.isMesh && object.userData.isCarPaint && object.material && object.material.color) {
+                object.material.color.set(color);
+            }
+        });
+    }
+
+    multiplayerColorInput.addEventListener("input", () => {
+        const color = getSelectedCarColor();
+        multiplayerColorValue.textContent = color;
+        applyCarPaintColor(car, color);
+        applyCarPaintColor(motorcycle, color);
+        applyCarPaintColor(plane, color);
+    });
+    multiplayerColorInput.addEventListener("change", () => {
+        const color = getSelectedCarColor();
+        multiplayerColorValue.textContent = color;
+        applyCarPaintColor(car, color);
+        applyCarPaintColor(motorcycle, color);
+        applyCarPaintColor(plane, color);
+    });
+    applyCarPaintColor(car, getSelectedCarColor());
+    applyCarPaintColor(motorcycle, getSelectedCarColor());
+    applyCarPaintColor(plane, getSelectedCarColor());
+
+    function makePlayerNameSprite(name) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 128;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "rgba(10,20,35,0.78)";
+        ctx.fillRect(8, 8, 496, 112);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(8, 8, 496, 112);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 44px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(name || "Player").slice(0, 20), 256, 64, 460);
+        const texture = new THREE.CanvasTexture(canvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false
+        }));
+        sprite.scale.set(4.2, 1.05, 1);
+        sprite.position.set(0, 2.4, 0);
+        return sprite;
+    }
+
+    function cloneVehicleVisual(vehicleType, color, name) {
+        const source = vehicleType === "plane" ? plane : vehicleType === "motorcycle" ? motorcycle : car;
+        const group = source.clone(true);
+        group.visible = true;
+        group.traverse(object => {
+            if (object.isMesh) {
+                object.castShadow = true;
+                object.receiveShadow = true;
+
+                // Remote models must own BOTH geometry and materials. Object3D.clone()
+                // shares geometry by default; disposing a departing player's model would
+                // otherwise dispose buffers still used by the local car and other players.
+                if (object.geometry) object.geometry = object.geometry.clone();
+                if (Array.isArray(object.material)) {
+                    object.material = object.material.map(material => material.clone());
+                } else if (object.material) {
+                    object.material = object.material.clone();
+                }
+            }
+        });
+        applyCarPaintColor(group, color || "#e82e42");
+        group.add(makePlayerNameSprite(name));
+        return group;
+    }
+
+    function createRemotePlayer(id, name, color, vehicleType = "car") {
+        if (remotePlayers.has(id) || id === multiplayerPlayerId) return remotePlayers.get(id);
+
+        const group = cloneVehicleVisual(vehicleType, color || "#e82e42", name);
+        scene.add(group);
+
+        // Remote vehicles use kinematic collision proxies. Their authoritative pose
+        // comes from network snapshots, not this device's gravity/physics world.
+        // They still collide with local/remote car colliders, but cannot fall
+        // through the ground or be pushed off their network-reported trajectory.
+        const initialPosition = group.position;
+        const body = world.createRigidBody(
+            RAPIER.RigidBodyDesc.kinematicPositionBased()
+                .setTranslation(initialPosition.x, initialPosition.y, initialPosition.z)
+        );
+        const collider = world.createCollider(
+            RAPIER.ColliderDesc.cuboid(0.88, 0.3, 1.75)
+                .setCollisionGroups(REMOTE_PLAYER_COLLISION_GROUPS)
+                .setMass(1150)
+                .setFriction(0.85)
+                .setRestitution(0.18),
+            body
+        );
+        world.createCollider(
+            RAPIER.ColliderDesc.cuboid(0.65, 0.28, 0.7)
+                .setCollisionGroups(REMOTE_PLAYER_COLLISION_GROUPS)
+                .setTranslation(0, 0.48, 0.05)
+                .setMass(1)
+                .setFriction(0.6)
+                .setRestitution(0.12),
+            body
+        );
+
+        const player = {
+            id,
+            group,
+            body,
+            collider,
+            name: String(name || "Player").slice(0, 20),
+            color: /^#[0-9a-f]{6}$/i.test(String(color || "")) ? String(color).toLowerCase() : "#e82e42",
+            vehicleType: ["plane", "motorcycle"].includes(vehicleType) ? vehicleType : "car",
+            targetPosition: new THREE.Vector3(),
+            targetQuaternion: new THREE.Quaternion(),
+            targetVelocity: new THREE.Vector3(),
+            snapshots: [],
+            renderPosition: new THREE.Vector3(initialPosition.x, initialPosition.y, initialPosition.z),
+            renderQuaternion: new THREE.Quaternion(),
+            lastImpactRequestAt: 0,
+            lastNetworkPosition: new THREE.Vector3(),
+            hasNetworkPosition: false
+        };
+        remotePlayers.set(id, player);
+        return player;
+    }
+
+    function removeRemotePlayer(id) {
+        const player = remotePlayers.get(id);
+        if (!player) return;
+        scene.remove(player.group);
+        if (player.body) world.removeRigidBody(player.body);
+        player.group.traverse(object => {
+            if (object.geometry) object.geometry.dispose();
+            if (object.material) {
+                const materials = Array.isArray(object.material) ? object.material : [object.material];
+                for (const material of materials) {
+                    if (material.map) material.map.dispose();
+                    material.dispose();
+                }
+            }
+        });
+        remotePlayers.delete(id);
+    }
+
+    function applyRemotePlayerState(data) {
+        if (!data || data.id == null || String(data.id) === String(multiplayerPlayerId)) return;
+        const requestedVehicle = ["plane", "motorcycle"].includes(data.vehicleType) ? data.vehicleType : "car";
+        const player = createRemotePlayer(String(data.id), data.name || "Player", data.color || "#e82e42", requestedVehicle);
+        if (!player) return;
+        if (player.vehicleType !== requestedVehicle) {
+            const oldGroup = player.group;
+            scene.remove(oldGroup);
+            oldGroup.traverse(object => {
+                if (object.geometry) object.geometry.dispose();
+                if (object.material) {
+                    const mats = Array.isArray(object.material) ? object.material : [object.material];
+                    for (const mat of mats) { if (mat.map) mat.map.dispose(); mat.dispose(); }
+                }
+            });
+            player.group = cloneVehicleVisual(requestedVehicle, player.color, player.name);
+            scene.add(player.group);
+            player.vehicleType = requestedVehicle;
+        }
+
+        if (data.color && /^#[0-9a-f]{6}$/i.test(data.color) && player.color !== data.color.toLowerCase()) {
+            player.color = data.color.toLowerCase();
+            applyCarPaintColor(player.group, player.color);
+        }
+        if (data.name && player.name !== data.name) {
+            player.name = String(data.name).slice(0, 20);
+            const oldLabel = player.group.children.find(child => child.isSprite);
+            if (oldLabel) {
+                player.group.remove(oldLabel);
+                if (oldLabel.material.map) oldLabel.material.map.dispose();
+                oldLabel.material.dispose();
+            }
+            player.group.add(makePlayerNameSprite(player.name));
+        }
+
+        const firstSnapshot = !player.hasNetworkPosition;
+        const timestamp = performance.now();
+        let gotPosition = false;
+
+        if (data.position && [data.position.x, data.position.y, data.position.z].every(Number.isFinite)) {
+            player.targetPosition.set(data.position.x, data.position.y, data.position.z);
+            player.lastNetworkPosition.copy(player.targetPosition);
+            gotPosition = true;
+        }
+        if (data.velocity && [data.velocity.x, data.velocity.y, data.velocity.z].every(Number.isFinite)) {
+            player.targetVelocity.set(data.velocity.x, data.velocity.y, data.velocity.z);
+        }
+        if (data.quaternion && [data.quaternion.x, data.quaternion.y, data.quaternion.z, data.quaternion.w].every(Number.isFinite)) {
+            player.targetQuaternion.set(data.quaternion.x, data.quaternion.y, data.quaternion.z, data.quaternion.w).normalize();
+        }
+
+        if (gotPosition) {
+            const snapshot = {
+                time: timestamp,
+                position: player.targetPosition.clone(),
+                quaternion: player.targetQuaternion.clone(),
+                velocity: player.targetVelocity.clone()
+            };
+            player.snapshots.push(snapshot);
+            // Keep a short history for smooth interpolation through packet jitter.
+            if (player.snapshots.length > 24) player.snapshots.splice(0, player.snapshots.length - 24);
+
+            if (firstSnapshot) {
+                player.body.setTranslation(snapshot.position, true);
+                player.body.setRotation(snapshot.quaternion, true);
+                player.renderPosition.copy(snapshot.position);
+                player.renderQuaternion.copy(snapshot.quaternion);
+                player.group.position.copy(snapshot.position);
+                player.group.quaternion.copy(snapshot.quaternion);
+                player.hasNetworkPosition = true;
+            }
+        }
+    }
+
+    function handleMultiplayerMessage(message) {
+        if (!message || typeof message !== "object") return;
+        if (message.type === "welcome") {
+            if (message.id != null) multiplayerPlayerId = String(message.id);
+            if (Array.isArray(message.world)) {
+                replaceWorldSnapshot(message.world);
+                lastWorldRevision = Number(message.worldRevision) || 0;
+            }
+            lobbyPlayers.clear();
+            if (message.player) updateLobbyPlayer(message.player);
+            if (Array.isArray(message.players)) {
+                message.players.forEach(player => {
+                    updateLobbyPlayer(player);
+                    applyRemotePlayerState(player);
+                });
+            }
+            if (message.player) {
+                localSpawnPosition = message.player.spawn || message.spawn || localSpawnPosition;
+                updateLobbyPlayer(message.player);
+            } else if (message.spawn) {
+                localSpawnPosition = message.spawn;
+            }
+            worldEditAccessOpen = message.worldEditAccessOpen === true;
+            stagedWorldEditAccess = null;
+            setPartyLeader(message.leaderId);
+            setMultiplayerStatus((isPartyLeader ? "Connected — you are party leader" : "Connected to lobby"));
+            setChatConnected(true);
+            addChatLine("Chat", isPartyLeader ? "Connected to the lobby. You are the party leader." : "Connected to the lobby.", true);
+            started = true;
+            forcePauseClosed();
+            multiplayerMenu.style.display = "none";
+            document.getElementById("startScreen").style.display = "none";
+            resetCar(localSpawnPosition);
+            syncCar();
+        } else if (message.type === "players" && Array.isArray(message.players)) {
+            const seen = new Set();
+            message.players.forEach(player => {
+                if (player && player.id != null) seen.add(String(player.id));
+                updateLobbyPlayer(player);
+                applyRemotePlayerState(player);
+            });
+            for (const id of remotePlayers.keys()) if (!seen.has(id)) removeRemotePlayer(id);
+            for (const id of lobbyPlayers.keys()) if (!seen.has(id) && id !== String(multiplayerPlayerId)) lobbyPlayers.delete(id);
+            if (message.leaderId != null) setPartyLeader(message.leaderId);
+            renderLobbyLeaderPanel();
+        } else if (message.type === "player_joined") {
+            const player = message.player || message;
+            updateLobbyPlayer(player);
+            applyRemotePlayerState(player);
+            if (message.leaderId != null) setPartyLeader(message.leaderId);
+            addChatLine("Lobby", `${player.name || "A player"} joined.`, true);
+        } else if (message.type === "player_state") {
+            applyRemotePlayerState(message.player || message);
+        } else if (message.type === "player_left" && message.id != null) {
+            removeRemotePlayer(String(message.id));
+            lobbyPlayers.delete(String(message.id));
+            if (message.leaderId != null) setPartyLeader(message.leaderId);
+            renderLobbyLeaderPanel();
+            addChatLine("Lobby", `${message.name || "A player"} left.`, true);
+        } else if (message.type === "leader_changed") {
+            setPartyLeader(message.leaderId);
+            const leader = lobbyPlayers.get(String(partyLeaderId));
+            addChatLine("Lobby", `${leader ? leader.name : "A player"} is now party leader.`, true);
+            setMultiplayerStatus(isPartyLeader ? "You are now the party leader." : "Party leader updated.");
+        } else if (message.type === "world_access_state") {
+            worldEditAccessOpen = message.openToAll === true;
+            stagedWorldEditAccess = null;
+            updatePauseEditorButton();
+            const leaderName = String(message.actorName || "The party leader");
+            addChatLine("Lobby", `${leaderName} set world edit permissions: ${worldEditAccessOpen ? "everyone can edit the world." : "only the party leader can edit the world."}`, true);
+            if (editorMode && !isPartyLeader && !worldEditAccessOpen) exitWorldEditor(false);
+        } else if (message.type === "vehicle_impact_started") {
+            beginVehicleImpact(message.vehicleId);
+        } else if (message.type === "vehicle_impact_finished") {
+            finishVehicleImpact(message.vehicleId, message.spawn || null);
+        } else if (message.type === "world_committed") {
+            // Rebuild the editable arena from the authoritative server snapshot.
+            // Updating only matching local records can leave stale or missing meshes/colliders
+            // when clients have different local editor histories.
+            if (Array.isArray(message.world)) replaceWorldSnapshot(message.world);
+            lastWorldRevision = Number(message.revision) || lastWorldRevision + 1;
+            if (message.leaderId != null) setPartyLeader(message.leaderId);
+            if (Array.isArray(message.players)) {
+                const seen = new Set();
+                for (const player of message.players) {
+                    seen.add(String(player.id));
+                    updateLobbyPlayer(player);
+                    if (String(player.id) === String(multiplayerPlayerId)) {
+                        if (player.spawn) localSpawnPosition = player.spawn;
+                    } else {
+                        applyRemotePlayerState(player);
+                        snapRemotePlayerToState(player);
+                    }
+                }
+                for (const id of [...remotePlayers.keys()]) if (!seen.has(id)) removeRemotePlayer(id);
+            }
+            resetCar(localSpawnPosition);
+            syncCar();
+            updateCamera(1 / 60);
+            addChatLine("Lobby", "The party leader published arena changes. Everyone has been respawned.", true);
+            setMultiplayerStatus("Arena updated — respawned at grid spawn.");
+        } else if (message.type === "chat_message") {
+            addChatLine(message.name || "Player", message.text || "");
+        } else if (message.type === "world_commit_ack") {
+            const count = Number.isFinite(message.objectCount) ? message.objectCount : "";
+            setMultiplayerStatus(`Arena published successfully${count !== "" ? ` (${count} objects)` : ""}.`);
+        } else if (message.type === "removed_from_lobby") {
+            // This event is sent only to the removed connection. The close code below
+            // is a fallback if the WebSocket message is lost during disconnection.
+            returnToMainMenuAfterKick();
+        } else if (message.type === "kick_response") {
+            if (message.requestId) kickButtonRequests.delete(String(message.requestId));
+            if (message.success) {
+                setMultiplayerStatus(`Kicked ${message.name || "player"} from the lobby.`);
+            } else {
+                setMultiplayerStatus(`Kick failed: ${message.message || "the server could not remove that player."}`);
+            }
+            renderLobbyLeaderPanel();
+        } else if (message.type === "error") {
+            setMultiplayerStatus("Server error: " + String(message.message || "unknown error"));
+        }
+    }
+
+    function serializeEditorWorld() {
+        return editorObjects.map(record => {
+            const p = record.body.translation();
+            const q = record.body.rotation();
+            return {
+                id: record.id,
+                name: record.name,
+                type: record.type,
+                position: { x: p.x, y: p.y, z: p.z },
+                rotation: { x: q.x, y: q.y, z: q.z, w: q.w },
+                scale: { x: record.scale.x, y: record.scale.y, z: record.scale.z },
+                color: "#" + record.material.color.getHexString(),
+                collision: !!record.collision,
+                baseHalfExtents: record.baseHalfExtents ? { ...record.baseHalfExtents } : null,
+                baseRadius: record.baseRadius,
+                baseHeight: record.baseHeight
+            };
+        });
+    }
+
+    function removeEditorRecordFromWorld(record) {
+        if (!record) return;
+        scene.remove(record.mesh);
+        const frictionIndex = frictionColliders.indexOf(record.collider);
+        if (frictionIndex !== -1) frictionColliders.splice(frictionIndex, 1);
+        world.removeRigidBody(record.body);
+        const idx = editorObjects.indexOf(record);
+        if (idx !== -1) editorObjects.splice(idx, 1);
+        if (record.mesh.geometry) record.mesh.geometry.dispose();
+        if (record.material) record.material.dispose();
+    }
+
+    function replaceWorldSnapshot(snapshot) {
+        if (!Array.isArray(snapshot)) return;
+        selectedEditorObject = null;
+        editorSelectionHelper.visible = false;
+        // Remove every locally registered arena object first. The server snapshot is
+        // authoritative, so this prevents stale local-only objects from surviving and
+        // guarantees that deleted objects disappear for every player.
+        for (const record of [...editorObjects]) removeEditorRecordFromWorld(record);
+        applyWorldSnapshot(snapshot);
+    }
+
+    function applyWorldSnapshot(snapshot) {
+        if (!Array.isArray(snapshot)) return;
+        const safeRecords = snapshot.filter(item => item && Number.isInteger(item.id) && item.id > 0 &&
+            (item.type === "box" || item.type === "cylinder") && item.position && item.rotation && item.scale &&
+            [item.position.x, item.position.y, item.position.z, item.rotation.x, item.rotation.y, item.rotation.z, item.rotation.w,
+             item.scale.x, item.scale.y, item.scale.z].every(Number.isFinite));
+        const wanted = new Set(safeRecords.map(item => item.id));
+        for (const record of [...editorObjects]) {
+            if (!wanted.has(record.id)) {
+                if (record === selectedEditorObject) selectedEditorObject = null;
+                removeEditorRecordFromWorld(record);
+            }
+        }
+        for (const item of safeRecords) {
+            let record = editorObjects.find(existing => existing.id === item.id);
+            const material = new THREE.MeshStandardMaterial({ color: /^#[0-9a-f]{6}$/i.test(item.color || "") ? item.color : "#333b49", roughness: 0.75 });
+            if (record && record.type !== item.type) {
+                if (record === selectedEditorObject) selectedEditorObject = null;
+                removeEditorRecordFromWorld(record);
+                record = null;
+            }
+            if (!record) {
+                if (item.type === "cylinder") {
+                    const radius = Number.isFinite(item.baseRadius) && item.baseRadius > 0 ? item.baseRadius : 0.75;
+                    const height = Number.isFinite(item.baseHeight) && item.baseHeight > 0 ? item.baseHeight : 1.5;
+                    record = staticCylinder(item.position.x, item.position.y, item.position.z, radius, height, material);
+                } else {
+                    const h = item.baseHalfExtents && [item.baseHalfExtents.x, item.baseHalfExtents.y, item.baseHalfExtents.z].every(v => Number.isFinite(v) && v > 0)
+                        ? item.baseHalfExtents : { x: 0.5, y: 0.5, z: 0.5 };
+                    record = staticBox(item.position.x, item.position.y, item.position.z, h.x, h.y, h.z, null, material);
+                }
+                record.id = item.id;
+                record.mesh.userData.editorObject = record;
+            } else {
+                material.dispose();
+            }
+            record.name = String(item.name || `${item.type} ${item.id}`).slice(0, 80);
+            record.scale.set(
+                THREE.MathUtils.clamp(item.scale.x, 0.1, 50),
+                THREE.MathUtils.clamp(item.scale.y, 0.1, 50),
+                THREE.MathUtils.clamp(item.scale.z, 0.1, 50)
+            );
+            record.mesh.position.set(item.position.x, item.position.y, item.position.z);
+            record.mesh.quaternion.set(item.rotation.x, item.rotation.y, item.rotation.z, item.rotation.w).normalize();
+            record.mesh.scale.copy(record.scale);
+            const bodyRotation = record.mesh.quaternion;
+            record.body.setTranslation(item.position, true);
+            record.body.setRotation({ x: bodyRotation.x, y: bodyRotation.y, z: bodyRotation.z, w: bodyRotation.w }, true);
+            record.collision = item.collision !== false;
+            if (item.type === "box") {
+                const h = record.baseHalfExtents;
+                record.collider.setShape(new RAPIER.Cuboid(h.x * record.scale.x, h.y * record.scale.y, h.z * record.scale.z));
+            } else {
+                record.collider.setShape(new RAPIER.Cylinder(record.baseHeight * record.scale.y / 2, record.baseRadius * Math.max(record.scale.x, record.scale.z)));
+            }
+            record.collider.setCollisionGroups(record.collision ? WORLD_COLLISION_GROUPS : collisionGroups(COLLISION_GROUP_WORLD, 0));
+            record.material.color.set(/^#[0-9a-f]{6}$/i.test(item.color || "") ? item.color : "#333b49");
+            editorObjectCounter = Math.max(editorObjectCounter, item.id);
+        }
+        refreshEditorSelect();
+        if (selectedEditorObject) selectEditorObject(selectedEditorObject);
+        if (!editorMode) editorSelectionHelper.visible = false;
+    }
+
+    function snapRemotePlayerToState(data) {
+        if (!data || data.id == null) return;
+        const player = remotePlayers.get(String(data.id));
+        if (!player) return;
+        const p = data.position || data.spawn;
+        const q = data.quaternion || { x: 0, y: 0, z: 0, w: 1 };
+        if (p && [p.x, p.y, p.z].every(Number.isFinite)) {
+            player.snapshots.length = 0;
+            player.targetPosition.set(p.x, p.y, p.z);
+            player.lastNetworkPosition.copy(player.targetPosition);
+            player.renderPosition.copy(player.targetPosition);
+            player.body.setTranslation(p, true);
+            player.group.position.copy(player.renderPosition);
+            player.hasNetworkPosition = true;
+        }
+        if ([q.x, q.y, q.z, q.w].every(Number.isFinite)) {
+            player.targetQuaternion.set(q.x, q.y, q.z, q.w).normalize();
+            player.renderQuaternion.copy(player.targetQuaternion);
+            player.body.setRotation(q, true);
+            player.group.quaternion.copy(player.renderQuaternion);
+        }
+        if (data.velocity && [data.velocity.x, data.velocity.y, data.velocity.z].every(Number.isFinite)) {
+            player.targetVelocity.set(data.velocity.x, data.velocity.y, data.velocity.z);
+        } else player.targetVelocity.set(0, 0, 0);
+    }
+
+    function returnToMainMenuAfterKick() {
+        setMultiplayerStatus("You were kicked from the lobby by the party leader.");
+        started = false;
+        forcePauseClosed();
+        editorPlayTesting = false;
+        if (editorMode) {
+            editorMode = false;
+            editorOrbit.enabled = false;
+        }
+        worldEditorPanel.style.display = "none";
+        editorHelp.style.display = "none";
+        document.getElementById("multiplayerMenu").style.display = "none";
+        document.getElementById("startScreen").style.display = "flex";
+        editorSelectionHelper.visible = false;
+        closeChat();
+        const notice = document.getElementById("kickNotice");
+        if (notice) notice.remove();
+        const card = document.getElementById("startCard");
+        if (card) {
+            const p = document.createElement("p");
+            p.id = "kickNotice";
+            p.textContent = "You were kicked from the multiplayer lobby. You can reconnect from MULTIPLAYER.";
+            p.style.color = "#ffb0b0";
+            card.appendChild(p);
+        }
+        if (multiplayerSocket) {
+            const socket = multiplayerSocket;
+            multiplayerSocket = null;
+            try { socket.close(4001, "Kicked by party leader"); } catch (_) {}
+        }
+        multiplayerPlayerId = null;
+        partyLeaderId = null;
+        isPartyLeader = false;
+        lobbyPlayers.clear();
+        kickButtonRequests.clear();
+        setChatConnected(false);
+        for (const id of [...remotePlayers.keys()]) removeRemotePlayer(id);
+        updatePauseEditorButton();
+    }
+
+    function connectMultiplayer() {
+        const oldKickNotice = document.getElementById("kickNotice");
+        if (oldKickNotice) oldKickNotice.remove();
+        const serverUrlInput = document.getElementById("multiplayerServerUrl");
+        const url = serverUrlInput.value.trim() || "wss://ramp-rush-3d-server.onrender.com/ws";
+        const name = document.getElementById("multiplayerName").value.trim().slice(0, 20) || "Player";
+        if (!/^wss?:\/\//i.test(url)) {
+            setMultiplayerStatus("The server URL must start with ws:// or wss://.");
+            return;
+        }
+        if (location.protocol === "https:" && /^ws:\/\//i.test(url) && !/^ws:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)) {
+            setMultiplayerStatus("An HTTPS Google Sites page requires a secure wss:// server URL.");
+            return;
+        }
+        if (multiplayerSocket) multiplayerSocket.close();
+        setMultiplayerStatus("Connecting…");
+        try {
+            const socket = new WebSocket(url);
+            multiplayerSocket = socket;
+            socket.addEventListener("open", () => {
+                setMultiplayerStatus("Connected to server; joining…");
+                socket.send(JSON.stringify({ type: "join", name, color: getSelectedCarColor() }));
+            });
+            socket.addEventListener("message", event => {
+                try { handleMultiplayerMessage(JSON.parse(event.data)); }
+                catch (error) { console.warn("Invalid multiplayer message", error); }
+            });
+            socket.addEventListener("error", () => {
+                setMultiplayerStatus("Connection error. Check the server URL and server status.");
+            });
+            socket.addEventListener("close", event => {
+                // Fallback for deployments where the close frame arrives but the
+                // separate `kicked` message is lost or arrives too late.
+                if (event.code === 4001 && multiplayerSocket === socket) {
+                    returnToMainMenuAfterKick();
+                    return;
+                }
+                if (multiplayerSocket === socket) multiplayerSocket = null;
+                multiplayerPlayerId = null;
+                partyLeaderId = null;
+                isPartyLeader = false;
+                lobbyPlayers.clear();
+                kickButtonRequests.clear();
+                if (event.code !== 4001) setMultiplayerStatus("Disconnected");
+                setChatConnected(false);
+                closeChat();
+                for (const id of [...remotePlayers.keys()]) removeRemotePlayer(id);
+                updatePauseEditorButton();
+            });
+        } catch (error) {
+            setMultiplayerStatus("Could not connect: " + error.message);
+        }
+    }
+
+    function disconnectMultiplayer() {
+        if (multiplayerSocket) multiplayerSocket.close();
+        else setMultiplayerStatus("Not connected");
+    }
+
+    function sendMultiplayerState(now) {
+        if (!multiplayerSocket || multiplayerSocket.readyState !== WebSocket.OPEN || now - lastNetworkSend < 50) return;
+        lastNetworkSend = now;
+        const t = carBody.translation();
+        const q = carBody.rotation();
+        const v = carBody.linvel();
+        multiplayerSocket.send(JSON.stringify({
+            type: "player_state",
+            name: (document.getElementById("multiplayerName").value.trim() || "Player").slice(0, 20),
+            color: getSelectedCarColor(),
+            vehicleType: currentVehicle,
+            position: { x: t.x, y: t.y, z: t.z },
+            quaternion: { x: q.x, y: q.y, z: q.z, w: q.w },
+            velocity: { x: v.x, y: v.y, z: v.z }
+        }));
+    }
+
+    function updateRemotePlayers(dt) {
+        const now = performance.now();
+        const localPosition = carBody.translation();
+        const localVelocity = carBody.linvel();
+        const localPos3 = new THREE.Vector3(localPosition.x, localPosition.y, localPosition.z);
+        const localVel3 = new THREE.Vector3(localVelocity.x, localVelocity.y, localVelocity.z);
+        const interpolationDelay = 100; // milliseconds; smooths normal WebSocket jitter
+        const renderTime = now - interpolationDelay;
+
+        for (const player of remotePlayers.values()) {
+            const snapshots = player.snapshots;
+            if (!snapshots.length) continue;
+
+            // Retain the two snapshots surrounding renderTime, discarding only
+            // history that can no longer contribute to interpolation.
+            while (snapshots.length > 2 && snapshots[1].time <= renderTime) snapshots.shift();
+
+            let position;
+            let quaternion;
+            let velocity;
+            const first = snapshots[0];
+            const second = snapshots[1];
+
+            if (second && renderTime >= first.time && renderTime <= second.time) {
+                const span = Math.max(1, second.time - first.time);
+                const alpha = THREE.MathUtils.clamp((renderTime - first.time) / span, 0, 1);
+                position = first.position.clone().lerp(second.position, alpha);
+                quaternion = first.quaternion.clone().slerp(second.quaternion, alpha).normalize();
+                velocity = first.velocity.clone().lerp(second.velocity, alpha);
+            } else {
+                const latest = renderTime < first.time ? first : snapshots[snapshots.length - 1];
+                position = latest.position.clone();
+                quaternion = latest.quaternion.clone();
+                velocity = latest.velocity.clone();
+
+                // Extrapolate only a tiny amount during a packet gap, then hold
+                // the latest authoritative snapshot instead of drifting away.
+                if (renderTime > latest.time) {
+                    const extrapolation = Math.min(0.12, (renderTime - latest.time) / 1000);
+                    position.addScaledVector(velocity, extrapolation);
+                }
+            }
+
+            player.renderPosition.copy(position);
+            player.renderQuaternion.copy(quaternion);
+            player.targetVelocity.copy(velocity);
+
+            // Move the kinematic proxy toward the interpolated network pose.
+            // No local gravity or world collider can drag remote cars underground.
+            player.body.setNextKinematicTranslation({ x: position.x, y: position.y, z: position.z });
+            player.body.setNextKinematicRotation({ x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w });
+
+            // Render directly from the same interpolated pose rather than a
+            // locally simulated rigid-body pose, avoiding visual/physics tug-of-war.
+            player.group.position.copy(position);
+            player.group.quaternion.copy(quaternion);
+
+            // Estimate an approaching contact from the two network poses. Only the
+            // server can start the impact/recovery cycle for the remote vehicle.
+            const towardOther = position.clone().sub(localPos3);
+            const separation = towardOther.length();
+            if (separation > 0.001 && separation < 2.7 && multiplayerSocket && multiplayerSocket.readyState === WebSocket.OPEN) {
+                towardOther.multiplyScalar(1 / separation);
+                const closingRate = localVel3.clone().sub(velocity).dot(towardOther);
+                if (closingRate > 4.2 && now - player.lastImpactRequestAt > 720) {
+                    const force = THREE.MathUtils.clamp(closingRate * 880, 1300, 16000);
+                    player.lastImpactRequestAt = now;
+                    multiplayerSocket.send(JSON.stringify({
+                        type: "vehicle_impact_request",
+                        otherPlayerId: player.id,
+                        impactVector: {
+                            x: towardOther.x * force,
+                            y: towardOther.y * force * 0.12,
+                            z: towardOther.z * force
+                        }
+                    }));
+                }
+            }
+
+        }
+    }
+
+    document.getElementById("openMultiplayerButton").addEventListener("click", () => {
+        multiplayerMenu.style.display = "flex";
+    });
+    document.getElementById("closeMultiplayerButton").addEventListener("click", () => {
+        multiplayerMenu.style.display = "none";
+    });
+    document.getElementById("connectMultiplayerButton").addEventListener("click", connectMultiplayer);
+    document.getElementById("disconnectMultiplayerButton").addEventListener("click", disconnectMultiplayer);
+
+    // --------------------------------------------------
+    // CAMERA
+    // --------------------------------------------------
+
+    function updateCamera(dt) {
+        const t = carBody.translation();
+        const q = carBody.rotation();
+
+        carPosition.set(t.x, t.y, t.z);
+        carQuaternion.set(q.x, q.y, q.z, q.w);
+
+        forwardVector.set(0, 0, -1)
+            .applyQuaternion(carQuaternion);
+
+        if (cameraMode === 0) {
+            // Third-person chase camera.
+            desiredCameraPosition.copy(carPosition)
+                .addScaledVector(forwardVector, -9);
+
+            desiredCameraPosition.y += currentVehicle === "plane" ? 5.2 : 4.2;
+
+            cameraLookAt.copy(carPosition)
+                .addScaledVector(forwardVector, 5);
+
+            cameraLookAt.y += 1.1;
+        } else if (cameraMode === 1) {
+            // Hood camera.
+            desiredCameraPosition.copy(carPosition)
+                .addScaledVector(forwardVector, -0.15);
+
+            desiredCameraPosition.y += 1.45;
+
+            cameraLookAt.copy(carPosition)
+                .addScaledVector(forwardVector, 22);
+
+            cameraLookAt.y += 1;
+        } else {
+            // Wide overhead camera.
+            desiredCameraPosition.copy(carPosition);
+            desiredCameraPosition.y += 17;
+
+            desiredCameraPosition.z += 5;
+
+            cameraLookAt.copy(carPosition);
+            cameraLookAt.z -= 5;
+        }
+
+        camera.position.lerp(
+            desiredCameraPosition,
+            1 - Math.exp(-4 * dt)
+        );
+
+        camera.lookAt(cameraLookAt);
+    }
+
+    // --------------------------------------------------
+    // PAUSE MENU AND CUSTOM SETTINGS
+    // --------------------------------------------------
+
+    const pauseMenu = document.getElementById("pauseMenu");
+
+    function clearVehicleInput() {
+        for (const code in keys) keys[code] = false;
+        jumpPressed = false;
+    }
+
+    function forcePauseClosed() {
+        isGamePaused = false;
+        pauseMenu.style.display = "none";
+        clearVehicleInput();
+    }
+
+    // --------------------------------------------------
+    // SINGLEPLAYER WORLD EDITOR
+    // --------------------------------------------------
+    let editorMode = false;
+    let editorPlayTesting = false;
+    let selectedEditorObject = null;
+    const worldEditorPanel = document.getElementById("worldEditor");
+    const editorHelp = document.getElementById("editorHelp");
+    const editorSelect = document.getElementById("editorObjectSelect");
+    const editorRaycaster = new THREE.Raycaster();
+    const editorPointer = new THREE.Vector2();
+    const editorOrbit = {
+        enabled: false,
+        target: new THREE.Vector3(0, 0, -35),
+        radius: 110,
+        theta: 0.54,
+        phi: 1.0,
+        update() {
+            if (!this.enabled) return;
+            this.phi = THREE.MathUtils.clamp(this.phi, 0.12, Math.PI * 0.49);
+            this.radius = THREE.MathUtils.clamp(this.radius, 8, 280);
+            camera.position.set(
+                this.target.x + this.radius * Math.sin(this.phi) * Math.sin(this.theta),
+                this.target.y + this.radius * Math.cos(this.phi),
+                this.target.z + this.radius * Math.sin(this.phi) * Math.cos(this.theta)
+            );
+            camera.lookAt(this.target);
+        }
+    };
+    let editorDragStart = null;
+    let editorHasDragged = false;
+    const editorSelectionHelper = new THREE.BoxHelper(new THREE.Mesh(), 0x72e6a5);
+    editorSelectionHelper.visible = false;
+    scene.add(editorSelectionHelper);
+
+    function editorSetStatus(text) {
+        document.getElementById("editorStatus").textContent = text;
+    }
+
+    function refreshEditorSelect() {
+        const oldId = selectedEditorObject ? String(selectedEditorObject.id) : "";
+        editorSelect.replaceChildren();
+        for (const record of editorObjects) {
+            const option = document.createElement("option");
+            option.value = String(record.id);
+            option.textContent = `${record.name} (#${record.id})`;
+            editorSelect.appendChild(option);
+        }
+        if (selectedEditorObject && editorObjects.includes(selectedEditorObject)) {
+            editorSelect.value = oldId;
+        } else if (editorObjects.length) {
+            selectEditorObject(editorObjects[0]);
+        } else {
+            selectedEditorObject = null;
+            editorSelectionHelper.visible = false;
+            editorSetStatus("No objects. Choose a shape and add an object to begin.");
+        }
+    }
+
+    function writeEditorFields(record) {
+        if (!record) return;
+        const position = record.body.translation();
+        const rotation = record.body.rotation();
+        const euler = new THREE.Euler().setFromQuaternion(
+            new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w), "XYZ"
+        );
+        const values = {
+            editorPosX: position.x, editorPosY: position.y, editorPosZ: position.z,
+            editorRotX: THREE.MathUtils.radToDeg(euler.x),
+            editorRotY: THREE.MathUtils.radToDeg(euler.y),
+            editorRotZ: THREE.MathUtils.radToDeg(euler.z),
+            editorScaleX: record.scale.x, editorScaleY: record.scale.y, editorScaleZ: record.scale.z
+        };
+        for (const [id, value] of Object.entries(values)) {
+            document.getElementById(id).value = Number(value.toFixed(3));
+        }
+        const color = record.material.color;
+        document.getElementById("editorColor").value = "#" + color.getHexString();
+        document.getElementById("editorCollision").checked = record.collision;
+    }
+
+    function selectEditorObject(record) {
+        if (!record || !editorObjects.includes(record)) return;
+        selectedEditorObject = record;
+        editorSelect.value = String(record.id);
+        writeEditorFields(record);
+        editorSelectionHelper.setFromObject(record.mesh);
+        editorSelectionHelper.visible = true;
+        editorSetStatus(`Selected ${record.name}.`);
+    }
+
+    function applyEditorTransform() {
+        const record = selectedEditorObject;
+        if (!record) return;
+        const read = id => Number(document.getElementById(id).value);
+        const v = {
+            x: read("editorPosX"), y: read("editorPosY"), z: read("editorPosZ"),
+            rx: read("editorRotX"), ry: read("editorRotY"), rz: read("editorRotZ"),
+            sx: read("editorScaleX"), sy: read("editorScaleY"), sz: read("editorScaleZ")
+        };
+        if (!Object.values(v).every(Number.isFinite) || v.sx < 0.1 || v.sy < 0.1 || v.sz < 0.1 || v.sx > 50 || v.sy > 50 || v.sz > 50) {
+            editorSetStatus("Use valid numbers; scale must be between 0.1 and 50.");
+            return;
+        }
+        const scale = new THREE.Vector3(v.sx, v.sy, v.sz);
+        const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+            THREE.MathUtils.degToRad(v.rx), THREE.MathUtils.degToRad(v.ry), THREE.MathUtils.degToRad(v.rz), "XYZ"
+        ));
+        record.body.setTranslation({ x: v.x, y: v.y, z: v.z }, true);
+        record.body.setRotation({ x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w }, true);
+        record.mesh.position.set(v.x, v.y, v.z);
+        record.mesh.quaternion.copy(quaternion);
+        record.scale.copy(scale);
+        record.mesh.scale.copy(scale);
+        if (record.type === "box") {
+            const h = record.baseHalfExtents;
+            record.collider.setShape(new RAPIER.Cuboid(h.x * scale.x, h.y * scale.y, h.z * scale.z));
+        } else {
+            const radius = record.baseRadius * Math.max(scale.x, scale.z);
+            const halfHeight = record.baseHeight * scale.y / 2;
+            record.collider.setShape(new RAPIER.Cylinder(halfHeight, radius));
+        }
+        record.collider.setCollisionGroups(record.collision ? WORLD_COLLISION_GROUPS : collisionGroups(COLLISION_GROUP_WORLD, 0));
+        editorSelectionHelper.setFromObject(record.mesh);
+        editorSetStatus(`Updated ${record.name}.`);
+    }
+
+    function enterWorldEditor() {
+        editorMode = true;
+        started = false;
+        forcePauseClosed();
+        document.getElementById("startScreen").style.display = "none";
+        worldEditorPanel.style.display = "block";
+        editorHelp.style.display = "block";
+        editorOrbit.enabled = true;
+        editorOrbit.target.set(0, 0, -35);
+        editorOrbit.radius = 110;
+        editorOrbit.theta = 0.54;
+        editorOrbit.phi = 1.0;
+        editorOrbit.update();
+        for (const key in keys) keys[key] = false;
+        refreshEditorSelect();
+        if (selectedEditorObject) selectEditorObject(selectedEditorObject);
+    }
+
+    function exitWorldEditor(toPlay) {
+        if (toPlay && !clientMayEditArena()) {
+            editorSetStatus("World editing is currently limited to the party leader.");
+            return;
+        }
+        if (toPlay && multiplayerIsConnected()) {
+            multiplayerSocket.send(JSON.stringify({ type: "world_commit", world: serializeEditorWorld() }));
+        }
+        editorMode = false;
+        editorPlayTesting = Boolean(toPlay);
+        updatePauseEditorButton();
+        worldEditorPanel.style.display = "none";
+        editorHelp.style.display = "none";
+        editorOrbit.enabled = false;
+        editorSelectionHelper.visible = false;
+        if (toPlay) {
+            started = true;
+            forcePauseClosed();
+            document.getElementById("startScreen").style.display = "none";
+            resetCar(multiplayerIsConnected() ? localSpawnPosition : null);
+            syncCar();
+            updateCamera(1 / 60);
+        } else {
+            started = false;
+            document.getElementById("startScreen").style.display = "flex";
+        }
+    }
+
+    function addEditorObject() {
+        const type = document.getElementById("editorAddType").value;
+        const material = new THREE.MeshStandardMaterial({ color: 0x62f7ff, roughness: 0.7 });
+        let record;
+        if (type === "cylinder") {
+            record = staticCylinder(0, 1.5, -20, 0.75, 1.5, material);
+            record.name = `Custom Cylinder ${record.id}`;
+        } else {
+            let hx = 0.5, hy = 0.5, hz = 0.5;
+            let name = "Box";
+            if (type === "cube") {
+                hx = hy = hz = 0.9;
+                name = "Cube";
+            } else if (type === "rectangular-prism") {
+                hx = 1.4; hy = 0.65; hz = 2.0;
+                name = "Rectangular Prism";
+            }
+            record = staticBox(0, 1.5, -20, hx, hy, hz, null, material);
+            record.name = `Custom ${name} ${record.id}`;
+        }
+        refreshEditorSelect();
+        selectEditorObject(record);
+        editorSetStatus(`Added ${record.name}. Drag it to move along X/Z, or edit its transform below.`);
+    }
+
+    function deleteSelectedEditorObject() {
+        const record = selectedEditorObject;
+        if (!record) return;
+        scene.remove(record.mesh);
+        world.removeRigidBody(record.body);
+        const frictionIndex = frictionColliders.indexOf(record.collider);
+        if (frictionIndex !== -1) frictionColliders.splice(frictionIndex, 1);
+        const index = editorObjects.indexOf(record);
+        if (index !== -1) editorObjects.splice(index, 1);
+        record.mesh.geometry.dispose();
+        if (record.material) record.material.dispose();
+        selectedEditorObject = null;
+        refreshEditorSelect();
+        if (selectedEditorObject) selectEditorObject(selectedEditorObject);
+        editorSetStatus(`Deleted ${record.name}.`);
+    }
+
+    editorSelect.addEventListener("change", () => {
+        const record = editorObjects.find(item => String(item.id) === editorSelect.value);
+        if (record) selectEditorObject(record);
+    });
+    ["editorPosX", "editorPosY", "editorPosZ", "editorRotX", "editorRotY", "editorRotZ", "editorScaleX", "editorScaleY", "editorScaleZ"]
+        .forEach(id => document.getElementById(id).addEventListener("change", applyEditorTransform));
+    document.getElementById("editorColor").addEventListener("input", event => {
+        if (!selectedEditorObject) return;
+        selectedEditorObject.material.color.set(event.target.value);
+        editorSetStatus(`Changed ${selectedEditorObject.name} color to ${event.target.value}.`);
+    });
+    document.getElementById("editorCollision").addEventListener("change", event => {
+        if (!selectedEditorObject) return;
+        selectedEditorObject.collision = event.target.checked;
+        selectedEditorObject.collider.setCollisionGroups(selectedEditorObject.collision ? WORLD_COLLISION_GROUPS : collisionGroups(COLLISION_GROUP_WORLD, 0));
+        editorSetStatus(selectedEditorObject.collision ? "Collision enabled." : "Collision disabled.");
+    });
+    document.getElementById("editorAddObject").addEventListener("click", addEditorObject);
+    document.getElementById("editorDelete").addEventListener("click", deleteSelectedEditorObject);
+    document.getElementById("editorPlayTest").addEventListener("click", () => exitWorldEditor(true));
+    document.getElementById("editorExit").addEventListener("click", () => exitWorldEditor(false));
+
+    let editorDragMode = null;
+    let editorDragRecord = null;
+
+    function setEditorPointer(event) {
+        editorPointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+        editorPointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        editorRaycaster.setFromCamera(editorPointer, camera);
+    }
+
+    function moveEditorRecord(record, dx, dy) {
+        if (!record || record === groundColliderRecord) return;
+        // Drag across the horizontal X/Z plane. Screen-space right/up vectors are
+        // projected onto the ground plane so moving an object never changes its Y
+        // height; the numeric fields remain available for vertical placement.
+        const current = record.body.translation();
+        const objectPosition = new THREE.Vector3(current.x, current.y, current.z);
+        const distance = Math.max(1, camera.position.distanceTo(objectPosition));
+        const verticalFov = THREE.MathUtils.degToRad(camera.fov || 60);
+        const worldUnitsPerPixel = (2 * distance * Math.tan(verticalFov / 2)) / Math.max(1, window.innerHeight);
+
+        camera.updateMatrixWorld(true);
+        const screenRight = new THREE.Vector3(1, 0, 0)
+            .applyQuaternion(camera.quaternion);
+        screenRight.y = 0;
+        if (screenRight.lengthSq() < 1e-6) screenRight.set(1, 0, 0);
+        screenRight.normalize();
+
+        const screenUp = new THREE.Vector3(0, 1, 0)
+            .applyQuaternion(camera.quaternion);
+        screenUp.y = 0;
+        if (screenUp.lengthSq() < 1e-6) screenUp.set(0, 0, -1);
+        screenUp.normalize();
+
+        const next = {
+            x: current.x + (screenRight.x * dx - screenUp.x * dy) * worldUnitsPerPixel,
+            y: current.y,
+            z: current.z + (screenRight.z * dx - screenUp.z * dy) * worldUnitsPerPixel
+        };
+        record.body.setTranslation(next, true);
+        record.mesh.position.set(next.x, next.y, next.z);
+        writeEditorFields(record);
+        editorSelectionHelper.setFromObject(record.mesh);
+    }
+
+    function panEditorCamera(dx, dy) {
+        const worldUnitsPerPixel = Math.max(0.012, editorOrbit.radius / Math.max(1, window.innerHeight) * 1.2);
+        camera.updateMatrixWorld(true);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+        editorOrbit.target.addScaledVector(right, -dx * worldUnitsPerPixel);
+        editorOrbit.target.addScaledVector(up, dy * worldUnitsPerPixel);
+        editorOrbit.update();
+    }
+
+    renderer.domElement.addEventListener("pointerdown", event => {
+        if (!editorMode || (event.button !== 0 && event.button !== 2)) return;
+        event.preventDefault();
+        renderer.domElement.setPointerCapture?.(event.pointerId);
+        editorDragStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+        editorHasDragged = false;
+        editorDragRecord = null;
+
+        if (event.button === 2) {
+            editorDragMode = "orbit";
+            return;
+        }
+
+        setEditorPointer(event);
+        const hits = editorRaycaster.intersectObjects(editorObjects.map(record => record.mesh), false);
+        if (hits.length) {
+            const record = hits[0].object.userData.editorObject;
+            selectEditorObject(record);
+            editorDragRecord = record;
+            editorDragMode = "object";
+        } else {
+            // Clicking the ground or sky deselects the current object. Dragging
+            // from empty space then pans the editor camera instead of moving an
+            // object that is no longer selected.
+            selectedEditorObject = null;
+            editorSelect.value = "";
+            editorSelectionHelper.visible = false;
+            editorDragMode = "pan";
+            editorSetStatus("No object selected. Drag empty space to pan the camera.");
+        }
+    });
+
+    renderer.domElement.addEventListener("pointermove", event => {
+        if (!editorMode || !editorOrbit.enabled || !editorDragStart || editorDragStart.pointerId !== event.pointerId) return;
+        const dx = event.clientX - editorDragStart.x;
+        const dy = event.clientY - editorDragStart.y;
+        if (Math.abs(dx) + Math.abs(dy) > 2) editorHasDragged = true;
+        if (editorHasDragged) {
+            if (editorDragMode === "object") {
+                moveEditorRecord(editorDragRecord, dx, dy);
+            } else if (editorDragMode === "pan") {
+                panEditorCamera(dx, dy);
+            } else if (editorDragMode === "orbit") {
+                editorOrbit.theta -= dx * 0.006;
+                editorOrbit.phi += dy * 0.006;
+                editorOrbit.update();
+            }
+            editorDragStart.x = event.clientX;
+            editorDragStart.y = event.clientY;
+        }
+    });
+
+    function finishEditorPointer(event) {
+        if (!editorDragStart || (event && editorDragStart.pointerId !== event.pointerId)) return;
+        if (editorDragMode === "object" && editorHasDragged && editorDragRecord) {
+            editorSetStatus(`Moved ${editorDragRecord.name}.`);
+        }
+        editorDragStart = null;
+        editorDragMode = null;
+        editorDragRecord = null;
+    }
+    renderer.domElement.addEventListener("pointerup", finishEditorPointer);
+    renderer.domElement.addEventListener("pointercancel", finishEditorPointer);
+    renderer.domElement.addEventListener("contextmenu", event => {
+        if (editorMode) event.preventDefault();
+    });
+    renderer.domElement.addEventListener("wheel", event => {
+        if (!editorMode || !editorOrbit.enabled) return;
+        editorOrbit.radius = THREE.MathUtils.clamp(editorOrbit.radius + event.deltaY * 0.08, 8, 280);
+        editorOrbit.update();
+        event.preventDefault();
+    }, { passive: false });
+
+    function publishStagedWorldAccess() {
+        if (stagedWorldEditAccess === null) return;
+        const desired = stagedWorldEditAccess === true;
+        stagedWorldEditAccess = null;
+        if (!multiplayerIsConnected() || !isPartyLeader || desired === worldEditAccessOpen) {
+            renderLobbyLeaderPanel();
+            return;
+        }
+        multiplayerSocket.send(JSON.stringify({ type: "world_access_change", openToAll: desired }));
+        renderLobbyLeaderPanel();
+    }
+
+    function openPauseSettings() {
+        if (!started || editorMode || isGamePaused) return;
+        if (chatIsOpen) closeChat();
+        isGamePaused = true;
+        pauseMenu.style.display = "flex";
+        document.getElementById("pauseEditorButton").textContent = editorPlayTesting ? "RETURN TO EDITOR" : "WORLD EDITOR";
+        clearVehicleInput();
+        renderLobbyLeaderPanel();
+    }
+
+    function closePauseSettings(applyCurrentSettings = true) {
+        if (!isGamePaused && pauseMenu.style.display !== "flex") return;
+        forcePauseClosed();
+        publishStagedWorldAccess();
+        if (applyCurrentSettings) {
+            try { applySettings(); }
+            catch (error) { console.error("Could not apply pause-menu settings:", error); }
+        }
+    }
+
+    function switchPauseSettings() {
+        if (isGamePaused) closePauseSettings(true);
+        else openPauseSettings();
+    }
+
+    function applySettings() {
+        const readNumber = id => Number(document.getElementById(id).value);
+        const jump = readNumber("settingJump");
+        const friction = readNumber("settingFriction");
+        const baseSpeed = readNumber("settingBaseSpeed");
+        const acceleration = readNumber("settingAcceleration");
+        const boostSpeed = readNumber("settingBoostSpeed");
+        const boostAmount = readNumber("settingBoostAmount");
+        const boostTime = readNumber("settingBoostTime");
+        const gravity = readNumber("settingGravity");
+        const values = [jump, friction, baseSpeed, acceleration, boostSpeed, boostAmount, boostTime, gravity];
+
+        if (!values.every(Number.isFinite) || jump < 0 || friction < 0 ||
+            baseSpeed < 0 || acceleration < 0 || boostSpeed < 0 || boostAmount < 0 ||
+            boostTime <= 0 || gravity < 0) {
+            alert("Enter valid numbers. Values must be zero or greater, except boost time, which must be above zero.");
+            return false;
+        }
+
+        JUMP_IMPULSE = jump;
+        groundFriction = friction;
+        MAX_SPEED = baseSpeed;
+        ACCELERATION = acceleration;
+        BOOST_SPEED = boostSpeed;
+        boostCapacity = boostAmount;
+        boostDuration = boostTime;
+        gravityStrength = gravity;
+        world.gravity.y = -gravityStrength;
+        world.raw.setGravity(world.gravity);
+
+        for (const collider of frictionColliders) collider.setFriction(groundFriction);
+        carCollider.setFriction(groundFriction);
+        boost = Math.min(boost, boostCapacity);
+        document.getElementById("boostFill").style.width =
+            (boostCapacity > 0 ? (boost / boostCapacity) * 100 : 0) + "%";
+        return true;
+    }
+
+    document.getElementById("selectCarVehicle").addEventListener("click", () => setVehicle("car", true));
+    document.getElementById("selectMotorcycleVehicle").addEventListener("click", () => setVehicle("motorcycle", true));
+    document.getElementById("selectPlaneVehicle").addEventListener("click", () => setVehicle("plane", true));
+    document.getElementById("allowAnyoneWorldEdit").addEventListener("change", event => {
+        if (!multiplayerIsConnected() || !isPartyLeader) {
+            event.target.checked = worldEditAccessOpen;
+            stagedWorldEditAccess = null;
+            return;
+        }
+        stagedWorldEditAccess = event.target.checked === true;
+    });
+
+    document.getElementById("pauseEditorButton").addEventListener("click", () => {
+        if (!clientMayEditArena()) {
+            editorSetStatus("World editing is currently limited to the party leader.");
+            return;
+        }
+        closePauseSettings(true);
+        enterWorldEditor();
+        document.getElementById("editorIntro").textContent = multiplayerIsConnected()
+            ? "Multiplayer editor: changes are local until you press PLAY TEST, which publishes the arena and respawns everyone."
+            : "Singleplayer editor. Click an object in the scene or choose it below. Changes apply immediately.";
+        document.getElementById("editorPlayTest").textContent = multiplayerIsConnected() ? "PLAY TEST & PUBLISH" : "PLAY TEST";
+    });
+
+    document.getElementById("resumeButton").addEventListener("click", event => {
+        event.preventDefault();
+        closePauseSettings(true);
+    });
+
+    document.getElementById("returnMainMenuButton").addEventListener("click", () => {
+        closePauseSettings(false);
+        editorPlayTesting = false;
+        document.getElementById("pauseEditorButton").textContent = "WORLD EDITOR";
+        started = false;
+        forcePauseClosed();
+        document.getElementById("startScreen").style.display = "flex";
+        clearVehicleInput();
+    });
+
+    // --------------------------------------------------
+    // GAME LOOP
+    // --------------------------------------------------
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const dt = Math.min(clock.getDelta(), 0.025);
+
+        if (editorMode) {
+            editorOrbit.update();
+            if (selectedEditorObject) editorSelectionHelper.setFromObject(selectedEditorObject.mesh);
+        }
+
+        if (started && !isGamePaused && !impactDisabled) {
+            elapsed += dt;
+            // Several fixed-size physics steps reduce
+            // tunneling and stabilize suspension impulses.
+            const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+            const stepDt = dt / steps;
+
+            world.timestep = stepDt;
+
+            for (let i = 0; i < steps; i++) {
+                updateSuspension();
+                updateDriving(stepDt);
+                world.step();
+            }
+
+            updateSuspension();
+            syncCar();
+            sendMultiplayerState(performance.now());
+            updateRemotePlayers(dt);
+            updateCamera(dt);
+
+            if (!wasGrounded && grounded) {
+                jumpCount++;
+            }
+        }
+
+        if (!started || isGamePaused || impactDisabled) updateRemotePlayers(dt);
+        renderer.render(scene, camera);
+    }
+
+    // --------------------------------------------------
+    // START / RESIZE
+    // --------------------------------------------------
+
+    document.getElementById("startButton").addEventListener(
+        "click",
+        () => {
+            editorPlayTesting = false;
+            document.getElementById("pauseEditorButton").textContent = "WORLD EDITOR";
+            forcePauseClosed();
+            started = true;
+            setVehicle(currentVehicle, false);
+
+            document.getElementById("startScreen").style.display =
+                "none";
+
+            resetCar();
+        }
+    );
+
+    window.addEventListener("beforeunload", () => {
+        if (multiplayerSocket) multiplayerSocket.close();
+    });
+
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    });
+
+    animate();
+}
+
+main().catch(error => {
+    console.error(error);
+
+    document.getElementById("startCard").innerHTML = `
+        <h1>Loading Error</h1>
+        <p>
+            The 3D engine could not start. Check your internet
+            connection and make sure your browser supports WebGL.
+            Try running this file from a local development server.
+        </p>
+        <p style="font-size:12px;color:#9eb4cc">
+            Open the browser console for technical details.
+        </p>
+    `;
+});
+</script>
+</body>
+</html>

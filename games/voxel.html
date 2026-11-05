@@ -1,0 +1,4939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxel World - 3D Sandbox</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #87ceeb;
+        font-family: Arial, sans-serif;
+        color: white;
+    }
+
+    canvas {
+        display: block;
+    }
+
+    #underwater-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9;
+        pointer-events: none;
+        display: none;
+        background: rgba(20, 95, 190, 0.34);
+        box-shadow: inset 0 0 100px rgba(0, 55, 135, 0.28);
+    }
+
+    #hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    #title {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px #000;
+        white-space: nowrap;
+    }
+
+    #stats {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: rgba(0, 0, 0, 0.58);
+        padding: 12px 15px;
+        border-radius: 8px;
+        line-height: 1.8;
+        font-size: 14px;
+    }
+
+    .grass-text {
+        color: #72ff72;
+    }
+
+    .dirt-text {
+        color: #d99b62;
+    }
+
+    .water-text {
+        color: #70d8ff;
+    }
+
+    #crosshair {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 26px;
+        font-weight: bold;
+        color: white;
+        text-shadow: 1px 1px 3px black;
+    }
+
+    #health {
+        position: absolute;
+        left: calc(50% - 240px);
+        bottom: 145px;
+        display: flex;
+        gap: 2px;
+        padding: 4px 7px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.48);
+        font-size: 25px;
+        line-height: 1;
+        text-shadow: none;
+        white-space: nowrap;
+        z-index: 11;
+    }
+    .heart { color: #e83d4d; filter: drop-shadow(1px 1px 1px #000); }
+    .heart.half {
+        color: transparent;
+        background: linear-gradient(90deg, #e83d4d 50%, #777 50%);
+        background-clip: text;
+        -webkit-background-clip: text;
+    }
+    .heart.empty { color: #777; }
+
+    #hotbar {
+        position: absolute;
+        left: 50%;
+        bottom: 82px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+        padding: 7px;
+        background: rgba(0, 0, 0, 0.62);
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        border-radius: 8px;
+        pointer-events: auto;
+    }
+
+    .hotbar-slot {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(40, 40, 40, 0.8);
+        border: 2px solid rgba(190, 190, 190, 0.55);
+        border-radius: 5px;
+    }
+
+    .hotbar-slot.selected {
+        border: 3px solid #fff36a;
+        background: rgba(255, 243, 106, 0.22);
+        box-shadow: 0 0 8px rgba(255, 243, 106, 0.8);
+    }
+
+    .hotbar-number {
+        position: absolute;
+        top: 1px;
+        left: 4px;
+        font-size: 10px;
+        color: white;
+        text-shadow: 1px 1px 2px black;
+    }
+
+    .hotbar-icon {
+        width: 22px;
+        height: 22px;
+        border: 2px solid rgba(255,255,255,0.65);
+        box-shadow: inset -3px -3px 0 rgba(0,0,0,0.18);
+    }
+
+    .hotbar-icon.grass {
+        background: linear-gradient(to bottom, #65c94b 0 35%, #87532e 35% 100%);
+    }
+
+    .hotbar-icon.dirt {
+        background: #87532e;
+    }
+
+    .hotbar-icon.wood {
+        background: repeating-linear-gradient(90deg, #59351f 0 5px, #70452a 5px 8px);
+    }
+
+    .hotbar-icon.leaves {
+        background: #26702b;
+    }
+
+    .hotbar-icon.stone {
+        background: #7E7E7E;
+    }
+
+    .hotbar-icon.raw-porkchop {
+        background: linear-gradient(145deg, #b84b55 0 68%, #f0c9b8 69% 82%, #b84b55 83%);
+        border-radius: 5px;
+    }
+    .hotbar-icon.coal-ore { background: repeating-linear-gradient(135deg, #777 0 4px, #262626 4px 7px); }
+    .hotbar-icon.iron-ore { background: repeating-linear-gradient(135deg, #9b806f 0 4px, #d2b49b 4px 7px); }
+    .hotbar-icon.diamond-ore { background: repeating-linear-gradient(135deg, #777 0 4px, #49d8d2 4px 7px); }
+    .hotbar-icon.crafting-table { background: linear-gradient(#9b6a3d 0 28%, #5b3822 28% 100%); }
+    .hotbar-icon.furnace { background: linear-gradient(135deg, #777, #333); }
+    .hotbar-icon.chest { background: linear-gradient(#c58a45 0 25%, #805027 25% 100%); border: 3px solid #56351e; }
+    .hotbar-icon.planks { background: repeating-linear-gradient(0deg, #b88750 0 5px, #6e4528 5px 7px); }
+    .hotbar-icon.stick { background: linear-gradient(90deg, #75451f 0 30%, #c08b4c 30% 60%, #75451f 60%); }
+    .hotbar-icon.coal { background: #242424; }
+    .hotbar-icon.raw-iron { background: #bd987d; }
+    .hotbar-icon.iron-ingot { background: linear-gradient(135deg, #d8d8d8, #777); }
+    .hotbar-icon.diamond { background: #42d9d1; }
+    /* Small pixel-art tool icons: each tool type has its own silhouette and each tier has its own head material. */
+    .hotbar-icon.tool-icon {
+        position: relative;
+        overflow: visible;
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+    }
+    .hotbar-icon.tool-icon::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        width: 4px;
+        height: 18px;
+        left: 9px;
+        top: 4px;
+        transform: rotate(38deg);
+        transform-origin: center;
+        background: linear-gradient(90deg, #59351f, #bd8950 48%, #704323);
+        border: 1px solid #4b2c19;
+        border-radius: 1px;
+    }
+    .hotbar-icon.tool-icon::after {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        background: linear-gradient(135deg, var(--tool-light), var(--tool-dark));
+        border: 1px solid var(--tool-outline);
+        box-sizing: border-box;
+    }
+    .hotbar-icon.tool-pickaxe::after {
+        width: 21px; height: 9px; left: 0; top: 1px;
+        clip-path: polygon(0 58%, 13% 17%, 40% 31%, 67% 0, 100% 10%, 83% 57%, 55% 49%, 31% 100%, 12% 83%);
+    }
+    .hotbar-icon.tool-shovel::after {
+        width: 12px; height: 13px; left: 5px; top: 1px;
+        clip-path: polygon(28% 0, 72% 0, 91% 57%, 50% 100%, 9% 57%);
+    }
+    .hotbar-icon.tool-axe::after {
+        width: 14px; height: 15px; left: 7px; top: 1px;
+        clip-path: polygon(0 0, 100% 0, 94% 53%, 72% 82%, 29% 100%, 40% 56%, 0 39%);
+    }
+    .hotbar-icon.wood-tool { --tool-light: #d5a46a; --tool-dark: #80502c; --tool-outline: #56351e; }
+    .hotbar-icon.stone-tool { --tool-light: #d0d0d0; --tool-dark: #696969; --tool-outline: #454545; }
+    .hotbar-icon.iron-tool { --tool-light: #f0f0f0; --tool-dark: #9babb4; --tool-outline: #59656b; }
+    .hotbar-icon.diamond-tool { --tool-light: #b9fff7; --tool-dark: #20a9b4; --tool-outline: #08717b; }
+    .hotbar-icon.bucket, .hotbar-icon.water-bucket { background: linear-gradient(135deg, #ddd, #777); border-radius: 3px 3px 7px 7px; }
+    .hotbar-icon.cooked-porkchop { background: #8d3f31; border-radius: 5px; }
+
+    .hotbar-count {
+        position: absolute;
+        right: 3px;
+        bottom: 1px;
+        font-size: 11px;
+        font-weight: bold;
+        color: white;
+        text-shadow: 1px 1px 2px black;
+    }
+
+    #inventory-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 25;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.68);
+        pointer-events: auto;
+    }
+
+    #inventory-panel {
+        width: max-content;
+        max-width: calc(100vw - 24px);
+        padding: 18px;
+        border: 2px solid rgba(255,255,255,0.55);
+        border-radius: 10px;
+        background: rgba(25, 29, 34, 0.96);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    }
+
+    #inventory-title {
+        margin: 0 0 12px;
+        text-align: center;
+        font-size: 20px;
+        letter-spacing: 1px;
+    }
+
+    #inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(9, 48px);
+        gap: 5px;
+        direction: ltr;
+    }
+
+    #inventory-grid .hotbar-slot {
+        cursor: pointer;
+        direction: ltr;
+    }
+
+    #inventory-grid .hotbar-slot:hover {
+        border-color: #fff36a;
+        background: rgba(255,243,106,0.16);
+    }
+
+    #inventory-hotbar {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.25);
+    }
+
+    #inventory-hotbar #hotbar {
+        position: static;
+        left: auto;
+        bottom: auto;
+        transform: none;
+        width: max-content;
+        margin: 0 auto;
+        gap: 5px;
+    }
+
+    #crafting-panel, #furnace-panel, #chest-panel {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.25);
+    }
+    .crafting-layout, .furnace-layout {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    #crafting-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 42px);
+        gap: 4px;
+    }
+    #crafting-grid .hotbar-slot, .furnace-slot {
+        width: 42px;
+        height: 42px;
+        cursor: pointer;
+    }
+    #crafting-grid .hotbar-slot.selected {
+        border-color: #fff36a;
+        box-shadow: 0 0 0 2px rgba(255,243,106,0.35);
+    }
+    .crafting-arrow { font-size: 24px; color: #ddd; }
+    #crafting-output .hotbar-slot, #furnace-output .hotbar-slot {
+        width: 48px;
+        height: 48px;
+        border-color: #e0c875;
+    }
+    .crafting-caption { color: #ccc; font-size: 11px; text-align: center; margin-bottom: 5px; }
+    #furnace-progress { width: 100%; height: 7px; margin-top: 8px; accent-color: #e58b35; }
+    #inventory-hint {
+        margin-top: 10px;
+        color: #ccc;
+        font-size: 11px;
+        text-align: center;
+    }
+
+    @media (max-width: 600px) {
+        #inventory-panel { padding: 10px; }
+        #inventory-grid { grid-template-columns: repeat(9, 34px); gap: 3px; }
+        #inventory-grid .hotbar-slot { width: 34px; height: 38px; }
+        #inventory-hotbar #hotbar { gap: 3px; padding: 5px; }
+        #crafting-grid { grid-template-columns: repeat(3, 34px); gap: 3px; }
+        #chest-grid { grid-template-columns: repeat(9, 34px) !important; gap: 3px !important; }
+        #crafting-grid .hotbar-slot, .furnace-slot { width: 34px; height: 38px; }
+    }
+
+    #help {
+        background: rgba(0, 0, 0, 0.45);
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.8;
+        text-align: center;
+        margin: 18px auto 0;
+        width: max-content;
+        max-width: calc(100vw - 40px);
+    }
+
+    #start-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        background: rgba(0, 0, 0, 0.72);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    #game-over {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(145, 0, 0, 0.58);
+        text-align: center;
+        pointer-events: none;
+    }
+    #game-over-message {
+        color: #fff;
+        font-size: clamp(42px, 8vw, 76px);
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-shadow: 0 4px 16px #300, 2px 2px 4px #000;
+    }
+
+    #start-box {
+        max-width: 480px;
+        padding: 30px;
+    }
+
+    #start-box h1 {
+        font-size: 40px;
+        margin-bottom: 10px;
+    }
+
+    #start-box p {
+        line-height: 1.7;
+        color: #ddd;
+    }
+
+    #start-button {
+        border: none;
+        background: #48ad42;
+        color: white;
+        padding: 15px 32px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 12px;
+    }
+
+    #start-button:hover {
+        background: #5bc952;
+    }
+
+    #multiplayer-panel {
+        margin: 14px auto 0;
+        padding: 12px;
+        max-width: 420px;
+        background: rgba(20, 30, 40, 0.78);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 8px;
+        text-align: left;
+    }
+    #multiplayer-panel label { display:block; font-size:12px; margin:7px 0 4px; color:#ddd; }
+    #multiplayer-panel input:not([type="color"]) {
+        width:100%; padding:9px; border:1px solid #667; border-radius:5px;
+        background:#101820; color:white; font-size:14px;
+    }
+    #multiplayer-panel input[type="color"] {
+        width:100%; height:38px; padding:3px; border:1px solid #667;
+        border-radius:5px; background:#101820; cursor:pointer;
+    }
+    #multiplayer-actions { display:flex; gap:8px; margin-top:9px; }
+    #multiplayer-actions button {
+        flex:1; border:0; border-radius:5px; padding:9px 10px; cursor:pointer;
+        color:white; font-weight:bold; background:#2879b9;
+    }
+    #multiplayer-actions button:last-child { background:#555; }
+    #multiplayer-status { margin-top:8px; font-size:12px; color:#bde7ff; min-height:16px; }
+    #camera-settings {
+        margin: 12px auto 0;
+        padding: 10px 12px;
+        max-width: 420px;
+        background: rgba(20, 30, 40, 0.78);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 8px;
+        text-align: left;
+        font-size: 12px;
+    }
+    #camera-settings input { width: 100%; cursor: pointer; }
+    #camera-sensitivity-value { float: right; color: #bde7ff; }
+    #online-players {
+        position:absolute; right:15px; top:15px; padding:10px 12px;
+        border-radius:8px; background:rgba(0,0,0,.58); font-size:12px;
+        line-height:1.6; max-width:190px; text-align:left;
+    }
+    #message {
+        position: absolute;
+        top: 90px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: bold;
+        font-size: 14px;
+        text-shadow: 1px 1px 3px black;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 600px) {
+        #title {
+            font-size: 19px;
+        }
+
+        #stats {
+            font-size: 12px;
+            padding: 8px;
+        }
+
+        #help {
+            font-size: 10px;
+        }
+
+        #hotbar {
+            bottom: 88px;
+            gap: 3px;
+            padding: 5px;
+        }
+
+        #health {
+            left: 12px;
+            bottom: 142px;
+            font-size: 21px;
+            gap: 0;
+        }
+
+        .hotbar-slot {
+            width: 34px;
+            height: 38px;
+        }
+
+        .hotbar-icon {
+            width: 18px;
+            height: 18px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="underwater-overlay" aria-hidden="true"></div>
+
+<div id="hud">
+    <div id="title">VOXEL WORLD</div>
+
+    <div id="stats">
+        <div>🌊 Water level: <span id="water-level">7</span></div>
+        <div>📍 Position: <span id="position">0, 0, 0</span></div>
+    </div>
+
+    <div id="online-players">Online: 1</div>
+    <div id="crosshair">+</div>
+    <div id="message"></div>
+    <div id="health" aria-label="Health: 10 hearts"></div>
+    <div id="hotbar" aria-label="Block hotbar"></div>
+
+</div>
+
+<div id="inventory-screen" aria-label="Inventory">
+    <div id="inventory-panel">
+        <h2 id="inventory-title">INVENTORY</h2>
+        <div id="inventory-grid" aria-label="Inventory slots"></div>
+        <div id="crafting-panel">
+            <div class="crafting-caption" id="crafting-title">2×2 Crafting</div>
+            <div class="crafting-layout">
+                <div id="crafting-grid" aria-label="Crafting grid"></div>
+                <div class="crafting-arrow">→</div>
+                <div>
+                    <div class="crafting-caption">Result</div>
+                    <div id="crafting-output"></div>
+                </div>
+            </div>
+        </div>
+        <div id="furnace-panel" style="display:none">
+            <div class="crafting-caption">Furnace · Coal is fuel</div>
+            <div class="furnace-layout">
+                <div>
+                    <div class="crafting-caption">Input</div>
+                    <div id="furnace-input"></div>
+                </div>
+                <div>
+                    <div class="crafting-caption">Fuel</div>
+                    <div id="furnace-fuel"></div>
+                </div>
+                <div class="crafting-arrow">→</div>
+                <div>
+                    <div class="crafting-caption">Output</div>
+                    <div id="furnace-output"></div>
+                </div>
+            </div>
+            <progress id="furnace-progress" max="5" value="0"></progress>
+        </div>
+        <div id="chest-panel" style="display:none">
+            <div class="crafting-caption">Chest Storage · 27 slots</div>
+            <div id="chest-grid" style="display:grid;grid-template-columns:repeat(9,48px);gap:5px"></div>
+        </div>
+        <div id="inventory-hotbar" aria-label="Hotbar"></div>
+        <div id="inventory-hint">Move items between slots · Click outside to drop carried items · Q drops one selected item · Press E or ESC to close</div>
+    </div>
+</div>
+
+<div id="start-screen">
+    <div id="start-box">
+        <h1>🌍 Voxel World</h1>
+        <p>
+            Explore a procedurally generated 3D world filled with
+            grassy hills, dirt layers, valleys, and transparent water.
+        </p>
+        <p>
+            Break blocks, collect them, and build your own structures.
+        </p>
+        <div id="multiplayer-panel">
+            <strong>ONLINE MULTIPLAYER</strong>
+            <label for="multiplayer-name">Player name</label>
+            <input id="multiplayer-name" maxlength="20" value="Player" autocomplete="nickname">
+            <label for="multiplayer-color">Body color</label>
+            <input id="multiplayer-color" type="color" value="#3d83d5" aria-label="Choose your player body color">
+            <div style="font-size:11px;color:#bbb;margin-top:5px">Server: wss://voxelworld3d.onrender.com/ws</div>
+            <div id="multiplayer-actions">
+                <button id="connect-multiplayer">CONNECT</button>
+                <button id="disconnect-multiplayer">DISCONNECT</button>
+            </div>
+            <div id="multiplayer-status">Offline — you can play solo or connect to a shared world.</div>
+        </div>
+        <div id="camera-settings">
+            <label for="camera-sensitivity">Camera sensitivity <span id="camera-sensitivity-value">1.0×</span></label>
+            <input id="camera-sensitivity" type="range" min="0.3" max="3" step="0.1" value="1">
+            <div style="color:#bbb">Adjusts mouse and arrow-key camera movement.</div>
+            <label for="crouch-toggle-setting" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
+                <input id="crouch-toggle-setting" type="checkbox" checked style="width:auto">
+                Crouch toggle (C)
+            </label>
+            <div style="color:#bbb;margin-top:4px">On: press C to toggle crouching. Off: hold C to crouch.</div>
+            <div id="game-mode-setting-row" style="margin-top:12px">
+                <label for="game-mode-setting" style="display:block;margin-bottom:5px">Game mode (singleplayer only)</label>
+                <select id="game-mode-setting" style="width:100%;padding:9px;border:1px solid #667;border-radius:5px;background:#101820;color:white;font-size:14px">
+                    <option value="survival" selected>Survival</option>
+                    <option value="creative">Creative</option>
+                </select>
+                <div style="color:#bbb;margin-top:4px">Creative: instant mining, unlimited blocks, and double-tap SPACE to fly.</div>
+            </div>
+        </div>
+        <button id="start-button">PLAY WORLD</button>
+        <div id="help">
+            <strong>CONTROLS</strong><br>
+            WASD: Move &nbsp; | &nbsp; Mouse / Arrow Keys: Look<br>
+            Hold SPACE: Auto-jump &nbsp; | &nbsp; SHIFT: Sprint &nbsp; | &nbsp; C: Crouch<br>
+            Creative: Double-tap SPACE to toggle flight; SPACE up, C down<br>
+            Left Click / Hold N: Punch player or pig, or mine block &nbsp; | &nbsp; Right Click / M: Place / Use<br>
+            1–9: Select Hotbar Slot &nbsp; | &nbsp; E: Inventory &nbsp; | &nbsp; P / ESC: Pause / Resume
+        </div>
+        <p style="font-size:12px">
+            Best experienced on a desktop browser.
+        </p>
+    </div>
+</div>
+
+<div id="game-over" role="status" aria-live="assertive">
+    <div id="game-over-message">Game over</div>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+    }
+}
+</script>
+
+<script type="module">
+
+import * as THREE from "three";
+
+// =====================================================
+// CONFIGURATION
+// =====================================================
+
+const WORLD_SIZE = 144;
+const HALF_WORLD = WORLD_SIZE / 2;
+
+const WATER_LEVEL = 7;
+const WORLD_BOTTOM = 0;
+
+const BLOCK_GRASS = 1;
+const BLOCK_DIRT = 2;
+const BLOCK_WATER = 3;
+const BLOCK_WOOD = 4;
+const BLOCK_LEAVES = 5;
+const BLOCK_STONE = 6;
+const ITEM_RAW_PORKCHOP = 7;
+const BLOCK_COAL_ORE = 8;
+const BLOCK_IRON_ORE = 9;
+const BLOCK_DIAMOND_ORE = 10;
+const BLOCK_CRAFTING_TABLE = 11;
+const BLOCK_FURNACE = 12;
+const BLOCK_CHEST = 13;
+
+const ITEM_PLANKS = 20;
+const ITEM_STICK = 21;
+const ITEM_COAL = 22;
+const ITEM_RAW_IRON = 23;
+const ITEM_IRON_INGOT = 24;
+const ITEM_DIAMOND = 25;
+const ITEM_WOOD_PICKAXE = 30;
+const ITEM_STONE_PICKAXE = 31;
+const ITEM_IRON_PICKAXE = 32;
+const ITEM_DIAMOND_PICKAXE = 33;
+const ITEM_WOOD_SHOVEL = 38;
+const ITEM_STONE_SHOVEL = 39;
+const ITEM_IRON_SHOVEL = 40;
+const ITEM_DIAMOND_SHOVEL = 41;
+const ITEM_BUCKET = 42;
+const ITEM_WATER_BUCKET = 43;
+const ITEM_COOKED_PORKCHOP = 44;
+const ITEM_WOOD_AXE = 45;
+const ITEM_STONE_AXE = 46;
+const ITEM_IRON_AXE = 47;
+const ITEM_DIAMOND_AXE = 48;
+const ITEM_RAW_BEEF = 49;
+const ITEM_STEAK = 50;
+
+const PLACEABLE_BLOCKS = [
+    BLOCK_GRASS, BLOCK_DIRT, BLOCK_WOOD, BLOCK_LEAVES, BLOCK_STONE,
+    BLOCK_COAL_ORE, BLOCK_IRON_ORE, BLOCK_DIAMOND_ORE, BLOCK_CRAFTING_TABLE, BLOCK_FURNACE, BLOCK_CHEST,
+    ITEM_PLANKS
+];
+const ALL_SOLID_BLOCKS = PLACEABLE_BLOCKS;
+
+const itemDrops = [];
+let pendingItemPickupId = null;
+let eatingPorkchop = false;
+let eatingPorkchopElapsed = 0;
+const RAW_PORKCHOP_EAT_TIME = 1.6;
+
+let selectedBlock = null;
+let selectedHotbarSlot = 0;
+const hotbar = Array(9).fill(null);
+const inventory = Array(27).fill(null);
+const craftingGrid = Array(9).fill(null);
+let craftingGridSize = 2;
+let inventoryScreenMode = "inventory";
+let activeFurnaceKey = null;
+const furnaceStates = new Map();
+const chestStates = new Map();
+let activeChestKey = null;
+let inventoryOpen = false;
+let carriedItemStack = null;
+let miningActive = false;
+let miningElapsed = 0;
+let miningTargetKey = null;
+let miningTargetData = null;
+let miningInputHeld = false;
+
+const PLAYER_HEIGHT = 1.8;
+const CROUCH_HEIGHT = 1.3;
+const PLAYER_RADIUS = 0.30;
+const EYE_HEIGHT = 1.7;
+let crouching = false;
+let crouchToggleMode = true;
+let gameMode = "survival";
+let creativeFlying = false;
+let flightDescendHeld = false;
+let lastJumpPressAt = 0;
+const DOUBLE_JUMP_TAP_MS = 350;
+const CREATIVE_FLIGHT_SPEED = 8.5;
+
+function getPlayerHeight(isCrouching = crouching) {
+    return isCrouching ? CROUCH_HEIGHT : PLAYER_HEIGHT;
+}
+
+const WALK_SPEED = 5.0;
+const SPRINT_SPEED = 8.5;
+const JUMP_SPEED = 8.0;
+const GRAVITY = 22.0;
+const WATER_GRAVITY = 4.5;
+const WATER_MAX_FALL_SPEED = 2.4;
+const WATER_SWIM_UP_SPEED = 3.2;
+
+const REACH_DISTANCE = 4;
+
+const blocks = new Map();
+const waterLevels = new Map();
+const waterParents = new Map();
+
+const keys = Object.create(null);
+
+let velocityY = 0;
+let grounded = false;
+let gameStarted = false;
+let gamePaused = true;
+let pauseState = "menu"; // menu, playing, paused, dead
+
+let yaw = 0;
+let pitch = 0;
+let cameraSensitivity = 1.0;
+let health = 20;
+let healthRegenElapsed = 0;
+let gameOver = false;
+let lastPunchAt = 0;
+const PUNCH_COOLDOWN_MS = 500;
+const PUNCH_REACH = 3.2;
+
+const player = {
+    x: 0,
+    y: 15,
+    z: 0
+};
+
+const clock = new THREE.Clock();
+
+// =====================================================
+// MULTIPLAYER STATE
+// =====================================================
+
+let multiplayerSocket = null;
+let multiplayerConnected = false;
+let multiplayerReady = false;
+let multiplayerPlayerId = null;
+let multiplayerLastStateSent = 0;
+let multiplayerPlayerName = "Player";
+const MULTIPLAYER_SERVER_URL = "wss://voxelworld3d.onrender.com/ws";
+const remotePlayers = new Map();
+const pendingRemoteStates = new Map();
+const REMOTE_INTERPOLATION = 0.18;
+const PIG_COUNT = 14;
+const PIG_MAX_HEALTH = 10;
+const PIG_PUNCH_DAMAGE = 1;
+const pigs = new Map();
+const cows = new Map();
+const COW_COUNT = 10;
+const COW_MAX_HEALTH = 10;
+
+function multiplayerStatus(message) {
+    const element = document.getElementById("multiplayer-status");
+    if (element) element.textContent = message;
+}
+
+function multiplayerSend(message) {
+    if (multiplayerSocket && multiplayerSocket.readyState === WebSocket.OPEN) {
+        multiplayerSocket.send(JSON.stringify(message));
+        return true;
+    }
+    return false;
+}
+
+function connectMultiplayer() {
+    if (multiplayerSocket && multiplayerSocket.readyState <= WebSocket.OPEN) {
+        multiplayerStatus("Already connecting or connected.");
+        return;
+    }
+    forceSurvivalForOnline();
+    const url = MULTIPLAYER_SERVER_URL;
+    multiplayerPlayerName = document.getElementById("multiplayer-name").value.trim().slice(0, 20) || "Player";
+    const multiplayerPlayerColor = document.getElementById("multiplayer-color").value;
+    multiplayerStatus("Connecting...");
+    try {
+        multiplayerSocket = new WebSocket(url);
+        updateGameModeSettingVisibility();
+        multiplayerSocket.addEventListener("open", () => {
+            multiplayerConnected = true;
+            forceSurvivalForOnline();
+            updateGameModeSettingVisibility();
+            multiplayerSend({ type: "join", name: multiplayerPlayerName, color: multiplayerPlayerColor });
+            multiplayerStatus("Connected — joining shared world...");
+        });
+        multiplayerSocket.addEventListener("message", event => {
+            let message;
+            try { message = JSON.parse(event.data); } catch { return; }
+            handleMultiplayerMessage(message);
+        });
+        multiplayerSocket.addEventListener("error", () => {
+            multiplayerStatus("Connection error. Check the server URL and Render service.");
+        });
+        multiplayerSocket.addEventListener("close", () => {
+            multiplayerConnected = false;
+            multiplayerReady = false;
+            multiplayerPlayerId = null;
+            clearRemotePlayers();
+            updateGameModeSettingVisibility();
+            multiplayerStatus("Disconnected.");
+            updateOnlinePlayerCount();
+        });
+    } catch (error) {
+        multiplayerStatus("Could not connect: " + error.message);
+    }
+}
+
+function disconnectMultiplayer() {
+    if (multiplayerSocket) {
+        const socket = multiplayerSocket;
+        multiplayerSocket = null;
+        socket.close();
+    }
+    multiplayerConnected = false;
+    multiplayerReady = false;
+    multiplayerPlayerId = null;
+    clearRemotePlayers();
+    updateGameModeSettingVisibility();
+    multiplayerStatus("Disconnected.");
+    updateOnlinePlayerCount();
+}
+
+document.getElementById("connect-multiplayer").addEventListener("click", connectMultiplayer);
+document.getElementById("disconnect-multiplayer").addEventListener("click", disconnectMultiplayer);
+
+function updateGameModeSettingVisibility() {
+    const row = document.getElementById("game-mode-setting-row");
+    const connectionPending = multiplayerSocket && multiplayerSocket.readyState <= WebSocket.OPEN;
+    if (row) row.style.display = (multiplayerConnected || multiplayerReady || connectionPending) ? "none" : "block";
+}
+
+function seedCreativeInventory() {
+    // One full stack of every placeable block is added in a predictable order.
+    // Creative placement does not consume these stacks, so supplies are unlimited.
+    const availableBlocks = PLACEABLE_BLOCKS;
+    hotbar.fill(null);
+    inventory.fill(null);
+    availableBlocks.forEach((type, index) => {
+        const target = index < hotbar.length ? hotbar : inventory;
+        const targetIndex = index < hotbar.length ? index : index - hotbar.length;
+        target[targetIndex] = { type, count: 64 };
+    });
+    selectedHotbarSlot = 0;
+    selectedBlock = hotbar[0].type;
+    updateHUD();
+    if (inventoryOpen) renderInventoryGrid();
+}
+
+function setGameMode(nextMode) {
+    if (multiplayerConnected || multiplayerReady) nextMode = "survival";
+    if (nextMode !== "creative") nextMode = "survival";
+    if (gameMode === nextMode) {
+        const setting = document.getElementById("game-mode-setting");
+        if (setting) setting.value = gameMode;
+        updateGameModeSettingVisibility();
+        return;
+    }
+
+    gameMode = nextMode;
+    creativeFlying = false;
+    flightDescendHeld = false;
+    lastJumpPressAt = 0;
+    velocityY = 0;
+    if (crouching) setCrouching(false);
+
+    const setting = document.getElementById("game-mode-setting");
+    if (setting) setting.value = gameMode;
+    if (gameMode === "creative") {
+        seedCreativeInventory();
+        showMessage("Creative mode: unlimited blocks and instant mining");
+    } else {
+        showMessage("Survival mode enabled");
+    }
+    updateGameModeSettingVisibility();
+}
+
+function forceSurvivalForOnline() {
+    gameMode = "survival";
+    creativeFlying = false;
+    flightDescendHeld = false;
+    lastJumpPressAt = 0;
+    velocityY = 0;
+    const setting = document.getElementById("game-mode-setting");
+    if (setting) setting.value = "survival";
+    updateGameModeSettingVisibility();
+}
+
+function handleJumpKeyPress() {
+    const now = performance.now();
+    const canFly = gameMode === "creative" && !multiplayerConnected && !multiplayerReady;
+    if (canFly && lastJumpPressAt > 0 && now - lastJumpPressAt <= DOUBLE_JUMP_TAP_MS) {
+        creativeFlying = !creativeFlying;
+        lastJumpPressAt = 0;
+        velocityY = 0;
+        grounded = false;
+        if (creativeFlying && crouching) setCrouching(false);
+        showMessage(creativeFlying ? "Flying enabled" : "Flying disabled");
+        return;
+    }
+
+    lastJumpPressAt = canFly ? now : 0;
+    if (!creativeFlying) jump();
+}
+
+const gameModeSetting = document.getElementById("game-mode-setting");
+gameModeSetting.addEventListener("change", () => setGameMode(gameModeSetting.value));
+updateGameModeSettingVisibility();
+
+function handleMultiplayerMessage(message) {
+    if (!message || typeof message.type !== "string") return;
+    if (message.type === "welcome") {
+        forceSurvivalForOnline();
+        // Online worlds start with an empty inventory.
+        hotbar.fill(null);
+        inventory.fill(null);
+        selectedHotbarSlot = 0;
+        selectedBlock = null;
+        updateHUD();
+        multiplayerPlayerId = message.id;
+        health = Number.isFinite(message.health) ? THREE.MathUtils.clamp(message.health, 0, 20) : 20;
+        updateHealthDisplay();
+        // Every client regenerates from the same server-issued seed, then applies
+        // the current shared edits before rendering any chunks.
+        if (Number.isInteger(message.seed)) {
+            randomSeed = message.seed;
+            generateWorld();
+            if (Array.isArray(message.pigHealth)) {
+                for (const entry of message.pigHealth) {
+                    if (Array.isArray(entry) && typeof entry[0] === "string" && Number.isFinite(entry[1])) {
+                        applyPigHit(entry[0], entry[1], false);
+                    }
+                }
+            }
+            if (Array.isArray(message.cowHealth)) {
+                for (const entry of message.cowHealth) {
+                    if (Array.isArray(entry) && typeof entry[0] === "string" && Number.isFinite(entry[1])) applyCowHit(entry[0], entry[1], false);
+                }
+            }
+            if (message.spawn && Number.isFinite(message.spawn.x) && Number.isFinite(message.spawn.z)) {
+                player.x = message.spawn.x;
+                player.z = message.spawn.z;
+                player.y = terrainHeight(Math.floor(player.x), Math.floor(player.z)) + 1 + PLAYER_HEIGHT + 0.01;
+                while (collidesAt(player.x, player.y, player.z) && player.y < 40) player.y += 1;
+                camera.position.set(player.x, player.y, player.z);
+            }
+            if (Array.isArray(message.chests)) {
+                for (const entry of message.chests) {
+                    if (Array.isArray(entry) && typeof entry[0] === "string" && Array.isArray(entry[1]) && entry[1].length === 27) {
+                        chestStates.set(entry[0], entry[1]);
+                    }
+                }
+            }
+            clearItemDrops();
+            if (Array.isArray(message.itemDrops)) {
+                for (const drop of message.itemDrops) addServerItemDrop(drop);
+            }
+            if (Array.isArray(message.edits)) {
+                for (const edit of message.edits) {
+                    if (isValidRemoteEdit(edit)) setBlock(edit.x, edit.y, edit.z, edit.block);
+                }
+            }
+            rebuildWorldMeshes();
+            updateHUD();
+        }
+        multiplayerReady = true;
+        multiplayerStatus("Connected to shared world.");
+        if (Array.isArray(message.players)) {
+            for (const other of message.players) addOrUpdateRemotePlayer(other);
+        }
+        updateOnlinePlayerCount();
+    } else if (message.type === "player_joined") {
+        addOrUpdateRemotePlayer(message.player);
+        updateOnlinePlayerCount();
+    } else if (message.type === "player_left") {
+        removeRemotePlayer(message.id);
+        updateOnlinePlayerCount();
+    } else if (message.type === "player_punched") {
+        const remote = remotePlayers.get(message.targetId);
+        if (remote) remote.hitFlashUntil = performance.now() + 300;
+    } else if (message.type === "pig_hit") {
+        applyPigHit(message.pigId, message.health, true, message.attackerId);
+    } else if (message.type === "cow_hit") {
+        applyCowHit(message.cowId, message.health, true, message.attackerId);
+    } else if (message.type === "player_state") {
+        if (message.player && message.player.id !== multiplayerPlayerId) {
+            addOrUpdateRemotePlayer(message.player);
+        }
+    } else if (message.type === "chest_update") {
+        if (typeof message.key === "string" && Array.isArray(message.slots) && message.slots.length === 27) {
+            chestStates.set(message.key, message.slots.map(stack =>
+                stack && Number.isInteger(stack.type) && Number.isInteger(stack.count) && stack.count > 0 && stack.count <= 64
+                    ? { type: stack.type, count: stack.count } : null
+            ));
+            if (inventoryOpen && inventoryScreenMode === "chest" && activeChestKey === message.key) renderChestUI();
+        }
+    } else if (message.type === "item_drop_spawn") {
+        addServerItemDrop(message.drop);
+    } else if (message.type === "item_drop_removed") {
+        removeItemDropById(message.id);
+        if (pendingItemPickupId === message.id) pendingItemPickupId = null;
+        if (message.pickerId === multiplayerPlayerId && Number.isInteger(message.itemType) && Number.isInteger(message.count)) {
+            if (addInventory(message.itemType, message.count)) {
+                showMessage(message.itemType === ITEM_RAW_PORKCHOP ? "Raw porkchop collected" : blockName(message.itemType) + " collected");
+            } else {
+                showMessage("Inventory full; item pickup could not be added");
+            }
+        }
+    } else if (message.type === "item_pickup_rejected") {
+        if (pendingItemPickupId === message.id) pendingItemPickupId = null;
+        const rejectedDrop = itemDrops.find(drop => drop.id === message.id);
+        if (rejectedDrop) {
+            rejectedDrop.pickupRequested = false;
+            rejectedDrop.pickupRetryAt = performance.now() + 250;
+        }
+    } else if (message.type === "item_drop_rejected") {
+        if (Number.isInteger(message.itemType) && Number.isInteger(message.count) && message.count > 0) {
+            addInventory(message.itemType, message.count);
+        }
+        showMessage("Item drop could not be shared with the server; the item was returned");
+    } else if (message.type === "block_edit") {
+        const edit = message.edit;
+        if (!isValidRemoteEdit(edit)) return;
+        setBlock(edit.x, edit.y, edit.z, edit.block, edit.waterLevel, edit.waterParent);
+        if (edit.block === BLOCK_WATER) scheduleWaterUpdate(edit.x, edit.y, edit.z);
+        else spreadWaterFromAdjacentBlocks(edit.x, edit.y, edit.z);
+        rebuildAffectedChunks(edit.x, edit.z);
+    } else if (message.type === "edit_rejected") {
+        multiplayerStatus("A block change was rejected by the server. Rejoining to resync...");
+        multiplayerSend({ type: "request_sync" });
+    } else if (message.type === "sync") {
+        if (Array.isArray(message.edits)) {
+            // Rebuild the shared terrain from the server's canonical seed and edit list.
+            if (Number.isInteger(message.seed)) randomSeed = message.seed;
+            generateWorld();
+            if (Array.isArray(message.chests)) {
+                chestStates.clear();
+                for (const entry of message.chests) {
+                    if (Array.isArray(entry) && typeof entry[0] === "string" && Array.isArray(entry[1]) && entry[1].length === 27) chestStates.set(entry[0], entry[1]);
+                }
+            }
+            if (Array.isArray(message.itemDrops)) {
+                clearItemDrops();
+                for (const drop of message.itemDrops) addServerItemDrop(drop);
+            }
+            for (const edit of message.edits) {
+                if (!isValidRemoteEdit(edit)) continue;
+                setBlock(edit.x, edit.y, edit.z, edit.block, edit.waterLevel, edit.waterParent);
+                if (edit.block === BLOCK_WATER) scheduleWaterUpdate(edit.x, edit.y, edit.z);
+            }
+            if (Array.isArray(message.pigHealth)) {
+                for (const entry of message.pigHealth) {
+                    if (Array.isArray(entry) && typeof entry[0] === "string" && Number.isFinite(entry[1])) applyPigHit(entry[0], entry[1], false);
+                }
+            }
+            if (Array.isArray(message.cowHealth)) {
+                for (const entry of message.cowHealth) {
+                    if (Array.isArray(entry) && typeof entry[0] === "string" && Number.isFinite(entry[1])) applyCowHit(entry[0], entry[1], false);
+                }
+            }
+            rebuildWorldMeshes();
+        }
+    } else if (message.type === "health_update") {
+        if (message.id === multiplayerPlayerId) {
+            health = THREE.MathUtils.clamp(Number(message.health) || 0, 0, 20);
+            updateHealthDisplay();
+            if (message.respawn && health > 0) {
+                completeRespawn(message.spawn);
+            } else if (health <= 0) {
+                enterGameOver();
+            } else if (message.attackerId && message.attackerId !== multiplayerPlayerId) {
+                showMessage("You were punched!");
+            }
+        }
+    } else if (message.type === "server_error") {
+        multiplayerStatus(message.message || "The server reported an error.");
+    }
+}
+
+function isValidRemoteEdit(edit) {
+    if (!(!!edit && Number.isInteger(edit.x) && Number.isInteger(edit.y) && Number.isInteger(edit.z) &&
+        isInsideWorld(edit.x, edit.z) && edit.y >= WORLD_BOTTOM && edit.y <= 40 &&
+        [0, BLOCK_GRASS, BLOCK_DIRT, BLOCK_WATER, BLOCK_WOOD, BLOCK_LEAVES, BLOCK_STONE,
+            BLOCK_COAL_ORE, BLOCK_IRON_ORE, BLOCK_DIAMOND_ORE, BLOCK_CRAFTING_TABLE, BLOCK_FURNACE, BLOCK_CHEST,
+            ITEM_PLANKS].includes(edit.block))) return false;
+    if (edit.block === BLOCK_WATER && edit.waterLevel !== undefined &&
+        (!Number.isInteger(edit.waterLevel) || edit.waterLevel < 1 || edit.waterLevel > 8)) return false;
+    if (edit.waterParent != null && (typeof edit.waterParent !== "string" || !/^-?\d+,-?\d+,-?\d+$/.test(edit.waterParent))) return false;
+    return true;
+}
+
+function createRemotePlayer(playerData) {
+    const group = new THREE.Group();
+    const bodyColor = /^#[0-9a-fA-F]{6}$/.test(playerData.color || "") ? playerData.color : "#3d83d5";
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.72, 1.3, 0.62),
+        new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.8 })
+    );
+    body.position.y = 0.65;
+    body.userData.remotePlayerId = playerData.id;
+    body.userData.baseColor = body.material.color.getHex();
+    body.castShadow = true;
+    group.add(body);
+    const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.48, 0.48, 0.48),
+        new THREE.MeshStandardMaterial({ color: 0xe4b88b, roughness: 0.9 })
+    );
+    head.position.y = 1.56;
+    head.userData.remotePlayerId = playerData.id;
+    head.userData.baseColor = head.material.color.getHex();
+    head.castShadow = true;
+    group.add(head);
+    const labelCanvas = document.createElement("canvas");
+    labelCanvas.width = 256; labelCanvas.height = 64;
+    const ctx = labelCanvas.getContext("2d");
+    ctx.clearRect(0, 0, 256, 64);
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(4, 4, 248, 56);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 28px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(String(playerData.name || "Player").slice(0, 20), 128, 42);
+    const texture = new THREE.CanvasTexture(labelCanvas);
+    const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.2, 0.55),
+        new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.DoubleSide })
+    );
+    label.position.y = 2.08;
+    group.add(label);
+    group.userData.labelTexture = texture;
+    scene.add(group);
+    return group;
+}
+
+function addOrUpdateRemotePlayer(data) {
+    if (!data || !data.id || data.id === multiplayerPlayerId || !data.position) return;
+    let remote = remotePlayers.get(data.id);
+    if (!remote) {
+        remote = { group: createRemotePlayer(data), target: { x: 0, y: 0, z: 0 }, yaw: 0, crouching: false };
+        remotePlayers.set(data.id, remote);
+    }
+    if (![data.position.x, data.position.y, data.position.z].every(Number.isFinite)) return;
+    remote.target.x = data.position.x;
+    remote.crouching = !!data.crouching;
+    const remoteHeight = getPlayerHeight(remote.crouching);
+    remote.target.y = data.position.y - remoteHeight;
+    remote.target.z = data.position.z;
+    remote.yaw = Number.isFinite(data.yaw) ? data.yaw : 0;
+    remote.group.scale.y = remoteHeight / PLAYER_HEIGHT;
+    const label = remote.group.children.find(child => child.geometry && child.geometry.type === "PlaneGeometry");
+    if (label) label.position.y = 2.08 / remote.group.scale.y;
+    remote.name = data.name || "Player";
+}
+
+function removeRemotePlayer(id) {
+    const remote = remotePlayers.get(id);
+    if (!remote) return;
+    scene.remove(remote.group);
+    remote.group.traverse(object => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) {
+            if (Array.isArray(object.material)) object.material.forEach(material => material.dispose());
+            else object.material.dispose();
+        }
+    });
+    remotePlayers.delete(id);
+}
+
+function clearRemotePlayers() {
+    for (const id of [...remotePlayers.keys()]) removeRemotePlayer(id);
+}
+
+function updateOnlinePlayerCount() {
+    const element = document.getElementById("online-players");
+    if (element) element.textContent = `Online: ${1 + remotePlayers.size}`;
+}
+
+function updateRemotePlayers(delta) {
+    const amount = 1 - Math.pow(1 - REMOTE_INTERPOLATION, delta * 60);
+    for (const remote of remotePlayers.values()) {
+        remote.group.position.x += (remote.target.x - remote.group.position.x) * amount;
+        remote.group.position.y += (remote.target.y - remote.group.position.y) * amount;
+        remote.group.position.z += (remote.target.z - remote.group.position.z) * amount;
+        remote.group.rotation.y = remote.yaw;
+        const flashing = performance.now() < (remote.hitFlashUntil || 0);
+        for (const child of remote.group.children) {
+            if (child.material && child.material.color && Number.isFinite(child.userData.baseColor)) {
+                child.material.color.setHex(flashing ? 0xff2020 : child.userData.baseColor);
+            }
+        }
+        const nameTag = remote.group.children.find(child => child.geometry && child.geometry.type === "PlaneGeometry");
+        if (nameTag) nameTag.lookAt(camera.position);
+    }
+}
+
+function sendMultiplayerState(now) {
+    if (!multiplayerReady || now - multiplayerLastStateSent < 50) return;
+    multiplayerLastStateSent = now;
+    multiplayerSend({ type: "player_state", position: { x: player.x, y: player.y, z: player.z }, yaw, crouching });
+}
+
+function sendBlockEdit(x, y, z, block, waterLevel = null, waterParent = null) {
+    if (multiplayerReady) multiplayerSend({ type: "block_edit", x, y, z, block, waterLevel, waterParent });
+}
+
+function updateHealthDisplay() {
+    const element = document.getElementById("health");
+    if (!element) return;
+    element.innerHTML = "";
+    for (let i = 0; i < 10; i++) {
+        const heart = document.createElement("span");
+        const points = health - i * 2;
+        heart.className = "heart " + (points >= 2 ? "full" : points >= 1 ? "half" : "empty");
+        heart.textContent = "♥";
+        element.appendChild(heart);
+    }
+    element.setAttribute("aria-label", `Health: ${health} of 20`);
+}
+
+function clearGameplayKeys() {
+    for (const code of Object.keys(keys)) keys[code] = false;
+    flightDescendHeld = false;
+}
+
+function setPauseState(nextState) {
+    // The game state is authoritative. Pointer lock never changes pause state.
+    pauseState = nextState;
+    gamePaused = nextState !== "playing";
+    gameOver = nextState === "dead";
+
+    if (nextState === "playing") {
+        startScreen.style.display = "none";
+        startButton.textContent = "RESUME WORLD";
+        document.getElementById("game-over").style.display = "none";
+    } else if (nextState === "dead") {
+        startScreen.style.display = "none";
+        document.getElementById("game-over").style.display = "flex";
+    } else {
+        startScreen.style.display = "flex";
+        startButton.textContent = nextState === "menu" ? "PLAY WORLD" : "RESUME WORLD";
+        document.getElementById("game-over").style.display = "none";
+    }
+}
+
+function enterGameOver() {
+    if (gameOver) return;
+    health = 0;
+    healthRegenElapsed = 0;
+    updateHealthDisplay();
+    clearGameplayKeys();
+    setPauseState("dead");
+    if (document.pointerLockElement === renderer.domElement) {
+        document.exitPointerLock();
+    }
+}
+
+function completeRespawn(spawn) {
+    if (spawn && Number.isFinite(spawn.x) && Number.isFinite(spawn.z)) {
+        player.x = spawn.x;
+        player.z = spawn.z;
+    }
+    player.y = terrainHeight(Math.floor(player.x), Math.floor(player.z)) + 1 + PLAYER_HEIGHT + 0.01;
+    crouching = false;
+    velocityY = 0;
+    grounded = false;
+    camera.position.set(player.x, player.y, player.z);
+    health = 20;
+    healthRegenElapsed = 0;
+    clearGameplayKeys();
+    gameStarted = true;
+    updateHealthDisplay();
+    updateHUD();
+    setPauseState("paused");
+    if (document.pointerLockElement === renderer.domElement) {
+        document.exitPointerLock();
+    }
+    multiplayerSend({ type: "player_state", position: { x: player.x, y: player.y, z: player.z }, yaw, crouching: false });
+}
+
+// Aim-based targeting: only a remote player's visible body/head directly
+// under the crosshair can be punched. A solid block closer to the camera
+// takes priority, so clicking through a wall never hits a player.
+const remotePlayerRaycaster = new THREE.Raycaster();
+const remotePlayerAimPoint = new THREE.Vector2(0, 0);
+
+function findLookedAtRemotePlayer() {
+    if (!multiplayerReady || remotePlayers.size === 0) return null;
+
+    camera.updateMatrixWorld(true);
+    scene.updateMatrixWorld(true);
+    remotePlayerRaycaster.setFromCamera(remotePlayerAimPoint, camera);
+    remotePlayerRaycaster.near = 0;
+    remotePlayerRaycaster.far = PUNCH_REACH;
+
+    const targetMeshes = [];
+    for (const [id, remote] of remotePlayers) {
+        const dx = remote.target.x - player.x;
+        const dz = remote.target.z - player.z;
+        if (Math.hypot(dx, dz) > PUNCH_REACH) continue;
+
+        for (const child of remote.group.children) {
+            if (child.isMesh && child.userData.remotePlayerId === id) {
+                targetMeshes.push(child);
+            }
+        }
+    }
+
+    if (targetMeshes.length === 0) return null;
+    const intersections = remotePlayerRaycaster.intersectObjects(targetMeshes, false);
+    if (intersections.length === 0) return null;
+
+    const nearestHit = intersections[0];
+    const targetId = nearestHit.object.userData.remotePlayerId;
+    if (!targetId) return null;
+
+    const blockTarget = getTargetBlock();
+    if (blockTarget && blockTarget.distance + 0.05 < nearestHit.distance) {
+        return null;
+    }
+
+    return targetId;
+}
+
+function findLookedAtPig() {
+    if (pigs.size === 0 && cows.size === 0) return null;
+
+    camera.updateMatrixWorld(true);
+    scene.updateMatrixWorld(true);
+    remotePlayerRaycaster.setFromCamera(remotePlayerAimPoint, camera);
+    remotePlayerRaycaster.near = 0;
+    remotePlayerRaycaster.far = PUNCH_REACH;
+
+    const targetMeshes = [];
+    for (const animal of [...pigs.values(), ...cows.values()]) {
+        if (animal.health <= 0) continue;
+        animal.group.traverse(child => {
+            if (child.isMesh && child.userData.animalId === animal.id) targetMeshes.push(child);
+        });
+    }
+
+    if (targetMeshes.length === 0) return null;
+    const intersections = remotePlayerRaycaster.intersectObjects(targetMeshes, false);
+    if (intersections.length === 0) return null;
+
+    const nearestHit = intersections[0];
+    const pigId = nearestHit.object.userData.animalId;
+    if (!pigId) return null;
+
+    const blockTarget = getTargetBlock();
+    if (blockTarget && blockTarget.distance + 0.05 < nearestHit.distance) return null;
+    return pigId;
+}
+
+function punchPlayer() {
+    if (!gameStarted || pauseState !== "playing") return false;
+
+    const targetId = multiplayerReady ? findLookedAtRemotePlayer() : null;
+    const pigId = targetId ? null : findLookedAtPig();
+    if (!targetId && !pigId) return false;
+
+    const now = performance.now();
+    if (now - lastPunchAt < PUNCH_COOLDOWN_MS) {
+        showMessage("Punch is cooling down");
+        return true;
+    }
+
+    lastPunchAt = now;
+    if (targetId) {
+        multiplayerSend({ type: "punch", targetId, yaw });
+    } else {
+        const isCow = pigId.startsWith("cow-");
+        const animal = isCow ? cows.get(pigId) : pigs.get(pigId);
+        if (multiplayerReady) {
+            multiplayerSend({
+                type: isCow ? "cow_punch" : "pig_punch",
+                [isCow ? "cowId" : "pigId"]: pigId,
+                yaw,
+                position: animal ? { x: animal.group.position.x, y: animal.group.position.y, z: animal.group.position.z } : null
+            });
+        } else if (animal) {
+            if (isCow) applyCowHit(pigId, Math.max(0, animal.health - PIG_PUNCH_DAMAGE), true);
+            else applyPigHit(pigId, Math.max(0, animal.health - PIG_PUNCH_DAMAGE), true);
+        }
+    }
+    showMessage("Punch!");
+    return true;
+}
+
+function setCrouching(nextCrouching) {
+    if (!gameStarted || crouching === nextCrouching) return;
+    if (nextCrouching) {
+        crouching = true;
+        player.y -= PLAYER_HEIGHT - CROUCH_HEIGHT;
+    } else {
+        const standingY = player.y + (PLAYER_HEIGHT - CROUCH_HEIGHT);
+        if (collidesAt(player.x, standingY, player.z, PLAYER_HEIGHT)) {
+            showMessage("Not enough room to stand");
+            return;
+        }
+        player.y = standingY;
+        crouching = false;
+    }
+    camera.position.set(player.x, player.y, player.z);
+    sendMultiplayerState(performance.now());
+}
+
+function toggleCrouch() {
+    setCrouching(!crouching);
+}
+
+window.addEventListener("beforeunload", disconnectMultiplayer);
+
+
+// =====================================================
+// THREE.JS SETUP
+// =====================================================
+
+const scene = new THREE.Scene();
+
+const breakingOverlay = new THREE.Mesh(
+    new THREE.BoxGeometry(1.012, 1.012, 1.012),
+    new THREE.MeshBasicMaterial({
+        color: 0x171717,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide
+    })
+);
+breakingOverlay.visible = false;
+breakingOverlay.renderOrder = 20;
+scene.add(breakingOverlay);
+
+const breakingEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(1.016, 1.016, 1.016)),
+    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })
+);
+breakingEdges.visible = false;
+breakingEdges.renderOrder = 21;
+scene.add(breakingEdges);
+
+
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 65, 175);
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    260
+);
+
+camera.rotation.order = "YXZ";
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference: "high-performance"
+});
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+document.body.appendChild(renderer.domElement);
+
+// =====================================================
+// LIGHTING
+// =====================================================
+
+const ambientLight = new THREE.HemisphereLight(
+    0xc7e6ff,
+    0x62513c,
+    2.0
+);
+
+scene.add(ambientLight);
+
+const sun = new THREE.DirectionalLight(0xfff3d7, 2.5);
+
+sun.position.set(25, 40, 20);
+
+sun.castShadow = true;
+
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+
+sun.shadow.camera.left = -80;
+sun.shadow.camera.right = 80;
+sun.shadow.camera.top = 80;
+sun.shadow.camera.bottom = -80;
+
+scene.add(sun);
+
+// =====================================================
+// SEEDED NOISE GENERATOR
+// =====================================================
+
+let randomSeed = 82471;
+
+function createWorldSeed() {
+    const values = new Uint32Array(1);
+
+    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
+        globalThis.crypto.getRandomValues(values);
+        return (values[0] % 2147483646) + 1;
+    }
+
+    return (Date.now() + Math.floor(Math.random() * 2147483646)) % 2147483646 + 1;
+}
+
+function seededRandom() {
+    randomSeed = (randomSeed * 16807) % 2147483647;
+    return (randomSeed - 1) / 2147483646;
+}
+
+function hash2D(x, z) {
+    const n =
+        Math.sin(x * 127.1 + z * 311.7 + 78.233 + randomSeed * 0.0001) *
+        43758.5453123;
+
+    return (n - Math.floor(n)) * 2 - 1;
+}
+
+function smooth(t) {
+    return t * t * (3 - 2 * t);
+}
+
+function valueNoise(x, z) {
+    const x0 = Math.floor(x);
+    const z0 = Math.floor(z);
+
+    const x1 = x0 + 1;
+    const z1 = z0 + 1;
+
+    const tx = smooth(x - x0);
+    const tz = smooth(z - z0);
+
+    const a = hash2D(x0, z0);
+    const b = hash2D(x1, z0);
+    const c = hash2D(x0, z1);
+    const d = hash2D(x1, z1);
+
+    const top = THREE.MathUtils.lerp(a, b, tx);
+    const bottom = THREE.MathUtils.lerp(c, d, tx);
+
+    return THREE.MathUtils.lerp(top, bottom, tz);
+}
+
+function fractalNoise(x, z) {
+    let total = 0;
+    let amplitude = 1;
+    let frequency = 1;
+    let amplitudeSum = 0;
+
+    const octaves = 5;
+    const persistence = 0.5;
+    const lacunarity = 2.0;
+
+    for (let i = 0; i < octaves; i++) {
+        total += valueNoise(
+            x * frequency,
+            z * frequency
+        ) * amplitude;
+
+        amplitudeSum += amplitude;
+
+        amplitude *= persistence;
+        frequency *= lacunarity;
+    }
+
+    return total / amplitudeSum;
+}
+
+function terrainHeight(x, z) {
+    const broad = fractalNoise(
+        (x + 100) * 0.045,
+        (z - 40) * 0.045
+    );
+
+    const medium = fractalNoise(
+        (x - 50) * 0.105,
+        (z + 80) * 0.105
+    );
+
+    const detail = fractalNoise(
+        (x + 30) * 0.23,
+        (z - 20) * 0.23
+    );
+
+    let height =
+        8.5 +
+        broad * 7.0 +
+        medium * 3.0 +
+        detail * 1.0;
+
+    height = Math.round(height);
+
+    return THREE.MathUtils.clamp(height, 2, 21);
+}
+
+// =====================================================
+// VOXEL STORAGE
+// =====================================================
+
+function blockKey(x, y, z) {
+    return `${x},${y},${z}`;
+}
+
+function getBlock(x, y, z) {
+    return blocks.get(blockKey(x, y, z)) || 0;
+}
+
+function getWaterLevel(x, y, z) {
+    if (getBlock(x, y, z) !== BLOCK_WATER) return 0;
+    return waterLevels.get(blockKey(x, y, z)) || 8;
+}
+
+function setBlock(x, y, z, type, waterLevel = 8, waterParent = null) {
+    const key = blockKey(x, y, z);
+
+    if (type === 0) {
+        blocks.delete(key);
+        waterLevels.delete(key);
+        waterParents.delete(key);
+    } else {
+        blocks.set(key, type);
+        if (type === BLOCK_WATER) {
+            waterLevels.set(key, THREE.MathUtils.clamp(Math.round(waterLevel || 8), 1, 8));
+            if (typeof waterParent === "string" && /^-?\d+,-?\d+,-?\d+$/.test(waterParent)) waterParents.set(key, waterParent);
+            else waterParents.delete(key);
+        } else {
+            waterLevels.delete(key);
+            waterParents.delete(key);
+        }
+    }
+}
+
+function isSolid(type) {
+    return ALL_SOLID_BLOCKS.includes(type);
+}
+
+function isInsideWorld(x, z) {
+    return (
+        x >= -HALF_WORLD &&
+        x < HALF_WORLD &&
+        z >= -HALF_WORLD &&
+        z < HALF_WORLD
+    );
+}
+
+// =====================================================
+// TERRAIN GENERATION
+// =====================================================
+
+function generateWorld() {
+    blocks.clear();
+    waterLevels.clear();
+    waterParents.clear();
+
+    for (let x = -HALF_WORLD; x < HALF_WORLD; x++) {
+        for (let z = -HALF_WORLD; z < HALF_WORLD; z++) {
+
+            const height = terrainHeight(x, z);
+
+            for (let y = WORLD_BOTTOM; y <= height; y++) {
+
+                if (y === height) {
+                    setBlock(x, y, z, BLOCK_GRASS);
+                } else if (y >= height - 3) {
+                    // Keep a shallow dirt layer beneath the grass, with stone below it.
+                    setBlock(x, y, z, BLOCK_DIRT);
+                } else {
+                    setBlock(x, y, z, BLOCK_STONE);
+                }
+            }
+
+            // Deterministic underground ore deposits, distributed by depth.
+            for (let y = WORLD_BOTTOM; y <= height - 4; y++) {
+                if (getBlock(x, y, z) !== BLOCK_STONE) continue;
+                const oreHash = Math.abs(Math.sin(
+                    x * 127.1 + y * 269.5 + z * 311.7 + randomSeed * 0.00017
+                ) * 43758.5453);
+                const oreRoll = oreHash - Math.floor(oreHash);
+                if (y <= 3 && oreRoll < 0.006) {
+                    setBlock(x, y, z, BLOCK_DIAMOND_ORE);
+                } else if (y <= 8 && oreRoll < 0.025) {
+                    setBlock(x, y, z, BLOCK_IRON_ORE);
+                } else if (y <= 15 && oreRoll < 0.065) {
+                    setBlock(x, y, z, BLOCK_COAL_ORE);
+                }
+            }
+
+            for (let y = height + 1; y <= WATER_LEVEL; y++) {
+
+                if (getBlock(x, y, z) === 0) {
+                    setBlock(x, y, z, BLOCK_WATER);
+                }
+            }
+        }
+    }
+
+    // Deterministic trees: the same world seed produces the same trees
+    // for every player joining this shared world.
+    for (let x = -HALF_WORLD + 3; x < HALF_WORLD - 3; x++) {
+        for (let z = -HALF_WORLD + 3; z < HALF_WORLD - 3; z++) {
+            const treeRoll = (Math.sin(x * 127.1 + z * 311.7 + randomSeed * 0.0001) * 43758.5453);
+            const chance = treeRoll - Math.floor(treeRoll);
+            if (chance > 0.006) continue;
+            if (Math.abs(x) < 6 && Math.abs(z) < 6) continue;
+
+            const groundY = terrainHeight(x, z);
+            if (groundY <= WATER_LEVEL || getBlock(x, groundY, z) !== BLOCK_GRASS) continue;
+
+            const trunkHeight = 4 + Math.floor(chance * 1000) % 2;
+            for (let ty = 1; ty <= trunkHeight; ty++) {
+                setBlock(x, groundY + ty, z, BLOCK_WOOD);
+            }
+
+            const crownY = groundY + trunkHeight;
+            for (let lx = -2; lx <= 2; lx++) {
+                for (let lz = -2; lz <= 2; lz++) {
+                    for (let ly = -1; ly <= 2; ly++) {
+                        const distance = Math.abs(lx) + Math.abs(lz) + Math.max(0, ly - 1);
+                        if (distance > 4) continue;
+                        const leafX = x + lx;
+                        const leafY = crownY + ly;
+                        const leafZ = z + lz;
+                        if (getBlock(leafX, leafY, leafZ) === 0) {
+                            setBlock(leafX, leafY, leafZ, BLOCK_LEAVES);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let spawnHeight = terrainHeight(0, 0);
+
+    player.x = 0.5;
+    player.z = 0.5;
+    player.y = spawnHeight + 1 + PLAYER_HEIGHT + 0.01;
+
+    while (
+        collidesAt(player.x, player.y, player.z) &&
+        player.y < 40
+    ) {
+        player.y += 1;
+    }
+
+    camera.position.set(player.x, player.y, player.z);
+    spawnPigs();
+    spawnCows();
+}
+
+// =====================================================
+// PIG ENTITIES
+// =====================================================
+
+const pigBodyMaterial = new THREE.MeshStandardMaterial({ color: 0xe99a9a, roughness: 0.9 });
+const pigHeadMaterial = new THREE.MeshStandardMaterial({ color: 0xf0aaaa, roughness: 0.9 });
+const pigSnoutMaterial = new THREE.MeshStandardMaterial({ color: 0xd87983, roughness: 0.9 });
+const pigLegMaterial = new THREE.MeshStandardMaterial({ color: 0xb96e73, roughness: 1.0 });
+const pigEyeMaterial = new THREE.MeshStandardMaterial({ color: 0x241919, roughness: 0.7 });
+const pigFlashMaterial = new THREE.MeshStandardMaterial({ color: 0xff3030, roughness: 0.9 });
+
+function pigCanStandAt(x, z) {
+    if (!isInsideWorld(Math.floor(x), Math.floor(z))) return false;
+    const cellX = Math.floor(x);
+    const cellZ = Math.floor(z);
+    const groundY = terrainHeight(cellX, cellZ);
+    if (groundY <= WATER_LEVEL) return false;
+    if (!isSolid(getBlock(cellX, groundY, cellZ))) return false;
+
+    for (const offsetX of [-0.35, 0, 0.35]) {
+        for (const offsetZ of [-0.28, 0, 0.28]) {
+            const checkX = Math.floor(x + offsetX);
+            const checkZ = Math.floor(z + offsetZ);
+            for (let y = groundY + 1; y <= groundY + 2; y++) {
+                const type = getBlock(checkX, y, checkZ);
+                if (type === BLOCK_WATER || isSolid(type)) return false;
+            }
+        }
+    }
+    return true;
+}
+
+function createPigEntity(id, x, z, groundY) {
+    const group = new THREE.Group();
+    const parts = [];
+    function addPart(geometry, material, px, py, pz) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(px, py, pz);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData.pigId = id;
+        mesh.userData.animalId = id;
+        group.add(mesh);
+        parts.push(mesh);
+        return mesh;
+    }
+
+    addPart(new THREE.BoxGeometry(0.62, 0.62, 0.95), pigBodyMaterial, 0, 0.72, 0.02);
+    addPart(new THREE.BoxGeometry(0.55, 0.55, 0.52), pigHeadMaterial, 0, 1.08, -0.48);
+    addPart(new THREE.BoxGeometry(0.34, 0.24, 0.16), pigSnoutMaterial, 0, 0.99, -0.79);
+    addPart(new THREE.BoxGeometry(0.18, 0.25, 0.12), pigHeadMaterial, -0.18, 1.43, -0.48).rotation.z = -0.25;
+    addPart(new THREE.BoxGeometry(0.18, 0.25, 0.12), pigHeadMaterial, 0.18, 1.43, -0.48).rotation.z = 0.25;
+    addPart(new THREE.BoxGeometry(0.07, 0.07, 0.035), pigEyeMaterial, -0.19, 1.16, -0.75);
+    addPart(new THREE.BoxGeometry(0.07, 0.07, 0.035), pigEyeMaterial, 0.19, 1.16, -0.75);
+
+    const legs = [];
+    for (const lx of [-0.20, 0.20]) {
+        for (const lz of [-0.29, 0.29]) {
+            const leg = addPart(new THREE.BoxGeometry(0.19, 0.42, 0.19), pigLegMaterial, lx, 0.22, lz);
+            legs.push(leg);
+        }
+    }
+
+    group.position.set(x + 0.5, groundY + 1, z + 0.5);
+    scene.add(group);
+    const pig = {
+        id, group, legs, health: PIG_MAX_HEALTH,
+        targetX: x + 0.5, targetZ: z + 0.5,
+        targetTimer: 1 + Math.random() * 2, movingToGoal: false, path: null, pathIndex: 0, fleeUntil: 0,
+        walkPhase: Math.random() * Math.PI * 2,
+        verticalVelocity: 0,
+        parts, originalMaterials: parts.map(part => part.material), flashUntil: 0
+    };
+    pigs.set(id, pig);
+    return pig;
+}
+
+function spawnPigs() {
+    for (const pig of pigs.values()) {
+        scene.remove(pig.group);
+        pig.group.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material && child.material !== pigBodyMaterial && child.material !== pigHeadMaterial &&
+                child.material !== pigSnoutMaterial && child.material !== pigLegMaterial && child.material !== pigEyeMaterial) {
+                child.material.dispose();
+            }
+        });
+    }
+    pigs.clear();
+
+    // A seeded coordinate generator makes the pig spawn locations identical
+    // for every player in the same shared world.
+    let seed = (randomSeed ^ 0x6d2b79f5) >>> 0;
+    function nextRandom() {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        return seed / 4294967296;
+    }
+
+    let created = 0;
+    for (let attempt = 0; attempt < 1200 && created < PIG_COUNT; attempt++) {
+        const x = Math.floor(nextRandom() * (WORLD_SIZE - 20)) - HALF_WORLD + 10;
+        const z = Math.floor(nextRandom() * (WORLD_SIZE - 20)) - HALF_WORLD + 10;
+        if (Math.hypot(x + 0.5, z + 0.5) < 12) continue;
+        if (!pigCanStandAt(x + 0.5, z + 0.5)) continue;
+        let tooClose = false;
+        for (const pig of pigs.values()) {
+            if (Math.hypot(pig.group.position.x - (x + 0.5), pig.group.position.z - (z + 0.5)) < 9) {
+                tooClose = true;
+                break;
+            }
+        }
+        if (tooClose) continue;
+        createPigEntity(`pig-${created}`, x, z, terrainHeight(x, z));
+        created++;
+    }
+}
+
+const cowBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x8b5735, roughness: 0.95 });
+const cowPatchMaterial = new THREE.MeshStandardMaterial({ color: 0xf0e9d9, roughness: 1 });
+const cowHeadMaterial = new THREE.MeshStandardMaterial({ color: 0x765039, roughness: 0.95 });
+const cowMuzzleMaterial = new THREE.MeshStandardMaterial({ color: 0xc99a82, roughness: 0.95 });
+const cowHornMaterial = new THREE.MeshStandardMaterial({ color: 0xe8dfc8, roughness: 0.8 });
+
+function createCowEntity(id, x, z, groundY) {
+    const group = new THREE.Group();
+    const parts = [];
+    function addPart(geometry, material, px, py, pz) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(px, py, pz);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData.animalId = id;
+        group.add(mesh);
+        parts.push(mesh);
+        return mesh;
+    }
+    addPart(new THREE.BoxGeometry(0.92, 0.88, 1.18), cowBodyMaterial, 0, 0.88, 0.02);
+    addPart(new THREE.BoxGeometry(0.42, 0.48, 0.50), cowPatchMaterial, -0.24, 1.02, -0.12).rotation.y = 0.25;
+    addPart(new THREE.BoxGeometry(0.38, 0.40, 0.48), cowPatchMaterial, 0.25, 0.68, 0.28).rotation.y = -0.3;
+    addPart(new THREE.BoxGeometry(0.58, 0.62, 0.58), cowHeadMaterial, 0, 1.22, -0.70);
+    addPart(new THREE.BoxGeometry(0.42, 0.24, 0.18), cowMuzzleMaterial, 0, 1.04, -1.02);
+    addPart(new THREE.BoxGeometry(0.10, 0.20, 0.10), cowHornMaterial, -0.25, 1.62, -0.62).rotation.z = -0.35;
+    addPart(new THREE.BoxGeometry(0.10, 0.20, 0.10), cowHornMaterial, 0.25, 1.62, -0.62).rotation.z = 0.35;
+    addPart(new THREE.BoxGeometry(0.07, 0.07, 0.035), pigEyeMaterial, -0.20, 1.30, -0.99);
+    addPart(new THREE.BoxGeometry(0.07, 0.07, 0.035), pigEyeMaterial, 0.20, 1.30, -0.99);
+    const legs = [];
+    for (const lx of [-0.29, 0.29]) for (const lz of [-0.38, 0.38]) {
+        legs.push(addPart(new THREE.BoxGeometry(0.22, 0.48, 0.22), cowHeadMaterial, lx, 0.24, lz));
+    }
+    group.position.set(x + 0.5, groundY + 1, z + 0.5);
+    scene.add(group);
+    const cow = {
+        id, group, legs, health: COW_MAX_HEALTH,
+        targetX: x + 0.5, targetZ: z + 0.5,
+        targetTimer: 1 + Math.random() * 2, movingToGoal: false, path: null, pathIndex: 0, fleeUntil: 0,
+        walkPhase: Math.random() * Math.PI * 2, verticalVelocity: 0,
+        parts, originalMaterials: parts.map(part => part.material), flashUntil: 0
+    };
+    cows.set(id, cow);
+    return cow;
+}
+
+function spawnCows() {
+    for (const cow of cows.values()) {
+        scene.remove(cow.group);
+        cow.group.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+    }
+    cows.clear();
+    let seed = (randomSeed ^ 0x3c6ef372) >>> 0;
+    function nextRandom() {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        return seed / 4294967296;
+    }
+    let created = 0;
+    for (let attempt = 0; attempt < 1600 && created < COW_COUNT; attempt++) {
+        const x = Math.floor(nextRandom() * (WORLD_SIZE - 20)) - HALF_WORLD + 10;
+        const z = Math.floor(nextRandom() * (WORLD_SIZE - 20)) - HALF_WORLD + 10;
+        if (Math.hypot(x + 0.5, z + 0.5) < 15 || !pigCanStandAt(x + 0.5, z + 0.5)) continue;
+        let tooClose = false;
+        for (const animal of [...pigs.values(), ...cows.values()]) {
+            if (Math.hypot(animal.group.position.x - (x + 0.5), animal.group.position.z - (z + 0.5)) < 7) { tooClose = true; break; }
+        }
+        if (tooClose) continue;
+        createCowEntity(`cow-${created}`, x, z, terrainHeight(x, z));
+        created++;
+    }
+}
+
+function findPigPath(startX, startZ, goalX, goalZ) {
+    const start = { x: Math.floor(startX), z: Math.floor(startZ) };
+    const goal = { x: Math.floor(goalX), z: Math.floor(goalZ) };
+    const key = (x, z) => `${x},${z}`;
+    const startKey = key(start.x, start.z);
+    const goalKey = key(goal.x, goal.z);
+    const queue = [start];
+    const cameFrom = new Map([[startKey, null]]);
+    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    let found = startKey === goalKey;
+
+    for (let head = 0; head < queue.length && !found && queue.length < 900; head++) {
+        const current = queue[head];
+        for (const [ox, oz] of directions) {
+            const nx = current.x + ox;
+            const nz = current.z + oz;
+            const nextKey = key(nx, nz);
+            const currentGround = terrainHeight(current.x, current.z);
+            const nextGround = terrainHeight(nx, nz);
+            if (cameFrom.has(nextKey) || Math.abs(nextGround - currentGround) > 1 ||
+                !pigCanStandAt(nx + 0.5, nz + 0.5)) continue;
+            cameFrom.set(nextKey, key(current.x, current.z));
+            if (nextKey === goalKey) {
+                found = true;
+                break;
+            }
+            queue.push({ x: nx, z: nz });
+        }
+    }
+    if (!found) return null;
+
+    const path = [];
+    let cursor = goalKey;
+    while (cursor && cursor !== startKey) {
+        const [x, z] = cursor.split(',').map(Number);
+        path.push({ x: x + 0.5, z: z + 0.5 });
+        cursor = cameFrom.get(cursor);
+    }
+    path.reverse();
+    return path;
+}
+
+function applyPigHit(pigId, nextHealth, makeFlee = true, attackerId = null) {
+    const pig = pigs.get(pigId);
+    if (!pig || !Number.isFinite(nextHealth)) return;
+    pig.health = THREE.MathUtils.clamp(nextHealth, 0, PIG_MAX_HEALTH);
+    if (pig.health <= 0) {
+        // Only the client whose punch defeated the shared pig creates the
+        // server-owned drops. Other clients receive those drops from the server.
+        if (makeFlee && (!multiplayerReady || attackerId === multiplayerPlayerId)) {
+            let dropHash = 0;
+            for (let i = 0; i < pigId.length; i++) dropHash = (Math.imul(dropHash, 31) + pigId.charCodeAt(i)) >>> 0;
+            const porkchopCount = 1 + (dropHash % 3);
+            for (let i = 0; i < porkchopCount; i++) {
+                createItemDrop(ITEM_RAW_PORKCHOP,
+                    pig.group.position.x + (Math.random() - 0.5) * 0.45,
+                    pig.group.position.y + 0.28 + Math.random() * 0.12,
+                    pig.group.position.z + (Math.random() - 0.5) * 0.45);
+            }
+        }
+        scene.remove(pig.group);
+        pig.group.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+        });
+        pigs.delete(pigId);
+        showMessage("Pig defeated");
+        return;
+    }
+
+    pig.flashUntil = performance.now() + 220;
+    for (const part of pig.parts) part.material = pigFlashMaterial;
+
+    if (makeFlee) {
+        pig.fleeUntil = performance.now() + 2800;
+        const attacker = attackerId && attackerId !== multiplayerPlayerId
+            ? remotePlayers.get(attackerId)?.target
+            : null;
+        const attackerX = attacker && Number.isFinite(attacker.x) ? attacker.x : player.x;
+        const attackerZ = attacker && Number.isFinite(attacker.z) ? attacker.z : player.z;
+        const dx = pig.group.position.x - attackerX;
+        const dz = pig.group.position.z - attackerZ;
+        const length = Math.hypot(dx, dz) || 1;
+        const fleeDistance = 10 + Math.random() * 5;
+        const fleeX = pig.group.position.x + (dx / length) * fleeDistance;
+        const fleeZ = pig.group.position.z + (dz / length) * fleeDistance;
+        const fleePath = findPigPath(pig.group.position.x, pig.group.position.z, fleeX, fleeZ);
+        if (fleePath && fleePath.length) {
+            pig.path = fleePath;
+            pig.pathIndex = 0;
+            pig.targetX = fleePath[0].x;
+            pig.targetZ = fleePath[0].z;
+            pig.movingToGoal = true;
+        } else {
+            pig.movingToGoal = false;
+            pig.targetTimer = 0.15;
+        }
+    }
+}
+
+function applyCowHit(cowId, nextHealth, makeFlee = true, attackerId = null) {
+    const cow = cows.get(cowId);
+    if (!cow || !Number.isFinite(nextHealth)) return;
+    cow.health = THREE.MathUtils.clamp(nextHealth, 0, COW_MAX_HEALTH);
+    if (cow.health <= 0) {
+        if (makeFlee && (!multiplayerReady || attackerId === multiplayerPlayerId)) {
+            let dropHash = 0;
+            for (let i = 0; i < cowId.length; i++) dropHash = (Math.imul(dropHash, 31) + cowId.charCodeAt(i)) >>> 0;
+            const beefCount = 1 + (dropHash % 3);
+            for (let i = 0; i < beefCount; i++) {
+                createItemDrop(ITEM_RAW_BEEF,
+                    cow.group.position.x + (Math.random() - 0.5) * 0.55,
+                    cow.group.position.y + 0.3 + Math.random() * 0.12,
+                    cow.group.position.z + (Math.random() - 0.5) * 0.55);
+            }
+        }
+        scene.remove(cow.group);
+        cow.group.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+        cows.delete(cowId);
+        showMessage("Cow defeated");
+        return;
+    }
+    cow.flashUntil = performance.now() + 220;
+    for (const part of cow.parts) part.material = pigFlashMaterial;
+    if (makeFlee) {
+        cow.fleeUntil = performance.now() + 2800;
+        const attacker = attackerId && attackerId !== multiplayerPlayerId ? remotePlayers.get(attackerId)?.target : null;
+        const attackerX = attacker && Number.isFinite(attacker.x) ? attacker.x : player.x;
+        const attackerZ = attacker && Number.isFinite(attacker.z) ? attacker.z : player.z;
+        const dx = cow.group.position.x - attackerX, dz = cow.group.position.z - attackerZ;
+        const length = Math.hypot(dx, dz) || 1;
+        const fleePath = findPigPath(cow.group.position.x, cow.group.position.z,
+            cow.group.position.x + dx / length * 13, cow.group.position.z + dz / length * 13);
+        if (fleePath && fleePath.length) {
+            cow.path = fleePath; cow.pathIndex = 0; cow.targetX = fleePath[0].x; cow.targetZ = fleePath[0].z; cow.movingToGoal = true;
+        } else { cow.movingToGoal = false; cow.targetTimer = 0.15; }
+    }
+}
+
+function choosePigWanderTarget(pig) {
+    // Choose a distant destination and use a grid path around water and solid obstacles.
+    for (let attempt = 0; attempt < 24; attempt++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 8 + Math.random() * 9;
+        const x = pig.group.position.x + Math.cos(angle) * distance;
+        const z = pig.group.position.z + Math.sin(angle) * distance;
+        if (!pigCanStandAt(x, z)) continue;
+        const path = findPigPath(pig.group.position.x, pig.group.position.z, x, z);
+        if (!path || path.length < 3) continue;
+        pig.path = path;
+        pig.pathIndex = 0;
+        pig.targetX = path[0].x;
+        pig.targetZ = path[0].z;
+        pig.movingToGoal = true;
+        return true;
+    }
+    pig.movingToGoal = false;
+    pig.targetTimer = 1 + Math.random() * 1.5;
+    return false;
+}
+
+function updatePigs(delta) {
+    const now = performance.now();
+    for (const pig of [...pigs.values(), ...cows.values()]) {
+        if (pig.flashUntil && now >= pig.flashUntil) {
+            for (let i = 0; i < pig.parts.length; i++) {
+                pig.parts[i].material = pig.originalMaterials[i];
+            }
+            pig.flashUntil = 0;
+        }
+
+        const fleeing = now < pig.fleeUntil;
+        if (!pig.movingToGoal) {
+            pig.targetTimer -= delta;
+            if (pig.targetTimer <= 0) choosePigWanderTarget(pig);
+        }
+
+        const dx = pig.targetX - pig.group.position.x;
+        const dz = pig.targetZ - pig.group.position.z;
+        const distance = Math.hypot(dx, dz);
+        const speed = fleeing ? 1.75 : 0.72;
+
+        if (pig.movingToGoal && distance > 0.18) {
+            const step = Math.min(distance, speed * delta);
+            const nextX = pig.group.position.x + (dx / distance) * step;
+            const nextZ = pig.group.position.z + (dz / distance) * step;
+            if (pigCanStandAt(nextX, nextZ)) {
+                const oldGround = terrainHeight(Math.floor(pig.group.position.x), Math.floor(pig.group.position.z));
+                const nextGround = terrainHeight(Math.floor(nextX), Math.floor(nextZ));
+                if (nextGround > oldGround && pig.group.position.y <= oldGround + 1.12) {
+                    pig.verticalVelocity = Math.max(pig.verticalVelocity, 5.2);
+                }
+                pig.group.position.x = nextX;
+                pig.group.position.z = nextZ;
+                pig.verticalVelocity -= 18 * delta;
+                pig.group.position.y += pig.verticalVelocity * delta;
+                const groundY = nextGround + 1;
+                if (pig.group.position.y <= groundY) {
+                    pig.group.position.y = groundY;
+                    pig.verticalVelocity = 0;
+                }
+                const desiredYaw = Math.atan2(-dx, -dz);
+                let yawDifference = desiredYaw - pig.group.rotation.y;
+                while (yawDifference > Math.PI) yawDifference -= Math.PI * 2;
+                while (yawDifference < -Math.PI) yawDifference += Math.PI * 2;
+                pig.group.rotation.y += yawDifference * Math.min(1, delta * 7);
+                pig.walkPhase += delta * (fleeing ? 10 : 4.5);
+                for (let i = 0; i < pig.legs.length; i++) {
+                    pig.legs[i].rotation.x = Math.sin(pig.walkPhase + (i % 2) * Math.PI) * 0.42;
+                }
+            } else {
+                pig.movingToGoal = false;
+                pig.targetTimer = 0.5 + Math.random();
+            }
+        } else if (pig.movingToGoal) {
+            pig.pathIndex = (pig.pathIndex || 0) + 1;
+            if (pig.path && pig.pathIndex < pig.path.length) {
+                pig.targetX = pig.path[pig.pathIndex].x;
+                pig.targetZ = pig.path[pig.pathIndex].z;
+            } else {
+                pig.movingToGoal = false;
+                pig.path = null;
+                pig.targetTimer = fleeing ? 0.1 : 2.5 + Math.random() * 3.5;
+                for (const leg of pig.legs) leg.rotation.x = 0;
+            }
+        } else {
+            for (const leg of pig.legs) leg.rotation.x *= 0.8;
+        }
+    }
+}
+
+// =====================================================
+// MATERIALS
+// =====================================================
+
+const grassMaterial = new THREE.MeshStandardMaterial({
+    color: 0x58b83f,
+    roughness: 1.0
+});
+
+const dirtMaterial = new THREE.MeshStandardMaterial({
+    color: 0x87532e,
+    roughness: 1.0
+});
+
+const woodMaterial = new THREE.MeshStandardMaterial({
+    color: 0x59351f,
+    roughness: 1.0
+});
+
+const leavesMaterial = new THREE.MeshStandardMaterial({
+    color: 0x26702b,
+    roughness: 1.0
+});
+
+const stoneMaterial = new THREE.MeshStandardMaterial({
+    color: 0x7E7E7E,
+    roughness: 1.0
+});
+const coalOreMaterial = new THREE.MeshStandardMaterial({ color: 0x55585b, roughness: 1.0 });
+const ironOreMaterial = new THREE.MeshStandardMaterial({ color: 0x9a7967, roughness: 1.0 });
+const diamondOreMaterial = new THREE.MeshStandardMaterial({ color: 0x45c9c8, roughness: 1.0 });
+function createCraftingTableTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    // Top-left atlas tile: a clearly marked 3x3 crafting grid.
+    ctx.fillStyle = "#bd8950";
+    ctx.fillRect(0, 0, 32, 32);
+    ctx.fillStyle = "#6e4528";
+    ctx.fillRect(3, 3, 26, 26);
+    ctx.fillStyle = "#d8aa70";
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
+        ctx.fillRect(5 + x * 8, 5 + y * 8, 6, 6);
+    }
+    // Top-right atlas tile: wood-plank sides with a darker workbench band.
+    ctx.fillStyle = "#8a592f";
+    ctx.fillRect(32, 0, 32, 32);
+    ctx.fillStyle = "#bd8950";
+    ctx.fillRect(32, 2, 32, 8);
+    ctx.fillStyle = "#5b3822";
+    ctx.fillRect(32, 11, 32, 5);
+    ctx.fillStyle = "#a87543";
+    for (let y = 17; y < 32; y += 7) {
+        ctx.fillRect(32, y, 32, 2);
+    }
+    // Lower atlas half: unused faces get a simple wood grain.
+    ctx.fillStyle = "#80512e";
+    ctx.fillRect(0, 32, 64, 32);
+    ctx.fillStyle = "#9a6739";
+    for (let y = 36; y < 64; y += 8) ctx.fillRect(0, y, 64, 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+}
+const craftingTableMaterial = new THREE.MeshStandardMaterial({ map: createCraftingTableTexture(), roughness: 1.0 });
+function createPlanksTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#b88750";
+    ctx.fillRect(0, 0, 64, 64);
+    // Distinct wooden boards with dark seams, grain and small knots.
+    for (let y = 0; y < 64; y += 16) {
+        ctx.fillStyle = "#704629";
+        ctx.fillRect(0, y, 64, 2);
+        ctx.fillStyle = y % 32 === 0 ? "#c9955c" : "#c18b50";
+        ctx.fillRect(2, y + 2, 60, 12);
+        ctx.fillStyle = "rgba(92, 53, 28, 0.35)";
+        ctx.fillRect(5, y + 5, 22, 1);
+        ctx.fillRect(34, y + 10, 23, 1);
+        ctx.fillStyle = "#8b5a32";
+        ctx.fillRect((y * 3 + 13) % 52 + 3, y + 6, 5, 2);
+        ctx.fillRect(0, y + 14, 64, 2);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+}
+const planksMaterial = new THREE.MeshStandardMaterial({ map: createPlanksTexture(), roughness: 1.0 });
+const furnaceMaterial = new THREE.MeshStandardMaterial({ color: 0x55585c, roughness: 1.0 });
+const chestMaterial = new THREE.MeshStandardMaterial({ color: 0x9b642e, roughness: 0.9 });
+
+const waterMaterial = new THREE.MeshStandardMaterial({
+    color: 0x269bd8,
+    transparent: true,
+    opacity: 0.43,
+    roughness: 0.25,
+    metalness: 0.0,
+    depthWrite: false
+});
+
+const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const porkchopMeatMaterial = new THREE.MeshStandardMaterial({ color: 0xb84b55, roughness: 0.9 });
+const porkchopFatMaterial = new THREE.MeshStandardMaterial({ color: 0xf0c9b8, roughness: 0.9 });
+const itemBlockMaterials = {
+    [BLOCK_GRASS]: grassMaterial,
+    [BLOCK_DIRT]: dirtMaterial,
+    [BLOCK_WOOD]: woodMaterial,
+    [BLOCK_LEAVES]: leavesMaterial,
+    [BLOCK_STONE]: stoneMaterial,
+    [BLOCK_COAL_ORE]: coalOreMaterial,
+    [BLOCK_IRON_ORE]: ironOreMaterial,
+    [BLOCK_DIAMOND_ORE]: diamondOreMaterial,
+    [BLOCK_CRAFTING_TABLE]: craftingTableMaterial,
+    [BLOCK_FURNACE]: furnaceMaterial,
+    [BLOCK_CHEST]: chestMaterial,
+    [ITEM_PLANKS]: planksMaterial
+};
+const itemMaterials = {
+    [ITEM_COAL]: new THREE.MeshStandardMaterial({ color: 0x242424, roughness: 1 }),
+    [ITEM_RAW_IRON]: new THREE.MeshStandardMaterial({ color: 0xb58e75, roughness: 1 }),
+    [ITEM_IRON_INGOT]: new THREE.MeshStandardMaterial({ color: 0xc8c8c8, metalness: 0.25, roughness: 0.65 }),
+    [ITEM_DIAMOND]: new THREE.MeshStandardMaterial({ color: 0x42d9d1, metalness: 0.1, roughness: 0.35 }),
+    [ITEM_PLANKS]: planksMaterial,
+    [ITEM_STICK]: new THREE.MeshStandardMaterial({ color: 0x80502c, roughness: 1 })
+};
+
+// =====================================================
+// CHUNKED EXPOSED-FACE VOXEL RENDERING
+// =====================================================
+
+const CHUNK_SIZE = 8;
+const chunkMeshes = new Map();
+
+const voxelFaces = [
+    {
+        normal: [1, 0, 0],
+        neighbor: [1, 0, 0],
+        vertices: [[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 1]]
+    },
+    {
+        normal: [-1, 0, 0],
+        neighbor: [-1, 0, 0],
+        vertices: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]]
+    },
+    {
+        normal: [0, 1, 0],
+        neighbor: [0, 1, 0],
+        vertices: [[0, 1, 0], [0, 1, 1], [1, 1, 1], [1, 1, 0]]
+    },
+    {
+        normal: [0, -1, 0],
+        neighbor: [0, -1, 0],
+        vertices: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]
+    },
+    {
+        normal: [0, 0, 1],
+        neighbor: [0, 0, 1],
+        vertices: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]]
+    },
+    {
+        normal: [0, 0, -1],
+        neighbor: [0, 0, -1],
+        vertices: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]]
+    }
+];
+
+function chunkKey(chunkX, chunkZ) {
+    return `${chunkX},${chunkZ}`;
+}
+
+function disposeChunkMesh(chunkX, chunkZ) {
+    const key = chunkKey(chunkX, chunkZ);
+    const group = chunkMeshes.get(key);
+
+    if (!group) return;
+
+    scene.remove(group);
+
+    for (const child of group.children) {
+        child.geometry.dispose();
+    }
+
+    chunkMeshes.delete(key);
+}
+
+function addFaceToGeometry(data, x, y, z, face) {
+    const order = [0, 1, 2, 0, 2, 3];
+    const faceUVs = [[0, 0], [0, 1], [1, 1], [1, 0]];
+
+    for (const index of order) {
+        const vertex = face.vertices[index];
+        data.positions.push(x + vertex[0], y + vertex[1], z + vertex[2]);
+        data.normals.push(face.normal[0], face.normal[1], face.normal[2]);
+        if (data.uvs) {
+            if (data.textureType === "crafting-table") {
+                if (face.normal[1] === 1) {
+                    // The grid stays upright on the top face.
+                    data.uvs.push(vertex[0] * 0.5, 0.5 + vertex[2] * 0.5);
+                } else {
+                    // Use world height for V on all four sides. This prevents
+                    // the side artwork from turning sideways on two faces.
+                    const horizontal = face.normal[0] !== 0 ? vertex[2] : vertex[0];
+                    data.uvs.push(0.5 + horizontal * 0.5, 0.5 + vertex[1] * 0.5);
+                }
+            } else if (data.textureType === "planks") {
+                if (face.normal[1] === 1 || face.normal[1] === -1) {
+                    data.uvs.push(vertex[0], vertex[2]);
+                } else {
+                    const horizontal = face.normal[0] !== 0 ? vertex[2] : vertex[0];
+                    data.uvs.push(horizontal, vertex[1]);
+                }
+            } else {
+                const uv = faceUVs[index];
+                data.uvs.push(uv[0], uv[1]);
+            }
+        }
+    }
+}
+
+function addWaterFaceToGeometry(data, x, y, z, face, height, neighborHeight) {
+    const order = [0, 1, 2, 0, 2, 3];
+    const isTop = face.normal[1] === 1;
+    const isBottom = face.normal[1] === -1;
+    const sideBase = isTop || isBottom ? 0 : neighborHeight;
+    for (const index of order) {
+        const vertex = face.vertices[index];
+        const localY = isTop ? height : isBottom ? 0 : (vertex[1] === 0 ? sideBase : height);
+        data.positions.push(x + vertex[0], y + localY, z + vertex[2]);
+        data.normals.push(face.normal[0], face.normal[1], face.normal[2]);
+    }
+}
+
+function createChunkMaterialMesh(data, material, type) {
+    if (data.positions.length === 0) return null;
+
+    const geometry = new THREE.BufferGeometry();
+
+    geometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(data.positions, 3)
+    );
+
+    geometry.setAttribute(
+        "normal",
+        new THREE.Float32BufferAttribute(data.normals, 3)
+    );
+    if (data.uvs) {
+        geometry.setAttribute("uv", new THREE.Float32BufferAttribute(data.uvs, 2));
+    }
+
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+
+    const mesh = new THREE.Mesh(geometry, material);
+
+    mesh.castShadow = type !== BLOCK_WATER;
+    mesh.receiveShadow = type !== BLOCK_WATER;
+    mesh.frustumCulled = true;
+
+    return mesh;
+}
+
+function rebuildChunkMesh(chunkX, chunkZ) {
+    disposeChunkMesh(chunkX, chunkZ);
+
+    const grassData = { positions: [], normals: [] };
+    const dirtData = { positions: [], normals: [] };
+    const woodData = { positions: [], normals: [] };
+    const leavesData = { positions: [], normals: [] };
+    const stoneData = { positions: [], normals: [] };
+    const coalOreData = { positions: [], normals: [] };
+    const ironOreData = { positions: [], normals: [] };
+    const diamondOreData = { positions: [], normals: [] };
+    const craftingTableData = { positions: [], normals: [], uvs: [], textureType: "crafting-table" };
+    const planksData = { positions: [], normals: [], uvs: [], textureType: "planks" };
+    const furnaceData = { positions: [], normals: [] };
+    const chestData = { positions: [], normals: [] };
+    const waterData = { positions: [], normals: [] };
+
+    const startX = chunkX * CHUNK_SIZE;
+    const startZ = chunkZ * CHUNK_SIZE;
+    const endX = startX + CHUNK_SIZE;
+    const endZ = startZ + CHUNK_SIZE;
+
+    for (let x = startX; x < endX; x++) {
+        for (let z = startZ; z < endZ; z++) {
+            for (let y = WORLD_BOTTOM; y <= 40; y++) {
+                const type = getBlock(x, y, z);
+
+                if (type === 0) continue;
+
+                const data = type === BLOCK_GRASS
+                    ? grassData
+                    : type === BLOCK_DIRT
+                        ? dirtData
+                        : type === BLOCK_WOOD
+                            ? woodData
+                            : type === BLOCK_LEAVES
+                                ? leavesData
+                                : type === BLOCK_STONE
+                                    ? stoneData
+                                    : type === BLOCK_COAL_ORE
+                                        ? coalOreData
+                                        : type === BLOCK_IRON_ORE
+                                            ? ironOreData
+                                            : type === BLOCK_DIAMOND_ORE
+                                                ? diamondOreData
+                                                : type === BLOCK_CRAFTING_TABLE
+                                                    ? craftingTableData
+                                                    : type === ITEM_PLANKS
+                                                        ? planksData
+                                                        : type === BLOCK_FURNACE
+                                                            ? furnaceData
+                                                            : type === BLOCK_CHEST
+                                                                ? chestData
+                                                                : waterData;
+
+                if (type === BLOCK_WATER) {
+                    const waterHeight = getWaterLevel(x, y, z) / 8;
+                    for (const face of voxelFaces) {
+                        const nx = x + face.neighbor[0];
+                        const ny = y + face.neighbor[1];
+                        const nz = z + face.neighbor[2];
+                        const neighborType = getBlock(nx, ny, nz);
+                        const neighborHeight = neighborType === BLOCK_WATER ? getWaterLevel(nx, ny, nz) / 8 : 0;
+                        let visible = false;
+                        if (face.normal[1] === 1) visible = neighborType === 0;
+                        else if (face.normal[1] === -1) visible = neighborType === 0;
+                        else visible = neighborType !== BLOCK_WATER || neighborHeight < waterHeight;
+                        if (visible) addWaterFaceToGeometry(data, x, y, z, face, waterHeight, neighborHeight);
+                    }
+                } else {
+                    for (const face of voxelFaces) {
+                        const neighborType = getBlock(
+                            x + face.neighbor[0],
+                            y + face.neighbor[1],
+                            z + face.neighbor[2]
+                        );
+                        const faceIsVisible = neighborType === 0 || neighborType === BLOCK_WATER;
+                        if (faceIsVisible) addFaceToGeometry(data, x, y, z, face);
+                    }
+                }
+            }
+        }
+    }
+
+    const group = new THREE.Group();
+
+    const grass = createChunkMaterialMesh(
+        grassData, grassMaterial, BLOCK_GRASS
+    );
+    const dirt = createChunkMaterialMesh(
+        dirtData, dirtMaterial, BLOCK_DIRT
+    );
+    const wood = createChunkMaterialMesh(
+        woodData, woodMaterial, BLOCK_WOOD
+    );
+    const leaves = createChunkMaterialMesh(
+        leavesData, leavesMaterial, BLOCK_LEAVES
+    );
+    const stone = createChunkMaterialMesh(
+        stoneData, stoneMaterial, BLOCK_STONE
+    );
+    const coalOre = createChunkMaterialMesh(coalOreData, coalOreMaterial, BLOCK_COAL_ORE);
+    const ironOre = createChunkMaterialMesh(ironOreData, ironOreMaterial, BLOCK_IRON_ORE);
+    const diamondOre = createChunkMaterialMesh(diamondOreData, diamondOreMaterial, BLOCK_DIAMOND_ORE);
+    const craftingTable = createChunkMaterialMesh(craftingTableData, craftingTableMaterial, BLOCK_CRAFTING_TABLE);
+    const planks = createChunkMaterialMesh(planksData, planksMaterial, ITEM_PLANKS);
+    const furnace = createChunkMaterialMesh(furnaceData, furnaceMaterial, BLOCK_FURNACE);
+    const chest = createChunkMaterialMesh(chestData, chestMaterial, BLOCK_CHEST);
+    const water = createChunkMaterialMesh(
+        waterData, waterMaterial, BLOCK_WATER
+    );
+
+    if (grass) group.add(grass);
+    if (dirt) group.add(dirt);
+    if (wood) group.add(wood);
+    if (leaves) group.add(leaves);
+    if (stone) group.add(stone);
+    if (coalOre) group.add(coalOre);
+    if (ironOre) group.add(ironOre);
+    if (diamondOre) group.add(diamondOre);
+    if (craftingTable) group.add(craftingTable);
+    if (planks) group.add(planks);
+    if (furnace) group.add(furnace);
+    if (chest) group.add(chest);
+    if (water) group.add(water);
+
+    if (group.children.length > 0) {
+        scene.add(group);
+        chunkMeshes.set(chunkKey(chunkX, chunkZ), group);
+    }
+}
+
+function rebuildWorldMeshes() {
+    for (const key of Array.from(chunkMeshes.keys())) {
+        const [chunkX, chunkZ] = key.split(",").map(Number);
+        disposeChunkMesh(chunkX, chunkZ);
+    }
+
+    const chunksToBuild = new Set();
+
+    for (const key of blocks.keys()) {
+        const [x, , z] = key.split(",").map(Number);
+        chunksToBuild.add(chunkKey(
+            Math.floor(x / CHUNK_SIZE),
+            Math.floor(z / CHUNK_SIZE)
+        ));
+    }
+
+    for (const key of chunksToBuild) {
+        const [chunkX, chunkZ] = key.split(",").map(Number);
+        rebuildChunkMesh(chunkX, chunkZ);
+    }
+}
+
+function rebuildAffectedChunks(x, z) {
+    const chunkX = Math.floor(x / CHUNK_SIZE);
+    const chunkZ = Math.floor(z / CHUNK_SIZE);
+
+    const localX = ((x % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+    const localZ = ((z % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+
+    const chunksToBuild = new Set([
+        chunkKey(chunkX, chunkZ)
+    ]);
+
+    if (localX === 0) {
+        chunksToBuild.add(chunkKey(chunkX - 1, chunkZ));
+    } else if (localX === CHUNK_SIZE - 1) {
+        chunksToBuild.add(chunkKey(chunkX + 1, chunkZ));
+    }
+
+    if (localZ === 0) {
+        chunksToBuild.add(chunkKey(chunkX, chunkZ - 1));
+    } else if (localZ === CHUNK_SIZE - 1) {
+        chunksToBuild.add(chunkKey(chunkX, chunkZ + 1));
+    }
+
+    for (const key of chunksToBuild) {
+        const [cx, cz] = key.split(",").map(Number);
+        rebuildChunkMesh(cx, cz);
+    }
+}
+
+// =====================================================
+// PLAYER COLLISION
+// =====================================================
+
+function collidesAt(px, py, pz, height = getPlayerHeight()) {
+    const minX = Math.floor(px - PLAYER_RADIUS);
+    const maxX = Math.floor(px + PLAYER_RADIUS);
+
+    const minY = Math.floor(py - height);
+    const maxY = Math.floor(py + 0.12);
+
+    const minZ = Math.floor(pz - PLAYER_RADIUS);
+    const maxZ = Math.floor(pz + PLAYER_RADIUS);
+
+    for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+            for (let z = minZ; z <= maxZ; z++) {
+
+                if (isSolid(getBlock(x, y, z))) {
+
+                    const overlapX =
+                        px + PLAYER_RADIUS > x &&
+                        px - PLAYER_RADIUS < x + 1;
+
+                    const overlapY =
+                        py > y &&
+                        py - height < y + 1;
+
+                    const overlapZ =
+                        pz + PLAYER_RADIUS > z &&
+                        pz - PLAYER_RADIUS < z + 1;
+
+                    if (overlapX && overlapY && overlapZ) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+function playerIntersectsBlock(x, y, z) {
+    const overlapX =
+        player.x + PLAYER_RADIUS > x &&
+        player.x - PLAYER_RADIUS < x + 1;
+
+    const overlapY =
+        player.y > y &&
+        player.y - getPlayerHeight() < y + 1;
+
+    const overlapZ =
+        player.z + PLAYER_RADIUS > z &&
+        player.z - PLAYER_RADIUS < z + 1;
+
+    return overlapX && overlapY && overlapZ;
+}
+
+function remotePlayerIntersectsBlock(x, y, z) {
+    for (const remote of remotePlayers.values()) {
+        // Use the latest server-reported position so placement checks do not
+        // miss a player who is moving between rendered interpolation frames.
+        const remoteX = remote.target.x;
+        const remoteY = remote.target.y;
+        const remoteZ = remote.target.z;
+        const remoteHeight = getPlayerHeight(!!remote.crouching);
+
+        const overlapX = remoteX + PLAYER_RADIUS > x && remoteX - PLAYER_RADIUS < x + 1;
+        const overlapY = remoteY + remoteHeight > y && remoteY < y + 1;
+        const overlapZ = remoteZ + PLAYER_RADIUS > z && remoteZ - PLAYER_RADIUS < z + 1;
+
+        if (overlapX && overlapY && overlapZ) return true;
+    }
+    return false;
+}
+
+// =====================================================
+// MOVEMENT
+// =====================================================
+
+// Returns the highest water surface intersecting the player's body, or null
+// when the player is not in water. Sample the center and four body corners.
+function getPlayerWaterSurface() {
+    const height = getPlayerHeight();
+    const feetY = player.y - height;
+    const minBlockY = Math.floor(feetY);
+    const maxBlockY = Math.floor(player.y);
+    const inset = PLAYER_RADIUS * 0.8;
+    const samplePoints = [
+        [player.x, player.z],
+        [player.x - inset, player.z - inset],
+        [player.x + inset, player.z - inset],
+        [player.x - inset, player.z + inset],
+        [player.x + inset, player.z + inset]
+    ];
+    let highestSurface = null;
+
+    for (const [sampleX, sampleZ] of samplePoints) {
+        const blockX = Math.floor(sampleX);
+        const blockZ = Math.floor(sampleZ);
+        for (let blockY = minBlockY; blockY <= maxBlockY; blockY++) {
+            if (getBlock(blockX, blockY, blockZ) === BLOCK_WATER) {
+                const surface = blockY + 1;
+                if (highestSurface === null || surface > highestSurface) {
+                    highestSurface = surface;
+                }
+            }
+        }
+    }
+
+    return highestSurface;
+}
+
+function updateUnderwaterOverlay() {
+    const cameraBlock = getBlock(
+        Math.floor(camera.position.x),
+        Math.floor(camera.position.y),
+        Math.floor(camera.position.z)
+    );
+    const overlay = document.getElementById("underwater-overlay");
+    if (overlay) overlay.style.display = cameraBlock === BLOCK_WATER ? "block" : "none";
+}
+
+function hasCrouchSupport(px, pz) {
+    const footY = player.y - CROUCH_HEIGHT;
+    const supportY = Math.floor(footY - 0.06);
+    const inset = PLAYER_RADIUS * 0.82;
+    const samples = [
+        [px, pz],
+        [px - inset, pz - inset],
+        [px + inset, pz - inset],
+        [px - inset, pz + inset],
+        [px + inset, pz + inset]
+    ];
+    return samples.every(([sx, sz]) => isSolid(getBlock(Math.floor(sx), supportY, Math.floor(sz))));
+}
+
+function movePlayer(delta) {
+    const forwardInput =
+        (keys["KeyW"] ? 1 : 0) -
+        (keys["KeyS"] ? 1 : 0);
+
+    const sideInput =
+        (keys["KeyD"] ? 1 : 0) -
+        (keys["KeyA"] ? 1 : 0);
+
+    let dx = 0;
+    let dz = 0;
+
+    if (forwardInput !== 0 || sideInput !== 0) {
+
+        const length = Math.hypot(
+            forwardInput,
+            sideInput
+        );
+
+        const forward = forwardInput / length;
+        const side = sideInput / length;
+
+        dx =
+            -Math.sin(yaw) * forward +
+            Math.cos(yaw) * side;
+
+        dz =
+            -Math.cos(yaw) * forward -
+            Math.sin(yaw) * side;
+    }
+
+    const sprinting =
+        keys["ShiftLeft"] || keys["ShiftRight"];
+
+    const speed = sprinting ? SPRINT_SPEED : WALK_SPEED;
+
+    const distance = speed * delta;
+
+    const steps = Math.max(
+        1,
+        Math.ceil(distance / 0.2)
+    );
+
+    const stepX = dx * distance / steps;
+    const stepZ = dz * distance / steps;
+
+    for (let i = 0; i < steps; i++) {
+
+        const nextX = player.x + stepX;
+
+        if (!collidesAt(nextX, player.y, player.z) && (!crouching || hasCrouchSupport(nextX, player.z))) {
+            player.x = nextX;
+        }
+
+        const nextZ = player.z + stepZ;
+
+        if (!collidesAt(player.x, player.y, nextZ) && (!crouching || hasCrouchSupport(player.x, nextZ))) {
+            player.z = nextZ;
+        }
+    }
+
+    if (creativeFlying && gameMode === "creative" && !multiplayerConnected && !multiplayerReady) {
+        const verticalInput = (keys["Space"] ? 1 : 0) - (flightDescendHeld ? 1 : 0);
+        const nextY = player.y + verticalInput * CREATIVE_FLIGHT_SPEED * delta;
+        if (!collidesAt(player.x, nextY, player.z)) player.y = nextY;
+        velocityY = 0;
+        grounded = false;
+    } else {
+        const waterSurface = getPlayerWaterSurface();
+        const inWater = waterSurface !== null;
+
+        if (inWater) {
+            // Water greatly reduces falling speed. Holding SPACE swims upward
+            // until the player's feet reach the top surface of the water.
+            velocityY -= WATER_GRAVITY * delta;
+            velocityY = Math.max(velocityY, -WATER_MAX_FALL_SPEED);
+
+            const feetY = player.y - getPlayerHeight();
+            if (keys["Space"] && feetY < waterSurface - 0.015) {
+                velocityY = WATER_SWIM_UP_SPEED;
+            } else if (feetY >= waterSurface - 0.015 && velocityY > 0) {
+                velocityY = 0;
+            }
+        } else {
+            velocityY -= GRAVITY * delta;
+        }
+
+        const nextY = player.y + velocityY * delta;
+
+        if (!collidesAt(player.x, nextY, player.z)) {
+            player.y = nextY;
+            grounded = false;
+        } else {
+            if (velocityY < 0) grounded = true;
+            velocityY = 0;
+        }
+    }
+
+    if (player.y < -15) {
+        player.x = 0.5;
+        player.z = 0.5;
+        player.y = terrainHeight(0, 0) + 1 + PLAYER_HEIGHT + 0.01;
+
+        velocityY = 0;
+    }
+
+    player.x = THREE.MathUtils.clamp(
+        player.x,
+        -HALF_WORLD + 0.35,
+        HALF_WORLD - 0.35
+    );
+
+    player.z = THREE.MathUtils.clamp(
+        player.z,
+        -HALF_WORLD + 0.35,
+        HALF_WORLD - 0.35
+    );
+
+    camera.position.set(player.x, player.y, player.z);
+
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+}
+
+function jump() {
+    if (grounded) {
+        velocityY = JUMP_SPEED;
+        grounded = false;
+    }
+}
+
+// =====================================================
+// CAMERA CONTROLS
+// =====================================================
+
+const startScreen = document.getElementById("start-screen");
+const startButton = document.getElementById("start-button");
+const sensitivityInput = document.getElementById("camera-sensitivity");
+const sensitivityValue = document.getElementById("camera-sensitivity-value");
+startButton.textContent = "PLAY WORLD";
+
+function requestGameplayPointerLock() {
+    // Pointer lock is optional camera input only. A failed or unavailable
+    // request must never prevent the game from entering the playing state.
+    if (!renderer.domElement.requestPointerLock || document.pointerLockElement === renderer.domElement) {
+        return;
+    }
+    try {
+        const result = renderer.domElement.requestPointerLock();
+        if (result && typeof result.catch === "function") result.catch(() => {});
+    } catch (error) {
+        // Arrow-key camera controls remain available without pointer lock.
+    }
+}
+
+function pauseGame() {
+    if (!gameStarted || gameOver || pauseState === "dead" || gamePaused) return;
+    clearGameplayKeys();
+    setPauseState("paused");
+    // Release the cursor for pause-menu interaction. This is cleanup only;
+    // the paused state above does not read or depend on pointer-lock status.
+    if (document.pointerLockElement === renderer.domElement) {
+        document.exitPointerLock();
+    }
+}
+
+function resumeGame() {
+    if (gameOver || pauseState === "dead" || !gamePaused) return;
+    gameStarted = true;
+    clearGameplayKeys();
+    setPauseState("playing");
+    requestGameplayPointerLock();
+}
+
+function togglePause() {
+    if (!gameStarted || gameOver || pauseState === "dead") return;
+    if (gamePaused) {
+        resumeGame();
+    } else {
+        pauseGame();
+    }
+}
+
+function startGame() {
+    if (gameOver || pauseState === "dead") return;
+    if (multiplayerConnected || multiplayerReady) forceSurvivalForOnline();
+    else setGameMode(gameModeSetting.value);
+    if (!gameStarted) gameStarted = true;
+    if (gamePaused) resumeGame();
+    else requestGameplayPointerLock();
+}
+
+sensitivityInput.addEventListener("input", () => {
+    cameraSensitivity = Number(sensitivityInput.value);
+    sensitivityValue.textContent = `${cameraSensitivity.toFixed(1)}×`;
+});
+
+const crouchToggleSetting = document.getElementById("crouch-toggle-setting");
+crouchToggleSetting.addEventListener("change", () => {
+    crouchToggleMode = crouchToggleSetting.checked;
+    if (!crouchToggleMode && crouching) setCrouching(false);
+});
+
+startButton.addEventListener("click", startGame);
+
+// Pointer lock is used only to provide relative mouse movement. It never
+// opens, closes, pauses, or resumes the game menu.
+
+document.addEventListener("mousemove", event => {
+    if (pauseState !== "playing" || document.pointerLockElement !== renderer.domElement) {
+        return;
+    }
+
+    const sensitivity = 0.0022 * cameraSensitivity;
+    yaw -= event.movementX * sensitivity;
+    pitch -= event.movementY * sensitivity;
+    pitch = THREE.MathUtils.clamp(
+        pitch,
+        -Math.PI / 2 + 0.01,
+        Math.PI / 2 - 0.01
+    );
+});
+
+// =====================================================
+// INPUT AND BLOCK ACTIONS
+// =====================================================
+
+document.addEventListener("keydown", event => {
+    const target = event.target;
+    const typingIntoControl = target instanceof HTMLElement && (
+        target.isContentEditable || target.tagName === "TEXTAREA" || target.tagName === "SELECT" ||
+        (target.tagName === "INPUT" && !["range", "color", "button", "checkbox"].includes(target.type))
+    );
+
+    if (typingIntoControl) return;
+
+    if (event.code === "KeyQ" && !event.repeat && gameStarted && pauseState === "playing" && !gameOver) { event.preventDefault(); dropSelectedItem(); return; }
+
+    if (event.code === "KeyE" && !event.repeat && gameStarted && pauseState === "playing" && !gameOver) {
+        event.preventDefault();
+        if (inventoryOpen) closeInventory();
+        else openInventory();
+        return;
+    }
+
+    if (inventoryOpen) {
+        if (event.code === "Escape" && !event.repeat) {
+            event.preventDefault();
+            closeInventory();
+        }
+        return;
+    }
+
+    if (event.code === "KeyP" || event.code === "Escape") {
+        if (gameStarted && !event.repeat) {
+            event.preventDefault();
+            togglePause();
+        }
+        return;
+    }
+
+    if (event.code === "Space" || event.code.startsWith("Arrow")) {
+        if (!(pauseState !== "playing" && target === sensitivityInput && event.code.startsWith("Arrow"))) {
+            event.preventDefault();
+        }
+    }
+
+    if (pauseState !== "playing" || gameOver) return;
+    keys[event.code] = true;
+
+    if (event.code === "Space") {
+        if (!event.repeat) handleJumpKeyPress();
+        return;
+    }
+
+    if (event.code === "KeyN") {
+        if (!event.repeat) {
+            miningInputHeld = true;
+            if (!punchPlayer()) startBlockBreaking();
+        }
+        return;
+    }
+
+    if (event.repeat) return;
+
+    const numberMatch = event.code.match(/^(?:Digit|Numpad)([1-9])$/);
+    if (numberMatch) {
+        selectHotbarSlot(Number(numberMatch[1]) - 1);
+    } else if (event.code === "KeyM") {
+        handleRightClickAction();
+    } else if (event.code === "KeyF") {
+        punchPlayer();
+    } else if (event.code === "KeyC") {
+        if (creativeFlying && gameMode === "creative") {
+            flightDescendHeld = true;
+        } else if (crouchToggleMode) toggleCrouch();
+        else setCrouching(true);
+    }
+});
+
+document.addEventListener("keyup", event => {
+    keys[event.code] = false;
+    if (event.code === "KeyC") {
+        flightDescendHeld = false;
+        if (!creativeFlying && !crouchToggleMode) setCrouching(false);
+    }
+    if (event.code === "KeyN") {
+        miningInputHeld = false;
+        stopBlockBreaking();
+    }
+});
+
+document.addEventListener("contextmenu", event => {
+    event.preventDefault();
+});
+
+renderer.domElement.addEventListener("mousedown", event => {
+    if (pauseState !== "playing" || gameOver || inventoryOpen) return;
+
+    if (event.button === 0) {
+        event.preventDefault();
+        miningInputHeld = true;
+        if (!punchPlayer()) startBlockBreaking();
+    } else if (event.button === 2) {
+        handleRightClickAction();
+    }
+});
+
+window.addEventListener("mouseup", event => {
+    if (event.button === 0) {
+        miningInputHeld = false;
+        stopBlockBreaking();
+    }
+});
+
+window.addEventListener("blur", () => {
+    miningInputHeld = false;
+    stopBlockBreaking();
+});
+
+// =====================================================
+// VOXEL TARGETING
+// =====================================================
+
+function getTargetBlock(includeWater = true) {
+    camera.updateMatrixWorld(true);
+
+    const origin = camera.position;
+    const direction = new THREE.Vector3();
+
+    camera.getWorldDirection(direction);
+    direction.normalize();
+
+    let x = Math.floor(origin.x);
+    let y = Math.floor(origin.y);
+    let z = Math.floor(origin.z);
+
+    const stepX =
+        direction.x > 0 ? 1 :
+        direction.x < 0 ? -1 : 0;
+
+    const stepY =
+        direction.y > 0 ? 1 :
+        direction.y < 0 ? -1 : 0;
+
+    const stepZ =
+        direction.z > 0 ? 1 :
+        direction.z < 0 ? -1 : 0;
+
+    const deltaX = stepX === 0
+        ? Infinity
+        : Math.abs(1 / direction.x);
+
+    const deltaY = stepY === 0
+        ? Infinity
+        : Math.abs(1 / direction.y);
+
+    const deltaZ = stepZ === 0
+        ? Infinity
+        : Math.abs(1 / direction.z);
+
+    let maxX = stepX === 0
+        ? Infinity
+        : (
+            stepX > 0
+                ? x + 1 - origin.x
+                : origin.x - x
+        ) / Math.abs(direction.x);
+
+    let maxY = stepY === 0
+        ? Infinity
+        : (
+            stepY > 0
+                ? y + 1 - origin.y
+                : origin.y - y
+        ) / Math.abs(direction.y);
+
+    let maxZ = stepZ === 0
+        ? Infinity
+        : (
+            stepZ > 0
+                ? z + 1 - origin.z
+                : origin.z - z
+        ) / Math.abs(direction.z);
+
+    let distance = 0;
+
+    const normal = new THREE.Vector3(0, 0, 0);
+
+    while (distance <= REACH_DISTANCE) {
+
+        const type = getBlock(x, y, z);
+
+        if (isSolid(type) || (includeWater && type === BLOCK_WATER)) {
+            return {
+                x,
+                y,
+                z,
+                type,
+                normal: normal.clone(),
+                distance
+            };
+        }
+
+        if (maxX <= maxY && maxX <= maxZ) {
+
+            distance = maxX;
+
+            if (!Number.isFinite(distance)) {
+                break;
+            }
+
+            maxX += deltaX;
+            x += stepX;
+
+            normal.set(-stepX, 0, 0);
+
+        } else if (maxY <= maxX && maxY <= maxZ) {
+
+            distance = maxY;
+
+            if (!Number.isFinite(distance)) {
+                break;
+            }
+
+            maxY += deltaY;
+            y += stepY;
+
+            normal.set(0, -stepY, 0);
+
+        } else {
+
+            distance = maxZ;
+
+            if (!Number.isFinite(distance)) {
+                break;
+            }
+
+            maxZ += deltaZ;
+            z += stepZ;
+
+            normal.set(0, 0, -stepZ);
+        }
+    }
+
+    return null;
+}
+
+// =====================================================
+// WORLD ITEM DROPS
+// =====================================================
+
+function dropItemStack(stack, amount = stack?.count || 0) {
+    if (!stack || amount <= 0) return;
+    const dropped = Math.min(amount, stack.count);
+    const throwSpeed = 4.5;
+    createItemDrop(stack.type, player.x, player.y - 0.45, player.z, dropped, null,
+        -Math.sin(yaw) * throwSpeed, -Math.cos(yaw) * throwSpeed, true);
+    stack.count -= dropped;
+    if (stack.count <= 0) return null;
+    return stack;
+}
+
+function dropSelectedItem() {
+    if (inventoryOpen && carriedItemStack) {
+        dropItemStack(carriedItemStack);
+        carriedItemStack = null;
+        refreshInventoryItemUI();
+        return;
+    }
+    const stack = hotbar[selectedHotbarSlot];
+    if (!stack) return;
+    const amount = 1;
+    const throwSpeed = 4.5;
+    createItemDrop(stack.type, player.x, player.y - 0.45, player.z, amount, null,
+        -Math.sin(yaw) * throwSpeed, -Math.cos(yaw) * throwSpeed, true);
+    stack.count -= amount;
+    if (stack.count <= 0) {
+        hotbar[selectedHotbarSlot] = null;
+        selectedBlock = null;
+    }
+    updateHUD();
+}
+
+function createDroppedItemTexture(type) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 32;
+    const ctx = canvas.getContext("2d");
+    const toolTier = [ITEM_WOOD_PICKAXE, ITEM_WOOD_SHOVEL, ITEM_WOOD_AXE].includes(type) ? "wood" :
+        [ITEM_STONE_PICKAXE, ITEM_STONE_SHOVEL, ITEM_STONE_AXE].includes(type) ? "stone" :
+        [ITEM_IRON_PICKAXE, ITEM_IRON_SHOVEL, ITEM_IRON_AXE].includes(type) ? "iron" :
+        [ITEM_DIAMOND_PICKAXE, ITEM_DIAMOND_SHOVEL, ITEM_DIAMOND_AXE].includes(type) ? "diamond" : null;
+    if (toolTier) {
+        const headColors = { wood: ["#d5a46a", "#80502c"], stone: ["#d0d0d0", "#696969"], iron: ["#f0f0f0", "#9babb4"], diamond: ["#b9fff7", "#20a9b4"] };
+        ctx.save(); ctx.translate(16, 16); ctx.rotate(-0.55);
+        ctx.fillStyle = "#80502c"; ctx.fillRect(-2, -1, 4, 20);
+        ctx.strokeStyle = "#4b2c19"; ctx.strokeRect(-2, -1, 4, 20);
+        ctx.fillStyle = headColors[toolTier][0]; ctx.strokeStyle = headColors[toolTier][1]; ctx.lineWidth = 2;
+        if ([ITEM_WOOD_PICKAXE, ITEM_STONE_PICKAXE, ITEM_IRON_PICKAXE, ITEM_DIAMOND_PICKAXE].includes(type)) {
+            ctx.beginPath(); ctx.moveTo(-13, -8); ctx.lineTo(-8, -13); ctx.lineTo(-1, -10); ctx.lineTo(8, -15); ctx.lineTo(14, -11); ctx.lineTo(10, -5); ctx.lineTo(2, -6); ctx.lineTo(-5, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+        } else if ([ITEM_WOOD_SHOVEL, ITEM_STONE_SHOVEL, ITEM_IRON_SHOVEL, ITEM_DIAMOND_SHOVEL].includes(type)) {
+            ctx.beginPath(); ctx.moveTo(-5, -13); ctx.lineTo(5, -13); ctx.lineTo(8, -3); ctx.lineTo(0, 3); ctx.lineTo(-8, -3); ctx.closePath(); ctx.fill(); ctx.stroke();
+        } else {
+            ctx.fillRect(-8, -14, 15, 8); ctx.strokeRect(-8, -14, 15, 8);
+        }
+        ctx.restore();
+    } else if ([ITEM_RAW_PORKCHOP, ITEM_COOKED_PORKCHOP, ITEM_RAW_BEEF, ITEM_STEAK].includes(type)) {
+        const rawMeat = type === ITEM_RAW_PORKCHOP || type === ITEM_RAW_BEEF;
+        const beef = type === ITEM_RAW_BEEF || type === ITEM_STEAK;
+        ctx.fillStyle = rawMeat ? (beef ? "#a93635" : "#b84b55") : (beef ? "#713b28" : "#8d3f31");
+        ctx.beginPath(); ctx.roundRect(4, 6, 24, 20, 6); ctx.fill();
+        ctx.fillStyle = "#f0c9b8"; ctx.fillRect(21, 12, 8, 5); ctx.fillRect(25, 9, 4, 11);
+        ctx.fillStyle = rawMeat ? (beef ? "#d85b52" : "#e58b91") : "#c47a48"; ctx.fillRect(8, 10, 8, 4);
+    } else if (type === ITEM_BUCKET || type === ITEM_WATER_BUCKET) {
+        ctx.strokeStyle = "#777"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(16, 12, 10, Math.PI, 0); ctx.stroke();
+        ctx.fillStyle = "#bfc7cc"; ctx.beginPath(); ctx.moveTo(6, 12); ctx.lineTo(26, 12); ctx.lineTo(23, 27); ctx.lineTo(9, 27); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "#626b70"; ctx.stroke();
+        if (type === ITEM_WATER_BUCKET) { ctx.fillStyle = "#269bd8"; ctx.fillRect(9, 17, 14, 8); }
+    } else {
+        const colors = { [ITEM_STICK]: "#a87543", [ITEM_COAL]: "#242424", [ITEM_RAW_IRON]: "#bd987d", [ITEM_IRON_INGOT]: "#c8c8c8", [ITEM_DIAMOND]: "#42d9d1" };
+        const color = colors[type] || "#aaaaaa";
+        ctx.fillStyle = color;
+        if (type === ITEM_STICK) { ctx.save(); ctx.translate(16, 16); ctx.rotate(-0.55); ctx.fillRect(-3, -13, 6, 26); ctx.fillStyle = "#d1a06b"; ctx.fillRect(-2, -10, 2, 18); ctx.restore(); }
+        else if (type === ITEM_DIAMOND) { ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(11, 5); ctx.lineTo(22, 5); ctx.lineTo(28, 12); ctx.lineTo(16, 28); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#b9fff7"; ctx.fillRect(12, 8, 7, 4); }
+        else if (type === ITEM_IRON_INGOT) { ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(11, 7); ctx.lineTo(27, 7); ctx.lineTo(22, 24); ctx.lineTo(6, 24); ctx.closePath(); ctx.fill(); ctx.strokeStyle = "#777"; ctx.stroke(); }
+        else { ctx.beginPath(); ctx.moveTo(7, 8); ctx.lineTo(24, 5); ctx.lineTo(28, 20); ctx.lineTo(15, 27); ctx.lineTo(4, 19); ctx.closePath(); ctx.fill(); }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+}
+
+function createItemDrop(type, x, y, z, count = 1, serverData = null, velocityX = 0, velocityZ = 0, playerDropped = false) {
+    if (multiplayerReady && !serverData) {
+        multiplayerSend({ type: "item_drop_request", itemType: type, x, y, z, count, vx: velocityX, vz: velocityZ, playerDropped });
+        return null;
+    }
+    const group = new THREE.Group();
+    const blockMaterial = itemBlockMaterials[type];
+    if (blockMaterial) {
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), blockMaterial);
+        group.add(cube);
+    } else {
+        const texture = createDroppedItemTexture(type);
+        const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+        const sprite = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), material);
+        sprite.rotation.x = -Math.PI / 2;
+        group.add(sprite);
+    }
+    group.position.set(x, y, z);
+    group.rotation.y = Math.random() * Math.PI * 2;
+    group.traverse(child => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.userData.itemDrop = true;
+        }
+    });
+    scene.add(group);
+    const drop = {
+        id: serverData?.id || null,
+        type, count, group, velocityY: 0,
+        velocityX: Number.isFinite(serverData?.vx) ? serverData.vx : velocityX,
+        velocityZ: Number.isFinite(serverData?.vz) ? serverData.vz : velocityZ,
+        pickupDelay: Number.isFinite(serverData?.pickupDelay) ? Math.max(0, serverData.pickupDelay) : (playerDropped ? 0.85 : 0),
+        age: Math.random() * Math.PI * 2,
+        pickupRequested: false,
+        pickupRetryAt: 0
+    };
+    itemDrops.push(drop);
+    return drop;
+}
+
+function addServerItemDrop(data) {
+    if (!data || typeof data.id !== "string" || !Number.isInteger(data.itemType) ||
+        !Number.isInteger(data.count) || data.count < 1 || data.count > 64 ||
+        !Number.isFinite(data.x) || !Number.isFinite(data.y) || !Number.isFinite(data.z)) return;
+    if (itemDrops.some(drop => drop.id === data.id)) return;
+    const remainingDelay = Number.isFinite(data.pickupAvailableAt)
+        ? Math.max(0, (data.pickupAvailableAt - Date.now()) / 1000) : 0;
+    const elapsed = Number.isFinite(data.createdAt) ? Math.max(0, (Date.now() - data.createdAt) / 1000) : 0;
+    const travel = (1 - Math.exp(-3 * elapsed)) / 3;
+    const initialVX = Number.isFinite(data.vx) ? data.vx : 0;
+    const initialVZ = Number.isFinite(data.vz) ? data.vz : 0;
+    createItemDrop(data.itemType, data.x + initialVX * travel, data.y, data.z + initialVZ * travel, data.count, {
+        id: data.id,
+        pickupDelay: remainingDelay,
+        vx: initialVX * Math.exp(-3 * elapsed),
+        vz: initialVZ * Math.exp(-3 * elapsed)
+    });
+}
+
+function removeItemDropById(id) {
+    const index = itemDrops.findIndex(drop => drop.id === id);
+    if (index < 0) return null;
+    const [drop] = itemDrops.splice(index, 1);
+    scene.remove(drop.group);
+    drop.group.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material && child.material.map && child.material.map.isCanvasTexture) child.material.map.dispose();
+        if (child.material) child.material.dispose();
+    });
+    return drop;
+}
+
+function clearItemDrops() {
+    for (const drop of itemDrops) {
+        scene.remove(drop.group);
+        drop.group.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material && child.material.map && child.material.map.isCanvasTexture) child.material.map.dispose();
+            if (child.material) child.material.dispose();
+        });
+    }
+    itemDrops.length = 0;
+    pendingItemPickupId = null;
+}
+
+function getItemDropGroundY(x, z, currentY) {
+    const blockX = Math.floor(x);
+    const blockZ = Math.floor(z);
+    const startY = Math.min(40, Math.floor(currentY));
+    for (let y = startY; y >= WORLD_BOTTOM; y--) {
+        if (isSolid(getBlock(blockX, y, blockZ))) return y + 1;
+    }
+    return WORLD_BOTTOM;
+}
+
+function updateItemDrops(delta) {
+    const playerMinX = player.x - PLAYER_RADIUS - 1;
+    const playerMaxX = player.x + PLAYER_RADIUS + 1;
+    const playerMinZ = player.z - PLAYER_RADIUS - 1;
+    const playerMaxZ = player.z + PLAYER_RADIUS + 1;
+    const playerMinY = player.y - getPlayerHeight() + 0.02;
+    const playerMaxY = player.y + 0.02;
+
+    for (let i = itemDrops.length - 1; i >= 0; i--) {
+        const drop = itemDrops[i];
+        drop.age += delta;
+        drop.pickupDelay = Math.max(0, (drop.pickupDelay || 0) - delta);
+        const pos = drop.group.position;
+        pos.x += (drop.velocityX || 0) * delta;
+        pos.z += (drop.velocityZ || 0) * delta;
+        drop.velocityX = (drop.velocityX || 0) * Math.exp(-3 * delta);
+        drop.velocityZ = (drop.velocityZ || 0) * Math.exp(-3 * delta);
+        drop.velocityY -= 18 * delta;
+        pos.y += drop.velocityY * delta;
+        const floorY = getItemDropGroundY(pos.x, pos.z, pos.y + 0.2);
+        const itemHalfHeight = 0.16;
+        if (pos.y - itemHalfHeight <= floorY) {
+            pos.y = floorY + itemHalfHeight;
+            drop.velocityY = Math.abs(drop.velocityY) > 1.1 ? Math.abs(drop.velocityY) * 0.12 : 0;
+        }
+        drop.group.rotation.y += delta * 0.75;
+
+        // Pickup bounds extend one voxel horizontally beyond the player hitbox;
+        // the vertical bounds remain the player's normal hitbox height.
+        if (drop.pickupDelay <= 0 &&
+            pos.x >= playerMinX && pos.x <= playerMaxX &&
+            pos.z >= playerMinZ && pos.z <= playerMaxZ &&
+            pos.y >= playerMinY && pos.y <= playerMaxY) {
+            if (multiplayerReady && drop.id) {
+                const now = performance.now();
+                if (!pendingItemPickupId && !drop.pickupRequested && now >= (drop.pickupRetryAt || 0) &&
+                    canAddInventory(drop.type, drop.count || 1)) {
+                    drop.pickupRequested = true;
+                    pendingItemPickupId = drop.id;
+                    if (!multiplayerSend({ type: "item_pickup_request", id: drop.id })) {
+                        drop.pickupRequested = false;
+                        drop.pickupRetryAt = now + 250;
+                        pendingItemPickupId = null;
+                    }
+                }
+            } else if (addInventory(drop.type, drop.count || 1)) {
+                scene.remove(drop.group);
+                drop.group.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+                itemDrops.splice(i, 1);
+                showMessage(drop.type === ITEM_RAW_PORKCHOP ? "Raw porkchop collected" : blockName(drop.type) + " collected");
+            }
+        }
+    }
+}
+
+function startEatingPorkchop() {
+    const stack = hotbar[selectedHotbarSlot];
+    const foodTypes = [ITEM_RAW_PORKCHOP, ITEM_COOKED_PORKCHOP, ITEM_RAW_BEEF, ITEM_STEAK];
+    if (!stack || !foodTypes.includes(stack.type) || stack.count <= 0) return false;
+    if (gameMode === "creative") {
+        showMessage("You can eat food in Survival mode");
+        return true;
+    }
+    if (eatingPorkchop) return true;
+    eatingPorkchop = true;
+    eatingPorkchopElapsed = 0;
+    showMessage("Eating raw porkchop...");
+    return true;
+}
+
+function updateEatingPorkchop(delta) {
+    if (!eatingPorkchop) return;
+    const stack = hotbar[selectedHotbarSlot];
+    if (!stack || ![ITEM_RAW_PORKCHOP, ITEM_COOKED_PORKCHOP, ITEM_RAW_BEEF, ITEM_STEAK].includes(stack.type) || stack.count <= 0 || inventoryOpen) {
+        eatingPorkchop = false;
+        eatingPorkchopElapsed = 0;
+        return;
+    }
+    eatingPorkchopElapsed += delta;
+    if (eatingPorkchopElapsed >= RAW_PORKCHOP_EAT_TIME) {
+        const foodType = stack.type;
+        const restore = [ITEM_COOKED_PORKCHOP, ITEM_STEAK].includes(foodType) ? 4 : 2;
+        removeInventory(foodType);
+        if (!multiplayerReady) {
+            health = Math.min(20, health + restore);
+            updateHealthDisplay();
+        } else {
+            multiplayerSend({ type: "eat_food", amount: restore });
+        }
+        eatingPorkchop = false;
+        eatingPorkchopElapsed = 0;
+        showMessage(foodType === ITEM_RAW_PORKCHOP ? "Ate raw porkchop (+1 heart)" :
+            foodType === ITEM_COOKED_PORKCHOP ? "Ate cooked porkchop (+2 hearts)" :
+            foodType === ITEM_RAW_BEEF ? "Ate raw beef (+1 heart)" : "Ate steak (+2 hearts)");
+    }
+}
+
+// =====================================================
+// INVENTORY AND BLOCK SELECTION
+// =====================================================
+
+let lastMessageTime = 0;
+
+function showMessage(text) {
+    document.getElementById("message").textContent = text;
+    lastMessageTime = performance.now();
+}
+
+function selectBlock(type) {
+    const index = hotbar.findIndex(slot => slot && slot.type === type);
+    if (index !== -1) selectHotbarSlot(index);
+}
+
+function blockName(type) {
+    const names = {
+        [BLOCK_GRASS]: "grass",
+        [BLOCK_DIRT]: "dirt",
+        [BLOCK_WOOD]: "wood",
+        [BLOCK_LEAVES]: "leaves",
+        [BLOCK_STONE]: "stone",
+        [BLOCK_COAL_ORE]: "coal ore",
+        [BLOCK_IRON_ORE]: "iron ore",
+        [BLOCK_DIAMOND_ORE]: "diamond ore",
+        [BLOCK_CRAFTING_TABLE]: "crafting table",
+        [BLOCK_FURNACE]: "furnace",
+        [BLOCK_CHEST]: "chest",
+        [ITEM_RAW_PORKCHOP]: "raw porkchop",
+        [ITEM_COOKED_PORKCHOP]: "cooked porkchop",
+        [ITEM_RAW_BEEF]: "raw beef",
+        [ITEM_STEAK]: "steak",
+        [ITEM_PLANKS]: "planks",
+        [ITEM_STICK]: "stick",
+        [ITEM_COAL]: "coal",
+        [ITEM_RAW_IRON]: "raw iron",
+        [ITEM_IRON_INGOT]: "iron ingot",
+        [ITEM_DIAMOND]: "diamond",
+        [ITEM_WOOD_PICKAXE]: "wooden pickaxe",
+        [ITEM_STONE_PICKAXE]: "stone pickaxe",
+        [ITEM_IRON_PICKAXE]: "iron pickaxe",
+        [ITEM_DIAMOND_PICKAXE]: "diamond pickaxe",
+        [ITEM_WOOD_SHOVEL]: "wooden shovel",
+        [ITEM_STONE_SHOVEL]: "stone shovel",
+        [ITEM_IRON_SHOVEL]: "iron shovel",
+        [ITEM_DIAMOND_SHOVEL]: "diamond shovel",
+        [ITEM_WOOD_AXE]: "wooden axe",
+        [ITEM_STONE_AXE]: "stone axe",
+        [ITEM_IRON_AXE]: "iron axe",
+        [ITEM_DIAMOND_AXE]: "diamond axe",
+        [ITEM_BUCKET]: "bucket",
+        [ITEM_WATER_BUCKET]: "water bucket"
+    };
+    return names[type] || "item";
+}
+
+function inventoryIconClass(type) {
+    if (type === ITEM_RAW_PORKCHOP) return "raw-porkchop";
+    if (type === ITEM_COOKED_PORKCHOP) return "cooked-porkchop";
+    if (type === ITEM_RAW_BEEF) return "raw-porkchop";
+    if (type === ITEM_STEAK) return "cooked-porkchop";
+    const toolIcons = {
+        [ITEM_WOOD_PICKAXE]: "tool-icon tool-pickaxe wood-tool wooden-pickaxe",
+        [ITEM_STONE_PICKAXE]: "tool-icon tool-pickaxe stone-tool stone-pickaxe",
+        [ITEM_IRON_PICKAXE]: "tool-icon tool-pickaxe iron-tool iron-pickaxe",
+        [ITEM_DIAMOND_PICKAXE]: "tool-icon tool-pickaxe diamond-tool diamond-pickaxe",
+        [ITEM_WOOD_SHOVEL]: "tool-icon tool-shovel wood-tool wooden-shovel",
+        [ITEM_STONE_SHOVEL]: "tool-icon tool-shovel stone-tool stone-shovel",
+        [ITEM_IRON_SHOVEL]: "tool-icon tool-shovel iron-tool iron-shovel",
+        [ITEM_DIAMOND_SHOVEL]: "tool-icon tool-shovel diamond-tool diamond-shovel",
+        [ITEM_WOOD_AXE]: "tool-icon tool-axe wood-tool wooden-axe",
+        [ITEM_STONE_AXE]: "tool-icon tool-axe stone-tool stone-axe",
+        [ITEM_IRON_AXE]: "tool-icon tool-axe iron-tool iron-axe",
+        [ITEM_DIAMOND_AXE]: "tool-icon tool-axe diamond-tool diamond-axe"
+    };
+    if (toolIcons[type]) return toolIcons[type];
+    if (type === ITEM_WATER_BUCKET) return "water-bucket";
+    if (type === ITEM_BUCKET) return "bucket";
+    const names = {
+        [BLOCK_COAL_ORE]: "coal-ore", [BLOCK_IRON_ORE]: "iron-ore",
+        [BLOCK_DIAMOND_ORE]: "diamond-ore", [BLOCK_CRAFTING_TABLE]: "crafting-table",
+        [BLOCK_FURNACE]: "furnace", [BLOCK_CHEST]: "chest", [ITEM_PLANKS]: "planks", [ITEM_STICK]: "stick",
+        [ITEM_COAL]: "coal", [ITEM_RAW_IRON]: "raw-iron", [ITEM_IRON_INGOT]: "iron-ingot",
+        [ITEM_DIAMOND]: "diamond"
+    };
+    return names[type] || blockName(type).replaceAll(" ", "-");
+}
+
+function maxStackSize(type) {
+    if ([
+        ITEM_WOOD_PICKAXE, ITEM_STONE_PICKAXE, ITEM_IRON_PICKAXE, ITEM_DIAMOND_PICKAXE,
+        ITEM_WOOD_SHOVEL, ITEM_STONE_SHOVEL, ITEM_IRON_SHOVEL, ITEM_DIAMOND_SHOVEL,
+        ITEM_WOOD_AXE, ITEM_STONE_AXE, ITEM_IRON_AXE, ITEM_DIAMOND_AXE
+    ].includes(type)) return 1;
+    if (type === ITEM_BUCKET || type === ITEM_WATER_BUCKET) return 16;
+    return 64;
+}
+
+function inventoryCount(type) {
+    return hotbar.concat(inventory).reduce((total, slot) => total + (slot && slot.type === type ? slot.count : 0), 0);
+}
+
+function canAddInventory(type, amount = 1) {
+    let remaining = amount;
+    const max = maxStackSize(type);
+    for (const slot of hotbar.concat(inventory)) {
+        if (slot && slot.type === type) remaining -= Math.max(0, max - slot.count);
+    }
+    if (remaining <= 0) return true;
+    const emptySlots = hotbar.concat(inventory).filter(slot => slot === null).length;
+    return Math.ceil(remaining / max) <= emptySlots;
+}
+
+function addInventory(type, amount = 1) {
+    if (amount <= 0) return true;
+    if (!canAddInventory(type, amount)) {
+        showMessage("Inventory is full");
+        return false;
+    }
+    const max = maxStackSize(type);
+    let remaining = amount;
+    for (const slots of [hotbar, inventory]) {
+        for (const slot of slots) {
+            if (slot && slot.type === type && slot.count < max && remaining > 0) {
+                const moved = Math.min(max - slot.count, remaining);
+                slot.count += moved;
+                remaining -= moved;
+            }
+        }
+    }
+    for (const slots of [hotbar, inventory]) {
+        for (let i = 0; i < slots.length && remaining > 0; i++) {
+            if (slots[i] === null) {
+                const moved = Math.min(max, remaining);
+                slots[i] = { type, count: moved };
+                if (slots === hotbar && selectedBlock === null && selectedHotbarSlot === i) selectedBlock = type;
+                remaining -= moved;
+            }
+        }
+    }
+    updateHUD();
+    if (inventoryOpen) {
+        renderInventoryGrid();
+        renderCraftingUI();
+        renderFurnaceUI();
+    }
+    return remaining === 0;
+}
+
+function removeFromStack(stack, amount = 1) {
+    if (!stack || stack.count < amount) return false;
+    stack.count -= amount;
+    if (stack.count <= 0) {
+        const hotbarIndex = hotbar.indexOf(stack);
+        const inventoryIndex = inventory.indexOf(stack);
+        if (hotbarIndex !== -1) {
+            hotbar[hotbarIndex] = null;
+            if (hotbarIndex === selectedHotbarSlot) selectedBlock = null;
+        } else if (inventoryIndex !== -1) inventory[inventoryIndex] = null;
+    }
+    return true;
+}
+
+function removeItemCount(type, amount = 1) {
+    let remaining = amount;
+    for (const slots of [hotbar, inventory]) {
+        for (const stack of slots) {
+            if (stack && stack.type === type && remaining > 0) {
+                const take = Math.min(stack.count, remaining);
+                removeFromStack(stack, take);
+                remaining -= take;
+            }
+        }
+    }
+    updateHUD();
+    return remaining === 0;
+}
+
+function removeInventory(type) {
+    const slot = hotbar[selectedHotbarSlot];
+    if (!slot || slot.type !== type || slot.count <= 0) return false;
+    return removeFromStack(slot, 1) && (updateHUD(), true);
+}
+
+function selectHotbarSlot(index) {
+    if (index < 0 || index >= 9) return;
+
+    selectedHotbarSlot = index;
+    const slot = hotbar[index];
+    selectedBlock = slot ? slot.type : null;
+    updateHUD();
+
+    showMessage(slot ? "Selected " + blockName(slot.type) : "Selected empty slot");
+}
+
+function makeInventorySlot(stack, numberText, onActivate, selected = false) {
+    const slot = document.createElement("div");
+    slot.className = "hotbar-slot" + (selected ? " selected" : "");
+    if (onActivate) {
+        slot.addEventListener("mousedown", event => {
+            if (event.button !== 0 && event.button !== 2) return;
+            event.preventDefault();
+            event.stopPropagation();
+            onActivate(event.button);
+        });
+    }
+
+    if (numberText !== "") {
+        const number = document.createElement("span");
+        number.className = "hotbar-number";
+        number.textContent = numberText;
+        slot.appendChild(number);
+    }
+
+    if (stack) {
+        const icon = document.createElement("div");
+        icon.className = "hotbar-icon " + inventoryIconClass(stack.type);
+        slot.appendChild(icon);
+
+        const count = document.createElement("span");
+        count.className = "hotbar-count";
+        count.textContent = stack.count;
+        slot.appendChild(count);
+    }
+    return slot;
+}
+
+function ensureCarriedItemCursor() {
+    let cursor = document.getElementById("carried-item-cursor");
+    if (!cursor) {
+        cursor = document.createElement("div");
+        cursor.id = "carried-item-cursor";
+        cursor.style.cssText = "position:fixed;left:0;top:0;z-index:100000;display:none;pointer-events:none;transform:translate(12px,12px);align-items:center;gap:5px;padding:5px;background:rgba(15,15,15,.88);border:1px solid rgba(255,255,255,.75);border-radius:5px;color:white;font: bold 12px Arial,sans-serif;box-shadow:0 2px 8px #000;";
+        document.body.appendChild(cursor);
+    }
+    return cursor;
+}
+
+function renderCarriedItemCursor(event = null) {
+    const cursor = ensureCarriedItemCursor();
+    if (!carriedItemStack || !inventoryOpen) {
+        cursor.style.display = "none";
+        return;
+    }
+    cursor.innerHTML = "";
+    const icon = document.createElement("div");
+    icon.className = "hotbar-icon " + inventoryIconClass(carriedItemStack.type);
+    icon.style.cssText = "flex:none;width:22px;height:22px;";
+    const count = document.createElement("span");
+    count.textContent = carriedItemStack.count;
+    cursor.append(icon, count);
+    cursor.style.display = "flex";
+    if (event) {
+        cursor.style.left = event.clientX + "px";
+        cursor.style.top = event.clientY + "px";
+    }
+}
+
+document.addEventListener("mousemove", event => {
+    if (carriedItemStack && inventoryOpen) renderCarriedItemCursor(event);
+});
+document.getElementById("inventory-screen").addEventListener("mousedown", event => {
+    if (event.target === document.getElementById("inventory-screen") && carriedItemStack) {
+        event.preventDefault();
+        const stack = carriedItemStack;
+        carriedItemStack = null;
+        dropItemStack(stack);
+        refreshInventoryItemUI();
+    }
+});
+
+function refreshInventoryItemUI() {
+    const selected = hotbar[selectedHotbarSlot];
+    selectedBlock = selected ? selected.type : null;
+    updateHUD();
+    renderHotbar();
+    renderInventoryGrid();
+    renderCraftingUI();
+    renderFurnaceUI();
+    renderChestUI();
+    renderCarriedItemCursor();
+}
+
+// Standard cursor-based inventory movement:
+// left click picks up/places a full stack; right click picks up a rounded-up
+// half and places one item at a time. Left-clicking a different stack swaps.
+function moveCursorWithStack(getStack, setStack, button) {
+    let target = getStack();
+
+    if (!carriedItemStack) {
+        if (!target) return false;
+        const amount = button === 2 ? Math.ceil(target.count / 2) : target.count;
+        carriedItemStack = { type: target.type, count: amount };
+        target.count -= amount;
+        if (target.count <= 0) setStack(null);
+        return true;
+    }
+
+    if (!target) {
+        const amount = button === 2 ? 1 : Math.min(carriedItemStack.count, maxStackSize(carriedItemStack.type));
+        setStack({ type: carriedItemStack.type, count: amount });
+        carriedItemStack.count -= amount;
+        if (carriedItemStack.count <= 0) carriedItemStack = null;
+        return true;
+    }
+
+    if (target.type === carriedItemStack.type) {
+        const space = maxStackSize(target.type) - target.count;
+        if (space <= 0) return false;
+        const amount = Math.min(button === 2 ? 1 : space, space, carriedItemStack.count);
+        target.count += amount;
+        carriedItemStack.count -= amount;
+        if (carriedItemStack.count <= 0) carriedItemStack = null;
+        return true;
+    }
+
+    if (button === 0) {
+        setStack(carriedItemStack);
+        carriedItemStack = target;
+        return true;
+    }
+    return false;
+}
+
+function handleArraySlotClick(slots, index, button) {
+    if (button !== 0 && button !== 2) return;
+    const changed = moveCursorWithStack(
+        () => slots[index],
+        value => { slots[index] = value; },
+        button
+    );
+    if (changed) refreshInventoryItemUI();
+}
+
+function renderHotbar() {
+    const hotbarElement = document.getElementById("hotbar");
+    hotbarElement.innerHTML = "";
+
+    for (let i = 0; i < 9; i++) {
+        hotbarElement.appendChild(makeInventorySlot(
+            hotbar[i], String(i + 1), button => {
+                if (inventoryOpen) {
+                    handleArraySlotClick(hotbar, i, button);
+                } else if (button === 0) {
+                    selectHotbarSlot(i);
+                }
+            }, i === selectedHotbarSlot
+        ));
+    }
+}
+
+function renderInventoryGrid() {
+    const grid = document.getElementById("inventory-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    for (let i = 0; i < inventory.length; i++) {
+        grid.appendChild(makeInventorySlot(inventory[i], "", button => {
+            if (inventoryOpen) {
+                handleArraySlotClick(inventory, i, button);
+            }
+        }));
+    }
+}
+
+// Recipes are stored as small text grids. A space is an empty cell; every
+// occupied crafting cell must match exactly one ingredient in the recipe.
+const CRAFTING_RECIPES = [];
+function addCraftingRecipe(pattern, key, output, count = 1) {
+    CRAFTING_RECIPES.push({ pattern, key, output, count });
+}
+
+addCraftingRecipe(["W"], { W: BLOCK_WOOD }, ITEM_PLANKS, 4);
+addCraftingRecipe(["P", "P"], { P: ITEM_PLANKS }, ITEM_STICK, 4);
+addCraftingRecipe(["PP", "PP"], { P: ITEM_PLANKS }, BLOCK_CRAFTING_TABLE, 1);
+addCraftingRecipe(["CCC", "C C", "CCC"], { C: BLOCK_STONE }, BLOCK_FURNACE, 1);
+addCraftingRecipe(["PPP", "P P", "PPP"], { P: ITEM_PLANKS }, BLOCK_CHEST, 1);
+
+const TOOL_RECIPES = [
+    { material: ITEM_PLANKS, tier: 1 },
+    { material: BLOCK_STONE, tier: 2 },
+    { material: ITEM_IRON_INGOT, tier: 3 },
+    { material: ITEM_DIAMOND, tier: 4 }
+];
+for (const tool of TOOL_RECIPES) {
+    const pickaxe = [ITEM_WOOD_PICKAXE, ITEM_STONE_PICKAXE, ITEM_IRON_PICKAXE, ITEM_DIAMOND_PICKAXE][tool.tier - 1];
+    const shovel = [ITEM_WOOD_SHOVEL, ITEM_STONE_SHOVEL, ITEM_IRON_SHOVEL, ITEM_DIAMOND_SHOVEL][tool.tier - 1];
+    const axe = [ITEM_WOOD_AXE, ITEM_STONE_AXE, ITEM_IRON_AXE, ITEM_DIAMOND_AXE][tool.tier - 1];
+    addCraftingRecipe(["MMM", " S ", " S "], { M: tool.material, S: ITEM_STICK }, pickaxe, 1);
+    addCraftingRecipe(["M", "S", "S"], { M: tool.material, S: ITEM_STICK }, shovel, 1);
+    addCraftingRecipe(["MM", "MS", " S"], { M: tool.material, S: ITEM_STICK }, axe, 1);
+}
+addCraftingRecipe(["I I", " I "], { I: ITEM_IRON_INGOT }, ITEM_BUCKET, 1);
+
+function findCraftingRecipe() {
+    const size = craftingGridSize;
+    for (const recipe of CRAFTING_RECIPES) {
+        const patternHeight = recipe.pattern.length;
+        const patternWidth = Math.max(...recipe.pattern.map(row => row.length));
+        if (patternHeight > size || patternWidth > size) continue;
+
+        for (let offsetY = 0; offsetY <= size - patternHeight; offsetY++) {
+            for (let offsetX = 0; offsetX <= size - patternWidth; offsetX++) {
+                const usedCells = [];
+                let matches = true;
+
+                for (let y = 0; y < size && matches; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const patternY = y - offsetY;
+                        const patternX = x - offsetX;
+                        const insidePattern = patternY >= 0 && patternY < patternHeight &&
+                            patternX >= 0 && patternX < patternWidth;
+                        const symbol = insidePattern
+                            ? (recipe.pattern[patternY][patternX] || " ")
+                            : " ";
+                        const stack = craftingGrid[y * 3 + x];
+
+                        if (symbol === " ") {
+                            if (stack) {
+                                matches = false;
+                                break;
+                            }
+                        } else {
+                            const requiredType = recipe.key[symbol];
+                            if (!stack || stack.type !== requiredType || stack.count < 1) {
+                                matches = false;
+                                break;
+                            }
+                            usedCells.push(y * 3 + x);
+                        }
+                    }
+                }
+
+                if (matches && usedCells.length > 0) {
+                    return { recipe, usedCells };
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function clickCraftingSlot(index, button) {
+    handleArraySlotClick(craftingGrid, index, button);
+}
+
+function renderCraftingUI() {
+    const panel = document.getElementById("crafting-panel");
+    const grid = document.getElementById("crafting-grid");
+    const output = document.getElementById("crafting-output");
+    if (!panel || !grid || !output) return;
+
+    panel.style.display = inventoryScreenMode === "furnace" || inventoryScreenMode === "chest" ? "none" : "block";
+    document.getElementById("crafting-title").textContent =
+        craftingGridSize === 3 ? "3×3 Crafting Table" : "2×2 Crafting";
+
+    grid.innerHTML = "";
+    grid.style.gridTemplateColumns = `repeat(${craftingGridSize}, 42px)`;
+    const positions = craftingGridSize === 2 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+    for (const index of positions) {
+        const slot = makeInventorySlot(
+            craftingGrid[index], "",
+            button => clickCraftingSlot(index, button),
+            false
+        );
+        slot.style.width = "42px";
+        slot.style.height = "42px";
+        grid.appendChild(slot);
+    }
+
+    output.innerHTML = "";
+    const match = findCraftingRecipe();
+    if (!match) {
+        output.appendChild(makeInventorySlot(null, "", null, false));
+        return;
+    }
+
+    output.appendChild(makeInventorySlot(
+        { type: match.recipe.output, count: match.recipe.count },
+        "",
+        button => { if (button === 0) craftCurrentRecipe(); },
+        false
+    ));
+}
+
+function craftCurrentRecipe() {
+    // Always recalculate the recipe at click time; never trust a stale preview.
+    const match = findCraftingRecipe();
+    if (!match) return;
+
+    const { recipe, usedCells } = match;
+    if (!canAddInventory(recipe.output, recipe.count)) {
+        showMessage("Not enough inventory space");
+        return;
+    }
+
+    // Consume exactly one item from each ingredient cell for one craft.
+    for (const index of usedCells) {
+        const stack = craftingGrid[index];
+        if (!stack || stack.count < 1) return;
+    }
+    for (const index of usedCells) {
+        const stack = craftingGrid[index];
+        stack.count -= 1;
+        if (stack.count === 0) craftingGrid[index] = null;
+    }
+
+    addInventory(recipe.output, recipe.count);
+    showMessage("Crafted " + recipe.count + " " + blockName(recipe.output));
+    renderCraftingUI();
+    renderInventoryGrid();
+    renderHotbar();
+}
+
+function getFurnaceState(key) {
+    if (!furnaceStates.has(key)) {
+        furnaceStates.set(key, {
+            input: null, fuel: null, output: null,
+            fuelRemaining: 0, smeltElapsed: 0
+        });
+    }
+    return furnaceStates.get(key);
+}
+
+function handleFurnaceSlotClick(slotName, button) {
+    if (!activeFurnaceKey) return;
+    const state = getFurnaceState(activeFurnaceKey);
+    if (carriedItemStack) {
+        if (slotName === "fuel" && carriedItemStack.type !== ITEM_COAL) {
+            showMessage("Coal is the furnace fuel");
+            return;
+        }
+        if (slotName === "input" && ![ITEM_RAW_IRON, ITEM_RAW_PORKCHOP, ITEM_RAW_BEEF].includes(carriedItemStack.type)) {
+            showMessage("Furnace input must be raw iron, raw porkchop, or raw beef");
+            return;
+        }
+    }
+    const changed = moveCursorWithStack(
+        () => state[slotName],
+        value => { state[slotName] = value; },
+        button
+    );
+    if (changed) refreshInventoryItemUI();
+}
+
+function takeFurnaceOutput(button) {
+    const state = getFurnaceState(activeFurnaceKey);
+    if (!state.output || carriedItemStack) {
+        if (state.output && carriedItemStack && carriedItemStack.type === state.output.type) {
+            const space = maxStackSize(state.output.type) - carriedItemStack.count;
+            if (space > 0) {
+                const amount = Math.min(button === 2 ? 1 : space, space, state.output.count);
+                carriedItemStack.count += amount;
+                state.output.count -= amount;
+                if (state.output.count <= 0) state.output = null;
+                refreshInventoryItemUI();
+            }
+        }
+        return;
+    }
+    const amount = button === 2 ? Math.ceil(state.output.count / 2) : state.output.count;
+    carriedItemStack = { type: state.output.type, count: amount };
+    state.output.count -= amount;
+    if (state.output.count <= 0) state.output = null;
+    refreshInventoryItemUI();
+}
+
+function renderFurnaceUI() {
+    const panel = document.getElementById("furnace-panel");
+    if (!panel) return;
+    panel.style.display = inventoryScreenMode === "furnace" ? "block" : "none";
+    if (inventoryScreenMode !== "furnace" || !activeFurnaceKey) return;
+    const state = getFurnaceState(activeFurnaceKey);
+    const input = document.getElementById("furnace-input");
+    const fuel = document.getElementById("furnace-fuel");
+    const output = document.getElementById("furnace-output");
+    input.innerHTML = "";
+    fuel.innerHTML = "";
+    output.innerHTML = "";
+    input.appendChild(makeInventorySlot(state.input, "", button => handleFurnaceSlotClick("input", button)));
+    fuel.appendChild(makeInventorySlot(state.fuel, "", button => handleFurnaceSlotClick("fuel", button)));
+    output.appendChild(makeInventorySlot(state.output, "", button => takeFurnaceOutput(button)));
+    document.getElementById("furnace-progress").value = state.smeltElapsed;
+}
+
+function getChestState(key) {
+    if (!chestStates.has(key)) chestStates.set(key, Array(27).fill(null));
+    return chestStates.get(key);
+}
+
+function renderChestUI() {
+    const panel = document.getElementById("chest-panel");
+    const grid = document.getElementById("chest-grid");
+    if (!panel || !grid) return;
+    panel.style.display = inventoryScreenMode === "chest" ? "block" : "none";
+    if (inventoryScreenMode !== "chest" || !activeChestKey) return;
+    const slots = getChestState(activeChestKey);
+    grid.innerHTML = "";
+    for (let i = 0; i < 27; i++) {
+        grid.appendChild(makeInventorySlot(slots[i], "", button => {
+            const changed = moveCursorWithStack(
+                () => slots[i],
+                value => { slots[i] = value; },
+                button
+            );
+            if (changed) {
+                refreshInventoryItemUI();
+                multiplayerSend({ type: "chest_update", key: activeChestKey, slots });
+            }
+        }));
+    }
+}
+
+function updateFurnaces(delta) {
+    for (const state of furnaceStates.values()) {
+        if (!state.input || ![ITEM_RAW_IRON, ITEM_RAW_PORKCHOP, ITEM_RAW_BEEF].includes(state.input.type)) continue;
+        const outputType = state.input.type === ITEM_RAW_IRON ? ITEM_IRON_INGOT :
+            state.input.type === ITEM_RAW_PORKCHOP ? ITEM_COOKED_PORKCHOP : ITEM_STEAK;
+        if (state.output && (state.output.type !== outputType || state.output.count >= 64)) continue;
+        if (state.fuelRemaining <= 0) {
+            if (!state.fuel || state.fuel.type !== ITEM_COAL || state.fuel.count <= 0) continue;
+            state.fuel.count -= 1;
+            if (state.fuel.count <= 0) state.fuel = null;
+            state.fuelRemaining = 8;
+        }
+        state.fuelRemaining = Math.max(0, state.fuelRemaining - delta);
+        state.smeltElapsed += delta;
+        if (state.smeltElapsed >= 5) {
+            state.smeltElapsed -= 5;
+            state.input.count -= 1;
+            if (state.input.count <= 0) state.input = null;
+            if (!state.output) state.output = { type: outputType, count: 1 };
+            else state.output.count += 1;
+        }
+        if (inventoryOpen && inventoryScreenMode === "furnace") renderFurnaceUI();
+    }
+}
+
+function openInventory(mode = "inventory", furnaceKey = null) {
+    if (inventoryOpen || pauseState !== "playing" || gameOver) return;
+    inventoryOpen = true;
+    inventoryScreenMode = mode;
+    craftingGridSize = mode === "crafting-table" ? 3 : 2;
+    activeFurnaceKey = furnaceKey;
+    clearGameplayKeys();
+    miningInputHeld = false;
+    stopBlockBreaking();
+    document.getElementById("inventory-screen").style.display = "flex";
+    document.getElementById("inventory-title").textContent =
+        mode === "crafting-table" ? "CRAFTING TABLE" : mode === "furnace" ? "FURNACE" : mode === "chest" ? "CHEST" : "INVENTORY";
+    const hotbarElement = document.getElementById("hotbar");
+    document.getElementById("inventory-hotbar").appendChild(hotbarElement);
+    renderHotbar();
+    renderInventoryGrid();
+    renderCraftingUI();
+    renderFurnaceUI();
+    renderChestUI();
+    renderCarriedItemCursor();
+    if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
+}
+
+function closeInventory() {
+    if (!inventoryOpen) return;
+    // Return every ingredient from the crafting grid before closing, whether
+    // this is the 2x2 inventory grid or the 3x3 crafting table grid.
+    const simulatedSlots = hotbar.concat(inventory).map(slot =>
+        slot ? { type: slot.type, count: slot.count } : null
+    );
+    const stacksToReturn = craftingGrid.filter(Boolean).slice();
+    if (carriedItemStack) stacksToReturn.push(carriedItemStack);
+    for (const stack of stacksToReturn) {
+        if (!stack) continue;
+        let remaining = stack.count;
+        const max = maxStackSize(stack.type);
+        for (const slot of simulatedSlots) {
+            if (slot && slot.type === stack.type && slot.count < max && remaining > 0) {
+                const moved = Math.min(max - slot.count, remaining);
+                slot.count += moved;
+                remaining -= moved;
+            }
+        }
+        for (let i = 0; i < simulatedSlots.length && remaining > 0; i++) {
+            if (simulatedSlots[i] === null) {
+                const moved = Math.min(max, remaining);
+                simulatedSlots[i] = { type: stack.type, count: moved };
+                remaining -= moved;
+            }
+        }
+        if (remaining > 0) {
+            showMessage("Make room in your inventory before closing");
+            return;
+        }
+    }
+    for (let i = 0; i < craftingGrid.length; i++) {
+        const stack = craftingGrid[i];
+        if (stack) {
+            addInventory(stack.type, stack.count);
+            craftingGrid[i] = null;
+        }
+    }
+    if (carriedItemStack) {
+        addInventory(carriedItemStack.type, carriedItemStack.count);
+        carriedItemStack = null;
+    }
+    inventoryOpen = false;
+    inventoryScreenMode = "inventory";
+    activeFurnaceKey = null;
+    activeChestKey = null;
+    const hotbarElement = document.getElementById("hotbar");
+    document.getElementById("hud").appendChild(hotbarElement);
+    document.getElementById("inventory-screen").style.display = "none";
+    renderHotbar();
+    renderCarriedItemCursor();
+    clearGameplayKeys();
+    requestGameplayPointerLock();
+}
+
+// =====================================================
+// WATER SPREADING
+// =====================================================
+
+// Each water block updates after a short delay. Newly created water blocks
+// are added to the same queue so the water continues spreading in stages.
+const WATER_SPREAD_DELAY = 350;
+const waterUpdateQueue = [];
+const waterUpdatesQueued = new Set();
+let waterUpdateTimer = null;
+
+function scheduleWaterUpdate(x, y, z) {
+    if (getBlock(x, y, z) !== BLOCK_WATER) return;
+
+    const key = blockKey(x, y, z);
+    if (waterUpdatesQueued.has(key)) return;
+
+    waterUpdatesQueued.add(key);
+    waterUpdateQueue.push([x, y, z]);
+
+    if (waterUpdateTimer === null) {
+        waterUpdateTimer = setTimeout(processNextWaterUpdate, WATER_SPREAD_DELAY);
+    }
+}
+
+function rebuildWaterChunksForPositions(positions) {
+    const chunksToBuild = new Set();
+
+    for (const [x, , z] of positions) {
+        const chunkX = Math.floor(x / CHUNK_SIZE);
+        const chunkZ = Math.floor(z / CHUNK_SIZE);
+        const localX = ((x % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+        const localZ = ((z % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+
+        chunksToBuild.add(chunkKey(chunkX, chunkZ));
+        if (localX === 0) chunksToBuild.add(chunkKey(chunkX - 1, chunkZ));
+        else if (localX === CHUNK_SIZE - 1) chunksToBuild.add(chunkKey(chunkX + 1, chunkZ));
+        if (localZ === 0) chunksToBuild.add(chunkKey(chunkX, chunkZ - 1));
+        else if (localZ === CHUNK_SIZE - 1) chunksToBuild.add(chunkKey(chunkX, chunkZ + 1));
+    }
+
+    for (const key of chunksToBuild) {
+        const [chunkX, chunkZ] = key.split(',').map(Number);
+        rebuildChunkMesh(chunkX, chunkZ);
+    }
+}
+
+function processNextWaterUpdate() {
+    waterUpdateTimer = null;
+    const source = waterUpdateQueue.shift();
+    if (!source) return;
+
+    const [sourceX, sourceY, sourceZ] = source;
+    const sourceKey = blockKey(sourceX, sourceY, sourceZ);
+    waterUpdatesQueued.delete(sourceKey);
+
+    if (getBlock(sourceX, sourceY, sourceZ) === BLOCK_WATER) {
+        let sourceLevel = getWaterLevel(sourceX, sourceY, sourceZ);
+        const parentKey = waterParents.get(sourceKey);
+
+        // Flowing water remains only while a stronger neighboring water level
+        // supports it. If its original support disappears, another stronger
+        // adjacent flow may take over; otherwise it drains after this delay.
+        if (parentKey) {
+            let supportKey = null;
+            const supportOffsets = [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]];
+            for (const [dx, dy, dz] of supportOffsets) {
+                const nx = sourceX + dx, ny = sourceY + dy, nz = sourceZ + dz;
+                if (getBlock(nx, ny, nz) === BLOCK_WATER && getWaterLevel(nx, ny, nz) > sourceLevel) {
+                    supportKey = blockKey(nx, ny, nz);
+                    break;
+                }
+            }
+            if (!supportKey) {
+                setBlock(sourceX, sourceY, sourceZ, 0);
+                sendBlockEdit(sourceX, sourceY, sourceZ, 0);
+                rebuildWaterChunksForPositions([[sourceX, sourceY, sourceZ]]);
+                spreadWaterFromAdjacentBlocks(sourceX, sourceY, sourceZ);
+            } else if (supportKey !== parentKey) {
+                waterParents.set(sourceKey, supportKey);
+            }
+        }
+
+        if (getBlock(sourceX, sourceY, sourceZ) === BLOCK_WATER) {
+            sourceLevel = getWaterLevel(sourceX, sourceY, sourceZ);
+            if (sourceLevel > 1) {
+                const nextLevel = sourceLevel - 1;
+                const spreadOffsets = [
+                    [1, 0, 0], [-1, 0, 0],
+                    [0, 0, 1], [0, 0, -1], [0, -1, 0]
+                ];
+                const changed = [];
+
+                for (const [dx, dy, dz] of spreadOffsets) {
+                    const targetX = sourceX + dx;
+                    const targetY = sourceY + dy;
+                    const targetZ = sourceZ + dz;
+                    if (targetY < WORLD_BOTTOM || targetY > 40 || !isInsideWorld(targetX, targetZ)) continue;
+
+                    // Water levels above 2 cannot flow onto the top of another
+                    // water block. This keeps shallow pools from stacking up.
+                    if (dy === 0 && targetY > WORLD_BOTTOM && getBlock(targetX, targetY - 1, targetZ) === BLOCK_WATER && nextLevel > 2) continue;
+
+                    const targetType = getBlock(targetX, targetY, targetZ);
+                    if (targetType !== 0 && targetType !== BLOCK_WATER) continue;
+
+                    if (targetType === BLOCK_WATER) {
+                        const existingLevel = getWaterLevel(targetX, targetY, targetZ);
+                        // Level-8 blocks are permanent sources; weaker flows
+                        // never replace or flow into them.
+                        if (existingLevel === 8 || nextLevel <= existingLevel) continue;
+                    }
+
+                    const parent = sourceKey;
+                    setBlock(targetX, targetY, targetZ, BLOCK_WATER, nextLevel, parent);
+                    sendBlockEdit(targetX, targetY, targetZ, BLOCK_WATER, nextLevel, parent);
+                    changed.push([targetX, targetY, targetZ]);
+                    scheduleWaterUpdate(targetX, targetY, targetZ);
+                }
+
+                if (changed.length) rebuildWaterChunksForPositions(changed);
+            }
+        }
+    }
+
+    if (waterUpdateQueue.length > 0 && waterUpdateTimer === null) {
+        waterUpdateTimer = setTimeout(processNextWaterUpdate, WATER_SPREAD_DELAY);
+    }
+}
+
+function spreadWaterFromAdjacentBlocks(x, y, z) {
+    const sourceOffsets = [
+        [1, 0, 0], [-1, 0, 0], [0, 1, 0],
+        [0, 0, 1], [0, 0, -1], [0, -1, 0]
+    ];
+
+    for (const [dx, dy, dz] of sourceOffsets) {
+        const waterX = x + dx;
+        const waterY = y + dy;
+        const waterZ = z + dz;
+        if (getBlock(waterX, waterY, waterZ) === BLOCK_WATER) {
+            scheduleWaterUpdate(waterX, waterY, waterZ);
+        }
+    }
+}
+
+// =====================================================
+// BREAKING BLOCKS
+// =====================================================
+
+// Approximate Minecraft-style survival break times in seconds. Correct tools
+// are substantially faster; an unsuitable tool is deliberately much slower.
+const BLOCK_BREAK_TIMES = {
+    [BLOCK_GRASS]: 0.90,
+    [BLOCK_DIRT]: 0.75,
+    [BLOCK_STONE]: 7.55,
+    [BLOCK_WOOD]: 3.00,
+    [BLOCK_LEAVES]: 0.30,
+    [BLOCK_COAL_ORE]: 7.55,
+    [BLOCK_IRON_ORE]: 7.55,
+    [BLOCK_DIAMOND_ORE]: 7.55,
+    [BLOCK_CRAFTING_TABLE]: 3.75,
+    [BLOCK_FURNACE]: 7.55,
+    [BLOCK_CHEST]: 2.50,
+    [ITEM_PLANKS]: 3.00
+};
+
+const PICKAXE_TIERS = {
+    [ITEM_WOOD_PICKAXE]: 1, [ITEM_STONE_PICKAXE]: 2,
+    [ITEM_IRON_PICKAXE]: 3, [ITEM_DIAMOND_PICKAXE]: 4
+};
+const SHOVEL_TIERS = {
+    [ITEM_WOOD_SHOVEL]: 1, [ITEM_STONE_SHOVEL]: 2,
+    [ITEM_IRON_SHOVEL]: 3, [ITEM_DIAMOND_SHOVEL]: 4
+};
+const AXE_TIERS = {
+    [ITEM_WOOD_AXE]: 1, [ITEM_STONE_AXE]: 2,
+    [ITEM_IRON_AXE]: 3, [ITEM_DIAMOND_AXE]: 4
+};
+
+function getBlockBreakTime(target) {
+    const type = target.type;
+    const held = hotbar[selectedHotbarSlot]?.type;
+    const pickaxeTier = PICKAXE_TIERS[held] || 0;
+    const shovelTier = SHOVEL_TIERS[held] || 0;
+    const axeTier = AXE_TIERS[held] || 0;
+
+    if ([BLOCK_STONE, BLOCK_COAL_ORE, BLOCK_IRON_ORE, BLOCK_DIAMOND_ORE, BLOCK_FURNACE].includes(type)) {
+        // Stone: hand 7.55s, wooden 1.15s, stone 0.60s, iron 0.40s, diamond 0.30s.
+        return pickaxeTier ? [0, 1.15, 0.60, 0.40, 0.30][pickaxeTier] : BLOCK_BREAK_TIMES[type];
+    }
+    if ([BLOCK_GRASS, BLOCK_DIRT].includes(type)) {
+        const handTime = BLOCK_BREAK_TIMES[type];
+        return shovelTier ? (type === BLOCK_DIRT
+            ? [0, 0.40, 0.20, 0.15, 0.15][shovelTier]
+            : [0, 0.45, 0.25, 0.20, 0.15][shovelTier]) : handTime;
+    }
+    if (type === BLOCK_CRAFTING_TABLE) {
+        return axeTier ? [0, 1.90, 0.95, 0.65, 0.50][axeTier] : BLOCK_BREAK_TIMES[type];
+    }
+    if ([BLOCK_WOOD, BLOCK_CHEST, ITEM_PLANKS].includes(type)) {
+        return axeTier ? [0, 1.50, 0.75, 0.50, 0.40][axeTier] : BLOCK_BREAK_TIMES[type];
+    }
+    return BLOCK_BREAK_TIMES[type] || 1;
+}
+
+function getBlockDropType(type) {
+    const held = hotbar[selectedHotbarSlot]?.type;
+    const pickaxeTier = PICKAXE_TIERS[held] || 0;
+    if (type === BLOCK_COAL_ORE) return pickaxeTier >= 1 ? ITEM_COAL : null;
+    if (type === BLOCK_IRON_ORE) return pickaxeTier >= 2 ? ITEM_RAW_IRON : null;
+    if (type === BLOCK_DIAMOND_ORE) {
+        // Preserve the game's existing rule: diamond ore requires an iron pickaxe.
+        return held === ITEM_IRON_PICKAXE ? ITEM_DIAMOND : null;
+    }
+    if ([BLOCK_STONE, BLOCK_FURNACE].includes(type) && pickaxeTier === 0) return null;
+    return type;
+}
+
+function blockTargetKey(target) {
+    return `${target.x},${target.y},${target.z}`;
+}
+
+function hideBreakingOverlay() {
+    breakingOverlay.visible = false;
+    breakingEdges.visible = false;
+    breakingOverlay.material.opacity = 0;
+    breakingEdges.material.opacity = 0;
+}
+
+function stopBlockBreaking() {
+    miningActive = false;
+    miningElapsed = 0;
+    miningTargetKey = null;
+    miningTargetData = null;
+    hideBreakingOverlay();
+}
+
+function startBlockBreaking() {
+    if (!gameStarted || pauseState !== "playing" || gameOver || inventoryOpen) return;
+    const target = getTargetBlock();
+    if (!target || !BLOCK_BREAK_TIMES[target.type]) {
+        stopBlockBreaking();
+        return;
+    }
+    miningActive = true;
+    miningElapsed = 0;
+    miningTargetKey = blockTargetKey(target);
+    miningTargetData = target;
+    if (gameMode === "creative") {
+        const broke = completeBlockBreak(target);
+        miningActive = broke && miningInputHeld;
+        miningTargetKey = null;
+        miningTargetData = null;
+        hideBreakingOverlay();
+        return;
+    }
+    updateBreakingOverlay(0, target);
+}
+
+function updateBreakingOverlay(progress, target) {
+    const centerX = target.x + 0.5;
+    const centerY = target.y + 0.5;
+    const centerZ = target.z + 0.5;
+    breakingOverlay.position.set(centerX, centerY, centerZ);
+    breakingEdges.position.set(centerX, centerY, centerZ);
+    breakingOverlay.material.opacity = 0.08 + progress * 0.48;
+    breakingEdges.material.opacity = 0.12 + progress * 0.88;
+    breakingOverlay.visible = true;
+    breakingEdges.visible = true;
+}
+
+function completeBlockBreak(target) {
+    const { x, y, z, type } = target;
+    if (!PLACEABLE_BLOCKS.includes(type)) return false;
+
+    setBlock(x, y, z, 0);
+    if (gameMode !== "creative") {
+        const dropType = getBlockDropType(type);
+        if (dropType !== null) {
+            const dropCount = type === BLOCK_COAL_ORE ? 1 + Math.floor(Math.random() * 2) : 1;
+            for (let i = 0; i < dropCount; i++) {
+                createItemDrop(dropType, x + 0.5 + (Math.random() - 0.5) * 0.18, y + 0.28 + i * 0.08, z + 0.5 + (Math.random() - 0.5) * 0.18);
+            }
+        }
+    }
+    sendBlockEdit(x, y, z, 0);
+    spreadWaterFromAdjacentBlocks(x, y, z);
+    rebuildAffectedChunks(x, z);
+    updateHUD();
+    showMessage(blockName(type).charAt(0).toUpperCase() + blockName(type).slice(1) + (gameMode === "creative" ? " broken" : " dropped"));
+    return true;
+}
+
+function updateBlockBreaking(delta) {
+    if (!miningActive || !miningInputHeld || inventoryOpen || pauseState !== "playing") {
+        if (miningActive && !miningInputHeld) stopBlockBreaking();
+        return;
+    }
+
+    const target = getTargetBlock();
+    if (!target || !BLOCK_BREAK_TIMES[target.type]) {
+        stopBlockBreaking();
+        return;
+    }
+
+    const key = blockTargetKey(target);
+    if (gameMode === "creative") {
+        const broke = completeBlockBreak(target);
+        miningElapsed = 0;
+        miningTargetKey = null;
+        miningTargetData = null;
+        hideBreakingOverlay();
+        miningActive = broke && miningInputHeld;
+        return;
+    }
+    if (key !== miningTargetKey) {
+        miningElapsed = 0;
+        miningTargetKey = key;
+        miningTargetData = target;
+    }
+
+    miningTargetData = target;
+    miningElapsed += delta;
+    const duration = getBlockBreakTime(target);
+    const progress = Math.min(1, miningElapsed / duration);
+    updateBreakingOverlay(progress, target);
+
+    if (progress >= 1) {
+        const broke = completeBlockBreak(target);
+        miningElapsed = 0;
+        miningTargetKey = null;
+        miningTargetData = null;
+        hideBreakingOverlay();
+        miningActive = broke && miningInputHeld;
+    }
+}
+
+// =====================================================
+// INTERACTING WITH CRAFTING TABLES, FURNACES AND BUCKETS
+// =====================================================
+
+function openCraftingTable() {
+    openInventory("crafting-table");
+}
+
+function openFurnace(x, y, z) {
+    openInventory("furnace", blockKey(x, y, z));
+}
+
+function openChest(x, y, z) {
+    activeChestKey = blockKey(x, y, z);
+    openInventory("chest");
+}
+
+function useBucket(target) {
+    const selected = hotbar[selectedHotbarSlot];
+    if (!selected) return false;
+
+    if (selected.type === ITEM_BUCKET) {
+        if (!target || target.type !== BLOCK_WATER) {
+            showMessage("Aim at water with an empty bucket");
+            return true;
+        }
+        setBlock(target.x, target.y, target.z, 0);
+        sendBlockEdit(target.x, target.y, target.z, 0);
+        rebuildAffectedChunks(target.x, target.z);
+        spreadWaterFromAdjacentBlocks(target.x, target.y, target.z);
+        if (gameMode !== "creative") {
+            removeInventory(ITEM_BUCKET);
+            addInventory(ITEM_WATER_BUCKET, 1);
+        } else {
+            selected.type = ITEM_WATER_BUCKET;
+            selectedBlock = ITEM_WATER_BUCKET;
+            updateHUD();
+        }
+        showMessage("Water collected");
+        return true;
+    }
+
+    if (selected.type === ITEM_WATER_BUCKET) {
+        if (!target) {
+            showMessage("Aim at a block to place water");
+            return true;
+        }
+        const x = target.x + target.normal.x;
+        const y = target.y + target.normal.y;
+        const z = target.z + target.normal.z;
+        if (!isInsideWorld(x, z) || y < WORLD_BOTTOM || y > 40 || getBlock(x, y, z) !== 0) {
+            showMessage("There is no room for water there");
+            return true;
+        }
+        setBlock(x, y, z, BLOCK_WATER, 8, null);
+        sendBlockEdit(x, y, z, BLOCK_WATER, 8, null);
+        scheduleWaterUpdate(x, y, z);
+        rebuildAffectedChunks(x, z);
+        if (gameMode !== "creative") {
+            removeInventory(ITEM_WATER_BUCKET);
+            addInventory(ITEM_BUCKET, 1);
+        } else {
+            selected.type = ITEM_BUCKET;
+            selectedBlock = ITEM_BUCKET;
+            updateHUD();
+        }
+        showMessage("Water placed");
+        return true;
+    }
+    return false;
+}
+
+function handleRightClickAction() {
+    if (!gameStarted || pauseState !== "playing" || inventoryOpen) return;
+    const target = getTargetBlock();
+    if (target && target.type === BLOCK_CRAFTING_TABLE) {
+        openCraftingTable();
+        return;
+    }
+    if (target && target.type === BLOCK_FURNACE) {
+        openFurnace(target.x, target.y, target.z);
+        return;
+    }
+    if (target && target.type === BLOCK_CHEST) {
+        openChest(target.x, target.y, target.z);
+        return;
+    }
+    if ([ITEM_RAW_PORKCHOP, ITEM_COOKED_PORKCHOP, ITEM_RAW_BEEF, ITEM_STEAK].includes(hotbar[selectedHotbarSlot]?.type)) {
+        startEatingPorkchop();
+        return;
+    }
+    if (hotbar[selectedHotbarSlot]?.type === ITEM_BUCKET ||
+        hotbar[selectedHotbarSlot]?.type === ITEM_WATER_BUCKET) {
+        if (useBucket(target)) return;
+    }
+    placeBlock();
+}
+
+// =====================================================
+// PLACING BLOCKS
+// =====================================================
+
+function placeBlock() {
+    if (!gameStarted) {
+        return;
+    }
+
+    // Water is transparent for block placement, so the ray continues to the
+    // first solid block behind it just as it would through air.
+    const target = getTargetBlock(false);
+
+    if (!target) {
+        showMessage("Aim at a block within 4 voxels");
+        return;
+    }
+
+    // Place the new voxel in the cell immediately outside
+    // the face of the block hit by the targeting ray.
+    const x = target.x + target.normal.x;
+    const y = target.y + target.normal.y;
+    const z = target.z + target.normal.z;
+
+    if (
+        !isInsideWorld(x, z) ||
+        y < WORLD_BOTTOM ||
+        y > 40
+    ) {
+        showMessage("Cannot place outside the world");
+        return;
+    }
+
+    const existing = getBlock(x, y, z);
+
+    if (isSolid(existing)) {
+        showMessage("That space is occupied");
+        return;
+    }
+
+    if (playerIntersectsBlock(x, y, z)) {
+        showMessage("Cannot place a block inside yourself");
+        return;
+    }
+
+    if (remotePlayerIntersectsBlock(x, y, z)) {
+        showMessage("Cannot place a block inside another player");
+        return;
+    }
+
+    if (selectedBlock === null) {
+        showMessage("Selected slot is empty");
+        return;
+    }
+    if (!PLACEABLE_BLOCKS.includes(selectedBlock)) {
+        showMessage("That item cannot be placed");
+        return;
+    }
+
+    // Survival checks inventory; creative mode has unlimited placeable blocks.
+    if (gameMode !== "creative" && inventoryCount(selectedBlock) <= 0) {
+        showMessage("No " + blockName(selectedBlock) + " blocks in inventory");
+        return;
+    }
+
+    const placedType = selectedBlock;
+
+    setBlock(x, y, z, placedType);
+    sendBlockEdit(x, y, z, placedType);
+
+    if (gameMode !== "creative") removeInventory(placedType);
+
+    rebuildAffectedChunks(x, z);
+    updateHUD();
+
+    showMessage(blockName(placedType).charAt(0).toUpperCase() + blockName(placedType).slice(1) + " placed");
+}
+
+// =====================================================
+// HUD
+// =====================================================
+
+function updateHUD() {
+    document.getElementById("water-level").textContent =
+        WATER_LEVEL;
+
+    document.getElementById("position").textContent =
+        `${Math.floor(player.x)}, ${Math.floor(player.y)}, ${Math.floor(player.z)}`;
+
+    renderHotbar();
+}
+
+// =====================================================
+// INITIALIZE
+// =====================================================
+
+// A fresh seed creates a different procedural noise map on every page load.
+randomSeed = createWorldSeed();
+generateWorld();
+rebuildWorldMeshes();
+updateHUD();
+updateHealthDisplay();
+updateOnlinePlayerCount();
+
+// =====================================================
+// GAME LOOP
+// =====================================================
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = Math.min(clock.getDelta(), 0.05);
+
+    if (gameStarted && !gamePaused && !gameOver) {
+        updateBlockBreaking(delta);
+        updateItemDrops(delta);
+        updateEatingPorkchop(delta);
+        updateFurnaces(delta);
+        if (!creativeFlying && !inventoryOpen && keys["Space"] && grounded) jump();
+        if (!inventoryOpen) movePlayer(delta);
+        updatePigs(delta);
+
+        if (!multiplayerReady && health < 20) {
+            healthRegenElapsed += delta;
+            while (healthRegenElapsed >= 4 && health < 20) {
+                healthRegenElapsed -= 4;
+                health = Math.min(20, health + 1);
+                updateHealthDisplay();
+            }
+        }
+
+        const cameraTurnSpeed = 1.8 * cameraSensitivity;
+        const cameraLookSpeed = 1.5 * cameraSensitivity;
+
+        if (!inventoryOpen && keys["ArrowLeft"]) {
+            yaw += cameraTurnSpeed * delta;
+        }
+
+        if (!inventoryOpen && keys["ArrowRight"]) {
+            yaw -= cameraTurnSpeed * delta;
+        }
+
+        if (!inventoryOpen && keys["ArrowUp"]) {
+            pitch += cameraLookSpeed * delta;
+        }
+
+        if (!inventoryOpen && keys["ArrowDown"]) {
+            pitch -= cameraLookSpeed * delta;
+        }
+
+        pitch = THREE.MathUtils.clamp(
+            pitch,
+            -Math.PI / 2 + 0.01,
+            Math.PI / 2 - 0.01
+        );
+
+        camera.rotation.y = yaw;
+        camera.rotation.x = pitch;
+
+        updateHUD();
+        sendMultiplayerState(performance.now());
+    }
+
+    updateRemotePlayers(delta);
+    updateUnderwaterOverlay();
+
+    if (performance.now() - lastMessageTime > 2200) {
+        document.getElementById("message").textContent = "";
+    }
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+// =====================================================
+// RESIZE
+// =====================================================
+
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+});
+
+</script>
+</body>
+</html>
+
+
