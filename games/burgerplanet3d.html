@@ -1,0 +1,228 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Burger Shift 3D</title><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;font-family:Arial;color:white}#game{position:fixed;inset:0}canvas{display:block}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:rgba(12,18,22,.84);border:1px solid #ffffff30;border-radius:11px;padding:10px 13px;backdrop-filter:blur(5px)}#top{position:absolute;top:12px;left:12px;display:flex;gap:8px;flex-wrap:wrap}#money{font-size:20px;font-weight:bold;color:#ffe27a}#order{position:absolute;top:12px;right:12px;width:245px}#order h3{margin:0 0 6px;color:#ffd86b}#task{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:#000a;padding:9px 14px;border-radius:18px;text-align:center;max-width:42vw;font-weight:bold}#prompt{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:#000b;padding:10px 17px;border-radius:9px;font-weight:bold;text-align:center;min-width:220px}#help{position:absolute;bottom:12px;left:12px;font-size:12px;line-height:1.6}#cross{position:absolute;left:50%;top:50%;width:7px;height:7px;border:1px solid white;border-radius:50%;transform:translate(-50%,-50%)}#barWrap{position:absolute;bottom:55px;left:50%;transform:translateX(-50%);width:220px;height:11px;background:#222;border:1px solid white;border-radius:8px;overflow:hidden;display:none}#bar{height:100%;width:0;background:#74e66e}#toast{position:absolute;top:27%;left:50%;transform:translateX(-50%);font-size:22px;font-weight:900;color:#ffe27a;opacity:0;transition:opacity .2s}#start,#end{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(135deg,#0b1b20ed,#29180eea);z-index:5}#end{display:none;background:#000c}#startCard,#endCard{width:min(540px,92vw);padding:28px;background:#18252b;border:1px solid #65757a;border-radius:18px;text-align:center;box-shadow:0 18px 70px #000}h1{font-size:40px;margin:0 0 8px;color:#ffd36b}p{color:#d6e0e3;line-height:1.5}button{border:0;border-radius:10px;background:#ffbf47;color:#241708;font-weight:900;font-size:17px;padding:13px 25px;cursor:pointer}@media(max-width:650px){#order{top:auto;bottom:12px;right:12px;width:180px}#help{max-width:48vw;font-size:10px}#task{top:85px;max-width:90vw;font-size:13px}#prompt{bottom:145px}}
+#shopBtn{align-self:flex-start}#shopItems button{width:100%;font-size:14px;padding:10px;margin-top:7px}#shopItems .shopItem{background:#263940;border:1px solid #536970;border-radius:10px;padding:12px}#shopItems h3{margin:0 0 5px;color:#ffd36b}#shopItems p{font-size:13px;margin:5px 0;color:#d6e0e3}#level{color:#a9e6ff;font-weight:bold}#shop{display:none}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script></head><body><div id="game"></div><div id="hud"><div id="top"><div class="panel" id="money">$0</div><div class="panel" id="clock">SHIFT · 9:00 AM</div><div class="panel" id="score">Served: 0</div><div class="panel" id="level">Level 1 · 0 XP</div><button id="shopBtn" style="pointer-events:auto;padding:10px 14px;font-size:14px">SHOP</button></div><div id="task">Welcome! Take the customer's order.</div><div id="order" class="panel"><h3>🧾 CURRENT ORDER</h3><div id="orderItems">No active order</div></div><div id="cross"></div><div id="prompt">Click Start to begin</div><div id="barWrap"><div id="bar"></div></div><div id="toast"></div><div id="help" class="panel">WASD move · Arrows turn/look · Mouse look · E interact<br>1 Bun · 2 Patty · 3 Cheese · 4 Lettuce · 5 Tomato<br>Space jump · Esc unlock mouse</div></div><div id="start"><div id="startCard"><h1>BURGER SHIFT 3D</h1><p>Run a busy burger shop! Customers walk up to the front counter. Take their orders, cook patties, build burgers, and serve them at the counter. An original 3D restaurant job simulator.</p><p><b>Controls:</b> WASD to move, Arrow Keys or mouse to look/turn, E to interact, number keys to select ingredients. Earn XP, level up, hire staff, and buy upgrades.</p><button id="startBtn">START YOUR SHIFT</button></div></div><div id="shop" style="display:none;position:fixed;inset:0;z-index:7;background:#000b;place-items:center">
+<div style="width:min(560px,94vw);max-height:86vh;overflow:auto;background:#18252b;border:1px solid #77878c;border-radius:16px;padding:22px;box-shadow:0 18px 70px #000">
+<div style="display:flex;justify-content:space-between;align-items:center"><h1 style="font-size:30px">RESTAURANT SHOP</h1><button id="closeShop">✕</button></div>
+<p id="shopStatus">Spend your earnings on stock, recipes, and equipment. Level up to hire staff.</p>
+<div id="shopItems" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+<p style="font-size:12px">Employees help prepare orders automatically. Purchases and progress are saved on this device.</p>
+</div></div><div id="end"><div id="endCard"><h1>Shift complete!</h1><p id="finalStats"></p><button onclick="location.reload()">PLAY AGAIN</button></div></div>
+<script type="module">
+import * as THREE from 'three';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc8d7);scene.fog=new THREE.Fog(0x9bc8d7,22,48);
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,100);camera.position.set(0,1.65,7);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=true;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.querySelector('#game').appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x53616b,2));const sun=new THREE.DirectionalLight(0xffedcf,2.3);sun.position.set(-6,12,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-16;sun.shadow.camera.right=16;sun.shadow.camera.top=16;sun.shadow.camera.bottom=-16;sun.shadow.bias=-0.00025;scene.add(sun);
+const M=(c,r=.8)=>new THREE.MeshStandardMaterial({color:c,roughness:r});const floor=M(0x9b9b91),wall=M(0xe9d6b6),red=M(0xb93228),dark=M(0x28343a),steel=M(0x9aa6aa,.35),wood=M(0x9a5b2d),bun=M(0xd99a42),patty=M(0x54301e),cheese=M(0xffd43b),lettuce=M(0x4f9a43),tomato=M(0xd94132),white=M(0xf5f0df);
+function box(w,h,d,m,x,y,z){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}function cyl(rt,rb,h,m,x,y,z){let o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,24),m);o.position.set(x,y,z);o.castShadow=true;scene.add(o);return o}
+function label(txt,color='#fff',bg='#263238'){let c=document.createElement('canvas');c.width=512;c.height=128;let q=c.getContext('2d');q.fillStyle=bg;q.fillRect(0,0,512,128);q.font='bold 52px Arial';q.textAlign='center';q.textBaseline='middle';q.fillStyle=color;q.fillText(txt,256,66);let s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));s.scale.set(3,.75,1);return s}
+box(22,.3,22,floor,0,-.18,0);box(22,5,.35,wall,0,2.4,-10.8);box(.35,5,22,wall,-10.8,2.4,0);box(.35,5,22,wall,10.8,2.4,0);box(22,.25,.4,red,0,4.85,-10.55);
+let sign=label('SUNNY SIDE BURGERS','#ffe28a','#9f2822');sign.position.set(0,4.25,-10.25);sign.scale.set(5.8,1.2,1);for(let x of [-7,7]){box(2.7,1.8,.1,M(0x75b8d0,.25),x,2.6,-10.55);box(2.9,.12,.2,white,x,2.6,-10.4);box(.12,1.9,.2,white,x,2.6,-10.4)}
+box(5,.18,2.2,wood,-5,.9,-2);box(5,.95,.18,red,-5,.43,-.95);box(4.5,.12,1.6,steel,-5,1.08,-2);box(2.2,1.25,1.6,steel,1,.62,-5);box(2.1,.08,1.5,dark,1,1.3,-5);for(let i=0;i<4;i++)cyl(.16,.16,.06,red,.35+i*.43,1.39,-5);box(2.5,1.3,1.7,steel,5,.65,-5);box(2.4,.1,1.6,white,5,1.36,-5);box(2.2,.9,1.1,wood,-8,.48,3);box(2.3,.12,1.2,steel,-8,.98,3);box(1.2,1.1,1.2,red,8,.55,2);box(1.4,.1,1.3,wood,8,1.15,2);for(let x of [-6,0,6]){cyl(.55,.55,.08,M(0xfff0c4),x,4.55,-1);let l=new THREE.PointLight(0xffdca1,18,9);l.position.set(x,4.2,-1);scene.add(l)}box(.7,.65,.6,dark,-5,1.5,-2.3);box(.5,.08,.4,M(0x5bd5b0),-5,1.87,-2.3);
+// Upgraded customer-facing service counter: paneled cabinetry, layered stone top and POS details
+box(4.92,.78,.16,M(0x873b2d),-5,.43,-.91);
+box(4.82,.12,.2,M(0x5a2922),-5,.83,-.88);
+box(4.98,.12,2.22,M(0xe0d8c8),-5,1.055,-2);
+box(4.98,.055,2.22,steel,-5,1.13,-2);
+for(let x of [-7.2,-6.1,-5,-3.9,-2.8]){
+  box(.035,.57,.025,M(0xb96d4c),x,.43,-.817);
+  box(.72,.035,.035,M(0xc58b61),x,.72,-.8);
+}
+box(4.75,.045,.06,M(0xf4e9d5),-5,.9,-.82);
+box(4.85,.055,.08,M(0x4a2520),-5,.08,-.82);
+for(let x of [-7.25,-2.75]){
+  box(.16,.72,.18,M(0x55271f),x,.44,-.84);
+  box(.2,.07,.22,M(0xc58b61),x,.81,-.84);
+}
+box(.68,.48,.5,M(0x263238),-5,1.48,-2.25);
+box(.58,.34,.035,M(0x172b35),-5,1.5,-1.99);
+box(.48,.23,.02,M(0x70d9b0),-5,1.52,-1.965);
+box(.78,.055,.55,M(0x3d4548),-5,1.22,-2.25);
+let posLabel=label('ORDER HERE');posLabel.position.set(-5,2.15,-1.8);posLabel.scale.set(1.7,.42,1);scene.add(posLabel);
+// Counter-side napkin holder, condiment bottles and receipt printer
+box(.42,.25,.3,steel,-3.2,1.27,-2.45);
+for(let i=0;i<3;i++)cyl(.065,.075,.28,[red,cheese,lettuce][i],-3.55+i*.2,1.3,-2.45,12);
+box(.3,.16,.23,dark,-6.8,1.23,-2.45);
+box(.24,.025,.18,white,-6.8,1.32,-2.45);
+
+// Restaurant polish: tiled floor, ceiling beams, menu boards, equipment and decor
+const tileA=M(0xc9c7bb),tileB=M(0xd9d6ca),trim=M(0x7d3328),chrome=M(0xc4cdd0,.22),glass=M(0x9dd8e8,.18);
+for(let x=-10;x<10;x+=2)for(let z=-10;z<10;z+=2){let t=box(1.96,.018,1.96,((Math.round(x/2)+Math.round(z/2))%2===0)?tileA:tileB,x,-.005,z);t.castShadow=false}
+// Ceiling border and cross beams
+box(22,.22,.28,trim,0,4.92,-2);box(.28,.22,20,trim,-10,4.92,0);box(.28,.22,20,trim,10,4.92,0);
+for(let z of [-8,-4,0,4,8])box(21,.13,.18,wood,0,4.68,z);
+// Menu boards above the service counter
+function board(title,lines,x,y,z){let b=box(3.2,1.65,.16,dark,x,y,z);let face=box(3.02,1.45,.025,M(0x17272d),x,y,z+.095);let c=document.createElement('canvas');c.width=512;c.height=256;let q=c.getContext('2d');q.fillStyle='#17272d';q.fillRect(0,0,512,256);q.fillStyle='#ffd36b';q.font='bold 42px Arial';q.fillText(title,22,55);q.fillStyle='#fff';q.font='bold 26px Arial';lines.forEach((v,i)=>q.fillText(v,24,105+i*43));let tex=new THREE.CanvasTexture(c);let panel=new THREE.Mesh(new THREE.PlaneGeometry(2.95,1.38),new THREE.MeshBasicMaterial({map:tex}));panel.position.set(x,y,z+.12);scene.add(panel);}
+board('BURGERS',['Classic ........ $6','Cheese ........ $7','Double ........ $9'], -5,3.25,-10.48);
+board('SIDES + DRINKS',['Fries .......... $3','Soda ........... $2','Shake ........ $4'], 0,3.25,-10.48);
+board('TODAY\'S DEAL',['Combo meal .... $10','Fresh & hot!'], 5,3.25,-10.48);
+// Fryer with baskets, drink dispenser and cold storage
+box(1.8,1.35,1.35,chrome,4,.68,-3.1);box(1.65,.12,1.2,dark,4,1.4,-3.1);for(let x of [3.65,4.35]){box(.42,.68,.42,steel,x,1.76,-3.1);for(let j=0;j<5;j++)box(.055,.35,.055,cheese,x-.16+j*.08,2.08,-3.1)}
+box(1.35,2.2,1.2,glass,7,.95,-6.8);box(1.45,.12,1.3,chrome,7,2.1,-6.8);box(1.35,.12,1.2,chrome,7,-.08,-6.8);
+for(let i=0;i<3;i++){cyl(.18,.18,.08,[red,cheese,lettuce][i],-7.7+i*.55,1.08,3.05);cyl(.13,.13,.4,[tomato,cheese,lettuce][i],-7.7+i*.55,1.32,3.05)}
+// Booth seating, wall art, bins and plants
+for(let x of [-8,0,8]){box(2.6,.75,.42,trim,x,.48,7.2);box(2.6,.16,.48,red,x,.92,7.2);box(2.6,1.25,.18,trim,x,1.45,7.55);box(2.35,.12,.5,red,x,1.45,7.42)}
+for(let x of [-9,9]){cyl(.42,.5,.8,dark,x,.4,8.8);cyl(.42,.42,.08,chrome,x,.84,8.8);}
+for(let x of [-9,9]){cyl(.28,.28,.42,wood,x,.22,-7,16);for(let i=0;i<5;i++){let leaf=new THREE.Mesh(new THREE.ConeGeometry(.13,.8,8),lettuce);leaf.position.set(x+Math.sin(i*1.25)*.22,.8,-7+Math.cos(i*1.25)*.2);leaf.rotation.z=Math.sin(i)*.35;scene.add(leaf)}}
+// Warm ceiling fixtures and subtle neon accent strips
+for(let x of [-7,-2,3,8]){let shade=cyl(.42,.55,.12,M(0xffe7a8),x,4.48,-.5);let bulb=new THREE.PointLight(0xffd9a0,25,10);bulb.position.set(x,4.15,-.5);scene.add(bulb)}
+box(21,.045,.045,M(0xffca61),0,4.25,-10.35);
+const stations=[{name:'FRONT SERVICE COUNTER',pos:new THREE.Vector3(-5,1.2,-.05),type:'order'},{name:'GRILL',pos:new THREE.Vector3(1,1.5,-3.7),type:'grill'},{name:'PREP TABLE',pos:new THREE.Vector3(-8,1.2,4),type:'prep'}];for(const st of stations){let s=label(st.name);s.position.set(st.pos.x,st.pos.y+1.2,st.pos.z);s.scale.set(2.2,.5,1);scene.add(s)}
+const names=['Bun','Patty','Cheese','Lettuce','Tomato'],ims=[bun,patty,cheese,lettuce,tomato];const orders=[['Classic Burger',[0,1,0]],['Cheeseburger',[0,1,2,0]],['Garden Stack',[0,3,4,1,0]],['Double Cheese',[0,1,2,1,2,0]],['Simple Burger',[0,1,0]]];let active=null,parts=[],selected=0,burger=null,pattyReady=false,busy=false,cook=0,served=0,shift=180,orderNo=0,toastTime=0;
+let saved={money:0,xp:0,level:1,employees:0,stock:6,recipes:0,grillUpgrade:0,burgerTreats:0};
+try{saved={...saved,...JSON.parse(localStorage.getItem('burgerShiftSave')||'{}')}}catch(e){}
+let money=saved.money,xp=saved.xp,level=saved.level,employees=saved.employees,stock=saved.stock,recipes=saved.recipes,grillUpgrade=saved.grillUpgrade,burgerTreats=saved.burgerTreats||0;
+function saveProgress(){saved={money,xp,level,employees,stock,recipes,grillUpgrade,burgerTreats};try{localStorage.setItem('burgerShiftSave',JSON.stringify(saved))}catch(e){}}
+function xpNeeded(){return 100+(level-1)*75}
+function addXP(n){xp+=n;let ding=false;while(xp>=xpNeeded()){xp-=xpNeeded();level++;ding=true;toast('LEVEL UP! You reached Level '+level+'!');}saveProgress();if(ding)renderShop();hud()}
+
+function burgerVisual(){if(burger)scene.remove(burger);burger=new THREE.Group();let y=0;for(let p of parts){let geo=p===0?new THREE.SphereGeometry(.48,20,12,0,Math.PI*2,0,Math.PI/2):p===1?new THREE.CylinderGeometry(.43,.43,.14,24):new THREE.CylinderGeometry(.48,.48,.07,24);let o=new THREE.Mesh(geo,ims[p]);o.position.y=y;o.castShadow=true;burger.add(o);y+=p===0?.22:.12}burger.position.set(-8,1.12,3);burger.scale.set(.8,.8,.8);scene.add(burger)}
+const customerM=[M(0x385b9a),M(0x8c4b2e),M(0x4f8065),M(0x744f8e),M(0x9b553b),M(0x4b5260)];
+let customer=null,customerBob=0,customerTarget=null,customerAtCounter=false,customerLeaving=false;
+function spawnCustomer(){
+ if(customer)scene.remove(customer);
+ let g=new THREE.Group(),variant=served%6;
+ const skinColors=[0xdca77e,0x9c6848,0xf0c49a,0x70452f,0xc88962,0xe0b18b];
+ const skin=M(skinColors[variant]),shirt=customerM[variant],shoe=M(0x24272a),hairM=M([0x38251c,0x171717,0x8b5a2b,0x3c302b,0x171717,0x5c3825][variant]);
+ const add=(geo,material,x,y,z,rz=0)=>{let o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.rotation.z=rz;o.castShadow=true;o.receiveShadow=true;g.add(o);return o};
+ add(new THREE.CylinderGeometry(.12,.14,.22,16),skin,0,1.42,0);
+ add(new THREE.CylinderGeometry(.3,.37,.88,20),shirt,0,.98,0);
+ // jacket seams and apron
+ add(new THREE.BoxGeometry(.42,.5,.045),M(0xe8e2d4),0,.91,.19);
+ add(new THREE.BoxGeometry(.25,.13,.025),M(0x9b6a42),0,.78,.222);
+ add(new THREE.SphereGeometry(.265,28,20),skin,0,1.62,.015);
+ // ears, nose, eyes, irises, brows, mouth
+ for(let x of [-.27,.27])add(new THREE.SphereGeometry(.065,12,10),skin,x,1.61,.005);
+ add(new THREE.SphereGeometry(.045,12,10),skin,0,1.57,.265);
+ for(let x of [-.095,.095]){
+   add(new THREE.SphereGeometry(.047,14,12),white,x,1.66,.238);
+   add(new THREE.SphereGeometry(.025,12,10),M(0x4b3526),x,1.66,.277);
+   add(new THREE.SphereGeometry(.013,8,8),M(0x111111),x,1.66,.297);
+   add(new THREE.BoxGeometry(.105,.018,.025),hairM,x,1.735,.238,x<0?-.08:.08);
+ }
+ add(new THREE.TorusGeometry(.07,.009,6,16,Math.PI),M(0x7b332c),0,1.49,.258);
+ // hairstyle cap and side locks
+ if(variant%3===0)add(new THREE.SphereGeometry(.275,24,12,0,Math.PI*2,0,Math.PI/2),hairM,0,1.72,0);
+ else {
+   add(new THREE.SphereGeometry(.26,24,12,0,Math.PI*2,0,Math.PI/2),hairM,0,1.72,0);
+   add(new THREE.BoxGeometry(.1,.26,.2),hairM,-.22,1.61,-.005);
+ }
+ // shoulders, upper/lower arms, hands
+ for(let side of [-1,1]){
+   add(new THREE.SphereGeometry(.13,12,10),shirt,side*.34,1.28,0);
+   add(new THREE.CapsuleGeometry(.075,.28,5,10),shirt,side*.39,1.08,0,side*-.12);
+   add(new THREE.CapsuleGeometry(.065,.25,5,10),skin,side*.43,.82,.045,side*.08);
+   add(new THREE.SphereGeometry(.075,12,10),skin,side*.43,.66,.07);
+   add(new THREE.CylinderGeometry(.095,.11,.44,12),dark,side*.14,.28,0);
+   add(new THREE.BoxGeometry(.19,.11,.32),shoe,side*.14,.075,.08);
+ }
+ g.position.set(0,0,8.2);g.rotation.y=Math.PI;scene.add(g);customer=g;customerTarget=new THREE.Vector3(-5,0,-3.65);customerAtCounter=false;customerLeaving=false;
+}
+function toast(t){let e=document.querySelector('#toast');e.textContent=t;e.style.opacity=1;toastTime=2}function hud(){document.querySelector('#money').textContent='$'+money;document.querySelector('#score').textContent='Served: '+served;document.querySelector('#level').textContent='Level '+level+' · '+xp+'/'+xpNeeded()+' XP';let elapsed=180-shift,mins=9*60+elapsed/60;document.querySelector('#clock').textContent='SHIFT · '+(Math.floor(mins/60)%12||12)+':'+String(Math.floor(elapsed%60)).padStart(2,'0')+' AM';document.querySelector('#orderItems').innerHTML='Stock: '+stock+'<br>'+(active?'<b>'+active[0]+'</b><br>'+active[1].map(i=>names[i]).join(' → ')+'<br><span style="color:#ffd36b">'+(customerAtCounter?'AT COUNTER':'CUSTOMER APPROACHING')+'</span>':'No active order')}
+function newOrder(){
+ if(stock<=0){active=null;document.querySelector('#task').textContent='Out of burger stock! Open the SHOP and buy a stock crate.';toast('Out of stock — buy more ingredients in the shop.');hud();return}
+ stock--;saveProgress();
+ let menu=[...orders];if(recipes>0)menu.push(['Sunny Special',[0,1,2,3,4,0]]);if(recipes>1)menu.push(['Triple Stack',[0,1,1,2,1,2,0]]);if(recipes>2)menu.push(['Garden Deluxe',[0,3,4,2,1,0]]);
+ active=menu[orderNo++%menu.length];parts=[];pattyReady=false;burgerVisual();spawnCustomer();document.querySelector('#task').textContent='A customer is entering! Wait for them to reach the front counter.';hud()}
+function near(){let p=new THREE.Vector3(camera.position.x,0,camera.position.z),best=null,bd=99;for(let s of stations){let d=p.distanceTo(new THREE.Vector3(s.pos.x,0,s.pos.z));if(d<bd){bd=d;best=s}}return bd<2.3?best:null}
+
+function serveAtCounter(){
+ if(!active){toast('No customer waiting at the counter');return}
+ if(!customerAtCounter){toast('The customer is still walking to the counter');return}
+ if(parts.length!==active[1].length){toast('Finish building the order first');return}
+ let earned=12+Math.floor(Math.random()*7)+Math.max(0,employees-1)*2;
+ money+=earned;served++;addXP(25);saveProgress();
+ toast('Served at the counter! +$'+earned+' · +25 XP');
+ active=null;parts=[];burgerVisual();
+ document.querySelector('#task').textContent='Order served! The customer is leaving. Wait for the next customer.';
+ if(customer){customerLeaving=true;customerTarget=new THREE.Vector3(9,0,8.5);customerAtCounter=false;}
+ hud();
+ setTimeout(()=>{if(shift>0&&!active)newOrder()},2200);
+}
+function interact(){
+ let s=near();if(!s){toast('Move closer to a station');return}
+ if(s.type==='order'){
+   if(!active){newOrder();return}
+   if(!customerAtCounter){toast('Your customer is walking up. Get ready to take their order!');return}
+   if(parts.length===active[1].length){serveAtCounter();return}
+   toast('Customer order: '+active[0]+'. Prepare it, then serve them right here at the counter.');
+ }
+ if(s.type==='grill'){
+   if(!active){toast('Take a customer order first');return}
+   if(!pattyReady&&!busy){busy=true;cook=0;toast('Patty cooking...')}
+   else toast(pattyReady?'Patty is ready! Go build the burger.':'Cooking...');
+ }
+ if(s.type==='prep'){
+   if(!active){toast('Take a customer order first');return}
+   let next=active[1][parts.length];
+   if(next===undefined){toast('Burger complete! Return to the front service counter.');return}
+   if(selected!==next){toast('Customer needs '+names[next]+' next');return}
+   if(next===1&&!pattyReady){toast('Cook the patty on the grill first');return}
+   parts.push(next);burgerVisual();toast(names[next]+' added');
+   if(parts.length===active[1].length)document.querySelector('#task').textContent='Order complete! Return to the front counter and press E to serve the customer.';
+ }
+}
+// Visible hired team members stationed around the kitchen
+const staffFigures=[];
+function buildStaffFigure(index){
+ let g=new THREE.Group(),uniform=M(index%2?0x254b65:0x3e5963),skin=M(0xc88d68),apron=M(0xe9e2d5),cap=M(0xf3eee2);
+ const add=(geo,m,x,y,z)=>{let o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;g.add(o);return o};
+ add(new THREE.CylinderGeometry(.27,.31,.78,16),uniform,0,.93,0);
+ add(new THREE.BoxGeometry(.36,.4,.035),apron,0,.88,.17);
+ add(new THREE.SphereGeometry(.23,20,16),skin,0,1.48,0);
+ add(new THREE.CylinderGeometry(.25,.25,.09,20),cap,0,1.69,0);
+ add(new THREE.SphereGeometry(.13,16,10,0,Math.PI*2,0,Math.PI/2),cap,0,1.72,0);
+ for(let x of [-.08,.08])add(new THREE.SphereGeometry(.025,8,8),M(0x222222),x,1.5,.21);
+ for(let x of [-.34,.34]){add(new THREE.CapsuleGeometry(.07,.42,4,8),uniform,x,1.02,0);add(new THREE.CapsuleGeometry(.065,.25,4,8),skin,x,.77,.04)}
+ for(let x of [-.13,.13]){add(new THREE.CylinderGeometry(.085,.1,.38,10),dark,x,.24,0);add(new THREE.BoxGeometry(.17,.1,.28),M(0x222222),x,.06,.05)}
+ g.position.set(index===0?2.8:6.6,0,index===0?-3.8:-4.6);scene.add(g);return g;
+}
+function syncStaff(){while(staffFigures.length<employees)staffFigures.push(buildStaffFigure(staffFigures.length));staffFigures.forEach((g,i)=>g.visible=i<employees);}
+// Shop: stock, recipes, equipment and staff progression
+const shop=document.querySelector('#shop'),shopItems=document.querySelector('#shopItems');
+function buy(cost,fn){if(money<cost){toast('Not enough money!');return}money-=cost;fn();syncStaff();saveProgress();renderShop();hud();toast('Purchase complete!')}
+function renderShop(){
+ document.querySelector('#shopStatus').textContent='Cash: $'+money+' · Level '+level+' · Employees: '+employees;
+ let cards=[
+  ['Burger stock crate','$25','Adds 5 stocked burger orders. Helps you keep the kitchen supplied.',25,()=>stock+=5, 'Stock: '+stock],
+  ['Signature burger recipe','$65','Unlocks a premium stacked burger for future customers.',65,()=>recipes=Math.min(3,recipes+1),'Recipes: '+recipes+'/3'],
+  ['Faster grill upgrade','$80','Reduces patty cooking time by 1 second per upgrade.',80,()=>grillUpgrade=Math.min(3,grillUpgrade+1),'Grill upgrades: '+grillUpgrade+'/3']
+ ];
+ if(level>=2)cards.push(['Hire kitchen helper','$90','A kitchen helper speeds up patty cooking and keeps the kitchen moving.',90,()=>employees=Math.min(3,employees+1),'Hired: '+employees+'/3']);
+ else cards.push(['Kitchen helper 🔒','Unlock at Level 2','Serve customers and earn XP to unlock your first employee.',999999,()=>{},'Locked']);
+ if(level>=4)cards.push(['Hire service crew','$150','Extra crew members speed up cooking and increase the money earned per order.',150,()=>employees=Math.min(3,employees+1),'Hired: '+employees+'/3']);
+ else cards.push(['Service crew 🔒','Unlock at Level 4','Reach Level 4 to hire another worker.',999999,()=>{},'Locked']);
+ cards.push(['Buy a classic burger','$8','Buy a ready-made burger as a personal treat. Your purchased burger count is saved.',8,()=>burgerTreats++,'Burgers bought: '+burgerTreats]);
+ shopItems.innerHTML='';
+ for(const [title,price,desc,cost,fn,tag] of cards){
+   let d=document.createElement('div');d.className='shopItem';let h=document.createElement('h3');h.textContent=title;let p=document.createElement('p');p.textContent=desc;let small=document.createElement('p');small.textContent=tag;let b=document.createElement('button');b.textContent=price==='Unlock at Level 2'||price==='Unlock at Level 4'?'LOCKED': 'Buy · $'+cost;b.disabled=cost>money||cost===999999;b.style.opacity=b.disabled?'.5':'1';b.onclick=()=>buy(cost,fn);d.append(h,p,small,b);shopItems.append(d);
+ }
+}
+document.querySelector('#shopBtn').onclick=()=>{renderShop();shop.style.display='grid';document.exitPointerLock()};
+document.querySelector('#closeShop').onclick=()=>{shop.style.display='none'};
+let keys={},yaw=0,pitch=0,locked=false,gameStarted=false;document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.code==='Digit1')selected=0;if(e.code==='Digit2')selected=1;if(e.code==='Digit3')selected=2;if(e.code==='Digit4')selected=3;if(e.code==='Digit5')selected=4;if(e.code==='KeyE'&&!e.repeat)interact()});document.addEventListener('keyup',e=>keys[e.code]=false);renderer.domElement.addEventListener('click',()=>{if(!locked)renderer.domElement.requestPointerLock()});document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0018;pitch=THREE.MathUtils.clamp(pitch,-1.15,1.15);camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch});syncStaff();document.querySelector('#startBtn').onclick=()=>{gameStarted=true;document.querySelector('#start').style.display='none';newOrder();renderer.domElement.requestPointerLock()};
+let last=performance.now();function animate(now){requestAnimationFrame(animate);let dt=Math.min(.04,(now-last)/1000);last=now;if(shift>0){shift-=dt;if(shift<=0){shift=0;document.exitPointerLock();document.querySelector('#end').style.display='grid';document.querySelector('#finalStats').textContent='You served '+served+' customers and earned $'+money+'.'}}if(busy){cook+=dt;if(cook>=Math.max(1.3,4-grillUpgrade-employees*.35)){busy=false;pattyReady=true;toast(employees?'Your kitchen helper finished the patty!':'Patty cooked!')}}if(gameStarted){// WASD moves the player; arrow keys rotate the view like a camera rig.
+let f=(keys.KeyW?1:0)-(keys.KeyS?1:0),r=(keys.KeyD?1:0)-(keys.KeyA?1:0),v=new THREE.Vector3(r,0,-f);
+if(v.lengthSq())v.normalize().multiplyScalar(4.2*dt).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);
+camera.position.add(v);
+const turnSpeed=1.9*dt;
+if(keys.ArrowLeft)yaw+=turnSpeed;if(keys.ArrowRight)yaw-=turnSpeed;
+if(keys.ArrowUp)pitch=Math.min(1.15,pitch+turnSpeed*.8);if(keys.ArrowDown)pitch=Math.max(-1.15,pitch-turnSpeed*.8);
+camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;camera.position.x=THREE.MathUtils.clamp(camera.position.x,-9.8,9.8);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-9.8,9.8)}camera.position.y=THREE.MathUtils.lerp(camera.position.y,1.65,dt*8);let s=near();document.querySelector('#prompt').textContent=s?(s.type==='order'?'E · SERVE CUSTOMER AT COUNTER':'E · '+s.name):'Move to a station and press E';document.querySelector('#task').textContent=busy?'Cooking patty…':active?(!customerAtCounter?'Customer walking to the counter…':(parts.length===active[1].length?'Order ready! Return to the front counter to serve.':'Build: '+parts.length+'/'+active[1].length+' · Selected: '+names[selected])):'Go to the front counter for the next customer';document.querySelector('#barWrap').style.display=busy?'block':'none';document.querySelector('#bar').style.width=Math.min(100,cook/Math.max(1.3,4-grillUpgrade-employees*.35)*100)+'%';if(customer){
+ customerBob+=dt*2.4;
+ if(customerTarget){
+   let dx=customerTarget.x-customer.position.x,dz=customerTarget.z-customer.position.z;
+   let dist=Math.hypot(dx,dz);
+   if(dist>.08){
+     let step=Math.min(dist,2.15*dt);
+     customer.position.x+=dx/dist*step;customer.position.z+=dz/dist*step;
+     customer.rotation.y=Math.atan2(dx,dz);
+     customer.position.y=Math.abs(Math.sin(customerBob*3.2))*.035;
+   }else{
+     customer.position.y=Math.sin(customerBob)*.012;
+     if(!customerLeaving&&!customerAtCounter){customerAtCounter=true;customer.position.y=0;toast('Customer reached the counter! Take their order.');}
+     if(customerLeaving){scene.remove(customer);customer=null;customerTarget=null;customerLeaving=false;}
+   }
+ }
+}staffFigures.forEach((g,i)=>{if(g.visible)g.position.y=Math.sin(now*.0018+i)*.012;});if(toastTime>0){toastTime-=dt;if(toastTime<=0)document.querySelector('#toast').style.opacity=0}hud();renderer.render(scene,camera)}requestAnimationFrame(animate);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>
