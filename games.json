@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Voxel",
+    "file": "games/voxel.html"
+  },
+  {
+    "name": "Eagle",
+    "file": "games/eagle.html"
+  },
+  {
+    "name": "Ramps",
+    "file": "games/ramps.html"
+  }
+]
