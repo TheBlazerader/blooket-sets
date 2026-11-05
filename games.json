@@ -1,14 +1,14 @@
 [
   {
-    "name": "Tons of games",
-    "file": "games/gamelist.html"
+    "name": "Voxelcraft",
+    "file": "games/voxel.html"
   },
   {
     "name": "Eaglercraft",
     "file": "games/eagle.html"
   },
   {
-    "name": "Ramp Rush 3d",
+    "name": "Ramp Rush 3D",
     "file": "games/ramps.html"
   },
   {
@@ -20,8 +20,8 @@
     "file": "games/basketlaunch3d.html"
   },
   {
-    "name": "Voxelcraft",
-    "file": "games/voxel.html"
+    "name": "Snake Game",
+    "file": "games/snake.html"
   },
   {
     "name": "Burgerplanet 3D",
@@ -36,7 +36,7 @@
     "file": "games/flappybird.html"
   },
   {
-    "name": "Snake Game",
-    "file": "games/snake.html"
+    "name": "Pokemonfirered",
+    "file": "games/pokemonfirered.html"
   }
 ]
