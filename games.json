@@ -1,7 +1,7 @@
 [
   {
-    "name": "Voxelcraft",
-    "file": "games/voxel.html"
+    "name": "Tons of games",
+    "file": "games/gamelist.html"
   },
   {
     "name": "Eaglercraft",
@@ -20,8 +20,8 @@
     "file": "games/basketlaunch3d.html"
   },
   {
-    "name": "Snake Game",
-    "file": "games/snake.html"
+    "name": "Voxelcraft",
+    "file": "games/voxel.html"
   },
   {
     "name": "Burgerplanet 3D",
@@ -34,5 +34,9 @@
   {
     "name": "Flappy bird",
     "file": "games/flappybird.html"
+  },
+  {
+    "name": "Snake Game",
+    "file": "games/snake.html"
   }
 ]
