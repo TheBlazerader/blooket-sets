@@ -12,7 +12,27 @@
     "file": "games/ramps.html"
   },
   {
-    "name": "Basketlaunch",
+    "name": "Basket Launch",
     "file": "games/basketlaunch.html"
+  },
+  {
+    "name": "Basket Launch 3D",
+    "file": "games/basketlaunch3d.html"
+  },
+  {
+    "name": "Snake Game",
+    "file": "games/snake.html"
+  },
+  {
+    "name": "Burgerplanet 3D",
+    "file": "games/burgerplanet3d.html"
+  },
+  {
+    "name": "Top-Down-Attack",
+    "file": "games/top-down-attack.html"
+  },
+  {
+    "name": "Flappy bird",
+    "file": "games/flappybird.html"
   }
 ]
