@@ -10,5 +10,9 @@
   {
     "name": "Ramps",
     "file": "games/ramps.html"
+  },
+  {
+    "name": "Basketlaunch",
+    "file": "games/basketlaunch.html"
   }
 ]
