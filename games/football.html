@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gridiron Rush 3D</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#07130f; font-family:Inter,system-ui,Segoe UI,Arial,sans-serif; }
+  canvas { display:block; }
+  #hud { position:fixed; inset:0; pointer-events:none; color:white; text-shadow:0 2px 5px #0009; }
+  .top { position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex; gap:10px; align-items:center; }
+  .panel { background:#07130fdd; border:1px solid #ffffff25; border-radius:12px; padding:9px 14px; backdrop-filter:blur(8px); }
+  #score { font-weight:900; font-size:20px; letter-spacing:.08em; }
+  #down { font-size:12px; color:#c9e7d2; text-align:center; margin-top:2px; }
+  #camera { position:absolute; right:14px; top:14px; font-size:12px; }
+  #help { position:absolute; left:14px; bottom:14px; max-width:min(440px,calc(100vw - 28px)); line-height:1.5; font-size:12px; color:#e7f4e9; }
+  #message { position:absolute; left:50%; top:28%; transform:translate(-50%,-50%); font-size:clamp(24px,5vw,48px); font-weight:1000; letter-spacing:.06em; text-align:center; opacity:0; transition:opacity .2s; }
+  #message.show { opacity:1; }
+  #start { pointer-events:auto; position:absolute; inset:0; display:grid; place-items:center; background:linear-gradient(#03120c88,#03120ccc); }
+  #start .card { width:min(460px,calc(100vw - 32px)); padding:28px; border:1px solid #ffffff35; border-radius:20px; background:#081a12ee; text-align:center; box-shadow:0 24px 80px #0009; }
+  h1 { margin:0 0 8px; font-size:clamp(30px,7vw,48px); line-height:1; letter-spacing:-.04em; }
+  .sub { color:#b9d7c2; margin:0 0 20px; }
+  button { border:0; border-radius:10px; padding:13px 22px; background:#b9f35a; color:#15210b; font-weight:900; font-size:15px; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+  .keys { display:grid; grid-template-columns:1fr 1fr; gap:8px; text-align:left; font-size:12px; color:#d4e8d9; margin:18px 0 22px; }
+  .keys span { background:#ffffff0c; border-radius:7px; padding:7px 9px; }
+  @media(max-width:600px){ #help{font-size:10px} .top{top:65px} #camera{top:14px} }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="top">
+    <div class="panel"><div id="score">HOME 0 — 0 AWAY</div><div id="down">1ST &amp; 10 · BALL ON 20</div></div>
+  </div>
+  <div id="camera" class="panel">CAMERA: NORMAL · X TO CYCLE</div>
+  <div id="message"></div>
+  <div id="help" class="panel">WASD / ARROWS: MOVE &nbsp;·&nbsp; SHIFT: SPRINT &nbsp;·&nbsp; J: THROW &nbsp;·&nbsp; X: CAMERA &nbsp;·&nbsp; R: RESTART PLAY</div>
+  <div id="start">
+    <div class="card">
+      <h1>GRIDIRON<br>RUSH 3D</h1>
+      <p class="sub">A fast, arcade-style 3D football showdown.</p>
+      <div class="keys">
+        <span><b>WASD / Arrows</b><br>Run and cut</span>
+        <span><b>Shift</b><br>Sprint</span>
+        <span><b>J</b><br>Throw the ball</span>
+        <span><b>X</b><br>Cycle 3 cameras</span>
+      </div>
+      <button id="play">KICK OFF</button>
+    </div>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8dc4d8);
+scene.fog = new THREE.Fog(0x8dc4d8, 90, 190);
+const camera = new THREE.PerspectiveCamera(58, innerWidth/innerHeight, .1, 300);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xeaf8ff,0x31532d,2.0));
+const sun = new THREE.DirectionalLight(0xffffff,2.1);
+sun.position.set(-35,55,25); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-85; sun.shadow.camera.right=85; sun.shadow.camera.top=85; sun.shadow.camera.bottom=-85;
+scene.add(sun);
+
+const mat = (color, roughness=.82) => new THREE.MeshStandardMaterial({color,roughness});
+const turfMat = mat(0x287c3e), stripeMat = mat(0xe8f1d7), endMat = mat(0x1e6337);
+const field = new THREE.Mesh(new THREE.BoxGeometry(112,.5,64),turfMat);
+field.position.y=-.35; field.receiveShadow=true; scene.add(field);
+function box(w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
+box(112,.08,1.2,endMat,0,-.06,-31.4); box(112,.08,1.2,endMat,0,-.06,31.4);
+for(let x=-50;x<=50;x+=5){
+  box(.22,.035,60,stripeMat,x,-.075,0);
+  if(x%10===0){
+    box(1.2,.04,60,mat(0x236f38),x,-.07,0).material.transparent=true;
+    // Yard-line numerals are placed flat on the turf.
+    for(const z of [-24,24]){
+      const c=document.createElement('canvas'); c.width=128;c.height=64;
+      const ctx=c.getContext('2d');ctx.fillStyle='#edf6df';ctx.font='bold 42px Arial';ctx.textAlign='center';ctx.fillText(String(Math.abs(x)),64,48);
+      const tex=new THREE.CanvasTexture(c); const nm=new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide});
+      const n=new THREE.Mesh(new THREE.PlaneGeometry(4,2),nm);n.rotation.x=-Math.PI/2;n.rotation.z=Math.PI/2;n.position.set(x,.0,z);scene.add(n);
+    }
+  }
+}
+for(let z=-30;z<=30;z+=5){box(110,.025,.12,stripeMat,0,-.07,z);}
+for(const x of [-55,55]){
+  box(1,7,1,mat(0xf0c84c),x,3.2,-9);box(1,7,1,mat(0xf0c84c),x,3.2,9);
+  box(1,1,19,mat(0xf0c84c),x,6.5,0);
+}
+for(let x=-50;x<=50;x+=10) box(1,.06,64,mat(0xd8ebd2),x,-.04,0);
+
+function makePlayer(color, number){
+  const g=new THREE.Group();
+  const jersey=mat(color), pants=mat(0x182333), skin=mat(0xc58b62), helmet=mat(color===0x2866d5?0x163e8a:0x9a2828,.38);
+  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.62,.65,4,8),jersey);torso.position.y=1.35;torso.castShadow=true;g.add(torso);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.48,16,12),helmet);head.position.y=2.18;head.castShadow=true;g.add(head);
+  const visor=new THREE.Mesh(new THREE.BoxGeometry(.65,.13,.12),mat(0x18232a,.3));visor.position.set(0,2.16,.42);g.add(visor);
+  const legs=[];
+  for(const s of [-1,1]){
+    const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.2,.55,3,7),pants);leg.position.set(s*.28,.48,0);leg.castShadow=true;g.add(leg);legs.push(leg);
+  }
+  const num=document.createElement('canvas');num.width=128;num.height=128;
+  const ctx=num.getContext('2d');ctx.fillStyle='white';ctx.font='bold 72px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(number,64,65);
+  const badge=new THREE.Mesh(new THREE.PlaneGeometry(.55,.55),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(num),transparent:true,side:THREE.DoubleSide}));
+  badge.position.set(0,1.4,.625);g.add(badge);
+  g.userData={legs};scene.add(g);return g;
+}
+const player=makePlayer(0x2866d5,'7'); player.position.set(-38,0,0);
+const defenders=[makePlayer(0xb92e35,'21'),makePlayer(0xb92e35,'44'),makePlayer(0xb92e35,'8')];
+defenders[0].position.set(-10,0,-8);defenders[1].position.set(-2,0,7);defenders[2].position.set(10,0,-2);
+const blockers=[makePlayer(0x2866d5,'55'),makePlayer(0x2866d5,'72')];
+blockers[0].position.set(-20,0,-7);blockers[1].position.set(-16,0,8);
+
+const ball=new THREE.Group();
+const leather=mat(0x8a451d,.55), white=mat(0xf5eee0);
+const oval=new THREE.Mesh(new THREE.SphereGeometry(.42,20,14),leather);oval.scale.set(.72,.72,1.25);oval.rotation.x=.25;oval.castShadow=true;ball.add(oval);
+const seam=new THREE.Mesh(new THREE.BoxGeometry(.035,.045,.95),white);seam.position.y=.29;ball.add(seam);
+for(let i=-1;i<=1;i++) {const lace=new THREE.Mesh(new THREE.BoxGeometry(.28,.045,.06),white);lace.position.set(0,.31,i*.2);ball.add(lace);}
+scene.add(ball);
+let hasBall=true, ballVelocity=new THREE.Vector3(), playLive=false, score=0, down=1, yards=10, lineStart=-38, messageTimer=0, cameraMode=0;
+const cameraNames=['NORMAL','ZOOMED IN','ZOOMED OUT'];
+const scoreEl=document.querySelector('#score'),downEl=document.querySelector('#down'),camEl=document.querySelector('#camera'),msg=document.querySelector('#message');
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();
+ if(e.key.toLowerCase()==='x'&&!e.repeat){cameraMode=(cameraMode+1)%3;camEl.textContent='CAMERA: '+cameraNames[cameraMode]+' · X TO CYCLE';}
+ if(e.key.toLowerCase()==='j'&&!e.repeat)throwBall();
+ if(e.key.toLowerCase()==='r'&&!e.repeat)resetPlay();
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function showMessage(t){msg.textContent=t;msg.classList.add('show');messageTimer=1.6;}
+function updateHud(){scoreEl.textContent=`HOME ${score} — 0 AWAY`;downEl.textContent=`${down===1?'1ST':down===2?'2ND':down===3?'3RD':'4TH'} & ${yards} · BALL ON ${Math.max(0,Math.round((player.position.x+56)/1.12))}`;}
+function resetPlay(){
+  player.position.set(lineStart,0,0);player.rotation.y=Math.PI/2;player.visible=true;
+  defenders.forEach((d,i)=>d.position.set(lineStart+23+i*5,0,[-8,7,-2][i]));
+  blockers[0].position.set(lineStart+13,0,-7);blockers[1].position.set(lineStart+16,0,8);
+  hasBall=true;ballVelocity.set(0,0,0);ball.visible=true;playLive=true;down=1;yards=10;updateHud();showMessage('READY… GO!');
+}
+function throwBall(){
+ if(!playLive||!hasBall)return;
+ hasBall=false;
+ const forward=new THREE.Vector3(1,.27,0);
+ ball.position.copy(player.position).add(new THREE.Vector3(0,2.3,0));
+ ballVelocity.copy(forward.multiplyScalar(25));
+ showMessage('PASS!');
+}
+document.querySelector('#play').addEventListener('click',()=>{document.querySelector('#start').style.display='none';resetPlay();});
+const clock=new THREE.Clock();
+const desiredCam=new THREE.Vector3();
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.04);
+ if(playLive){
+   // W moves downfield (+X), S moves backward (-X), A moves left (-Z), D moves right (+Z).
+   const move=new THREE.Vector3(
+     (keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),
+     0,
+     (keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)
+   );
+   if(move.lengthSq()>0)move.normalize();
+   const speed=(keys.shift?18:11);
+   player.position.addScaledVector(move,speed*dt);
+   player.position.x=THREE.MathUtils.clamp(player.position.x,-53,53);
+   player.position.z=THREE.MathUtils.clamp(player.position.z,-28,28);
+   if(move.lengthSq()>0){player.rotation.y=Math.atan2(move.x,move.z);player.userData.legs[0].rotation.x=Math.sin(performance.now()*.018)*.65;player.userData.legs[1].rotation.x=-player.userData.legs[0].rotation.x;}
+   if(hasBall){ball.position.set(player.position.x,1.7,player.position.z+.55);ball.rotation.z=Math.sin(performance.now()*.012)*.25;}
+   else if(ball.visible){
+     ball.position.addScaledVector(ballVelocity,dt);ballVelocity.y-=9.8*dt;
+     if(ball.position.y<.5){ball.position.y=.5;ballVelocity.set(0,0,0);}
+   }
+   defenders.forEach((d,i)=>{
+     const target=hasBall?player.position:ball.position;
+     const dir=new THREE.Vector3(target.x-d.position.x,0,target.z-d.position.z);
+     const dist=dir.length();
+     if(dist>.001){dir.normalize();d.position.addScaledVector(dir,(i===0?7.4:6.2)*dt);d.rotation.y=Math.atan2(dir.x,dir.z);}
+     if(hasBall&&dist<1.7){playLive=false;hasBall=false;showMessage('TACKLED!');down++;yards=Math.max(1,yards-2);setTimeout(()=>{if(down>4){showMessage('TURNOVER ON DOWNS');score=0;lineStart=-38;down=1;}else{lineStart=Math.min(35,player.position.x-4);resetPlay();}},1200);}
+   });
+   blockers.forEach((b,i)=>{const d=defenders[i];const dir=new THREE.Vector3(d.position.x-b.position.x,0,d.position.z-b.position.z);if(dir.length()>1.5){dir.normalize();b.position.addScaledVector(dir,5*dt);}});
+   if(hasBall&&player.position.x>48){score+=7;playLive=false;showMessage('TOUCHDOWN! +7');setTimeout(()=>{lineStart=-38;resetPlay();},1500);}
+   if(!hasBall&&ball.position.x>54){playLive=false;showMessage('INCOMPLETE PASS');setTimeout(resetPlay,1200);}
+   updateHud();
+ }
+ if(messageTimer>0){messageTimer-=dt;if(messageTimer<=0)msg.classList.remove('show');}
+ const dist=cameraMode===0?22:cameraMode===1?13:34;
+ const height=cameraMode===1?10:cameraMode===2?28:18;
+
+ // Keep the camera behind the player, centered on them, and facing downfield (+X).
+ desiredCam.set(player.position.x-dist,height,player.position.z);
+ camera.position.lerp(desiredCam,1-Math.pow(.001,dt));
+ camera.lookAt(player.position.x,1.2,player.position.z);
+
+ renderer.render(scene,camera);
+}
+camera.position.set(-60,18,15);camera.lookAt(0,0,0);
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
