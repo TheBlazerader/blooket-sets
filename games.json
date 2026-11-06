@@ -34,9 +34,5 @@
   {
     "name": "Flappy bird",
     "file": "games/flappybird.html"
-  },
-  {
-    "name": "Pokemon Fire red",
-    "file": "games/pokemonfirered.html"
   }
 ]
