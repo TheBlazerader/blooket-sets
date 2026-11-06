@@ -42,5 +42,9 @@
   {
     "name": "ROM loader",
     "file": "games/rom-loader.html"
+  },
+  {
+    "name": "Football",
+    "file": "games/football.html"
   }
 ]
