@@ -36,6 +36,10 @@
     "file": "games/flappybird.html"
   },
   {
+    "name": "5 Nights down",
+    "file": "games/5-Nights-down.html"
+  },
+  {
     "name": "ROM loader",
     "file": "games/rom-loader.html"
   }
