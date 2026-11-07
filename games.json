@@ -41,7 +41,7 @@
   },
   {
     "name": "ROM loader",
-    "file": "games/rom-loader.html"
+    "file": "games/romloader/rom-loader.html"
   },
   {
     "name": "Football",
