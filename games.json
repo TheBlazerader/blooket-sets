@@ -36,6 +36,10 @@
     "file": "games/flappybird.html"
   },
   {
+    "name": "GeoDash 3D",
+    "file": "games/geodash3d/geodash3d.html"
+  },
+  {
     "name": "5 Nights down",
     "file": "games/5-Nights-down.html"
   },
