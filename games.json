@@ -44,6 +44,10 @@
     "file": "games/5-Nights-down.html"
   },
   {
+    "name": "Snowrider",
+    "file": "games/snowrider/index.html"
+  },
+  {
     "name": "ROM loader",
     "file": "games/romloader/rom-loader.html"
   },
