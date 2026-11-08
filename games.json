@@ -1,11 +1,11 @@
 [
   {
-    "name": "Voxelcraft",
-    "file": "games/voxel.html"
-  },
-  {
     "name": "Eaglercraft",
     "file": "games/eagle.html"
+  },
+  {
+    "name": "Retrobowl",
+    "file": "games/retrobowl.html"
   },
   {
     "name": "Ramp Rush 3D",
@@ -18,6 +18,10 @@
   {
     "name": "Basket Launch 3D",
     "file": "games/basketlaunch3d.html"
+  },
+  {
+    "name": "Voxelcraft",
+    "file": "games/voxel.html"
   },
   {
     "name": "Snake Game",
