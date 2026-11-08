@@ -48,6 +48,22 @@
     "file": "games/geodash3d/geodash3d.html"
   },
   {
+    "name": "Granny",
+    "file": "games/granny.html"
+  },
+  {
+    "name": "Jetpack Joyride",
+    "file": "games/jetpackjoyride.html"
+  },
+  {
+    "name": "FNAF 1",
+    "file": "games/fnaf.html"
+  },
+  {
+    "name": "Happywheels",
+    "file": "games/happywheels.html"
+  },
+  {
     "name": "5 Nights down",
     "file": "games/5-Nights-down.html"
   },
