@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Snow Rider 3D</title>
+  <link rel="stylesheet" href="TemplateData/style.css">
+  <style>
+    html, body { width:100%; height:100%; margin:0; padding:0; overflow:hidden; background:#231F20; }
+    .webgl-content { width:100%; height:100%; top:0; left:0; transform:none; -webkit-transform:none; }
+    #gameContainer { width:100%; height:100%; margin:0; }
+    #gameContainer canvas { width:100%; height:100%; }
+  </style>
+  <script src="TemplateData/UnityProgress.js"></script>
+  <script src="Build/UnityLoader.js"></script>
+</head>
+<body>
+  <div class="webgl-content">
+    <div id="gameContainer"></div>
+  </div>
+  <script>
+    var gameInstance = UnityLoader.instantiate(
+      "gameContainer",
+      "Build/SnowRider3D-gd-1.json",
+      {
+        onProgress: UnityProgress,
+        Module: {
+          onRuntimeInitialized: function () {
+            UnityProgress(gameInstance, "complete");
+          }
+        }
+      }
+    );
+  </script>
+</body>
+</html>
