@@ -80,6 +80,10 @@
     "file": "games/wheeliebike.html"
   },
   {
+    "name": "HTML Loader",
+    "file": "games/html-loader.html"
+  },
+  {
     "name": "ROM loader",
     "file": "games/romloader/rom-loader.html"
   },
