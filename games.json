@@ -28,6 +28,10 @@
     "file": "games/burgerplanet3d.html"
   },
   {
+    "name": "Snowrider",
+    "file": "games/snowrider/index.html"
+  },
+  {
     "name": "Eaglercraft 26.2",
     "file": "games/eaglercraft-26.2.html"
   },
