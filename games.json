@@ -28,6 +28,10 @@
     "file": "games/burgerplanet3d.html"
   },
   {
+    "name": "Eaglercraft 26.2",
+    "file": "games/eaglercraft-26.2.html"
+  },
+  {
     "name": "Top-Down-Attack",
     "file": "games/top-down-attack.html"
   },
@@ -42,6 +46,10 @@
   {
     "name": "5 Nights down",
     "file": "games/5-Nights-down.html"
+  },
+  {
+    "name": "Wheeliebike",
+    "file": "games/wheeliebike.html"
   },
   {
     "name": "ROM loader",
