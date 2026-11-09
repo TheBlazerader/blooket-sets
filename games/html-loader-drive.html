@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Launcher</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #101114;
+      color: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
+    body { padding: 28px 18px 36px; }
+    .page {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      text-align: center;
+    }
+    h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 38px); }
+    .instructions {
+      margin: 0 auto 22px;
+      max-width: 720px;
+      color: #c7c9d1;
+      line-height: 1.55;
+      font-size: 16px;
+    }
+    .drop-area {
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      border: 2px dashed #7d8495;
+      border-radius: 14px;
+      background: #1b1e25;
+      transition: border-color .15s, background .15s;
+      cursor: default;
+    }
+    .drop-area.dragging {
+      border-color: #69a7ff;
+      background: #202d40;
+    }
+    .drop-title { font-size: 21px; font-weight: 700; margin-bottom: 7px; }
+    .drop-subtitle { color: #b8bdc9; font-size: 14px; }
+    .drive-heading { margin: 30px 0 12px; font-size: 21px; }
+    .drive-frame {
+      display: block;
+      width: 100%;
+      height: 540px;
+      border: 1px solid #3a3e49;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .drive-link { margin-top: 12px; font-size: 14px; }
+    a { color: #8dbbff; }
+    .note { margin: 18px auto 0; color: #9da3b1; font-size: 13px; line-height: 1.5; }
+    @media (max-width: 600px) {
+      body { padding: 20px 12px 28px; }
+      .drive-frame { height: 460px; }
+      .drop-area { min-height: 130px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Game Launcher</h1>
+    <p class="instructions">
+      Choose a game from the Google Drive folder below and download its HTML file to your device.
+      Then drag the downloaded HTML file into the drop area above to open and play it in a new tab.
+    </p>
+
+    <section id="dropArea" class="drop-area" aria-label="HTML game drop area">
+      <div>
+        <div class="drop-title">Drop your downloaded game here</div>
+        <div class="drop-subtitle">Drag and drop an .html file into this area</div>
+      </div>
+    </section>
+
+    <h2 class="drive-heading">Choose a game</h2>
+    <iframe
+      class="drive-frame"
+      title="Available games in Google Drive"
+      src="https://drive.google.com/embeddedfolderview?id=1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T#grid"
+      loading="lazy">
+    </iframe>
+    <p class="drive-link">
+      If the folder doesn't appear, <a href="https://drive.google.com/drive/folders/1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T?usp=drive_link" target="_blank" rel="noopener">open it directly in Google Drive</a>.
+    </p>
+    <p class="note">Only download and drop HTML games you trust. Games that require separate files or online services may not work from a single downloaded HTML file.</p>
+  </main>
+
+  <script>
+    const dropArea = document.getElementById('dropArea');
+
+    dropArea.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropArea.classList.add('dragging');
+    });
+
+    dropArea.addEventListener('dragleave', (event) => {
+      if (!dropArea.contains(event.relatedTarget)) {
+        dropArea.classList.remove('dragging');
+      }
+    });
+
+    dropArea.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropArea.classList.remove('dragging');
+
+      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+      if (!file) return;
+
+      if (!file.name.toLowerCase().endsWith('.html') && file.type !== 'text/html') {
+        alert('Please drop an HTML game file (.html).');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const gameTab = window.open('about:blank', '_blank');
+        if (!gameTab) {
+          alert('Your browser blocked the new tab. Allow pop-ups for this page, then try again.');
+          return;
+        }
+        gameTab.document.open();
+        gameTab.document.write(loadEvent.target.result);
+        gameTab.document.close();
+      };
+      reader.onerror = () => alert('The HTML file could not be read.');
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
