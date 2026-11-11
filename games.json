@@ -9,6 +9,10 @@
   },
   {
     "name": "Retrobowl",
+    "file": "games/rocketgoal.io/index.html"
+  },
+  {
+    "name": "Rocketleague",
     "file": "games/retrobowl.html"
   },
   {
