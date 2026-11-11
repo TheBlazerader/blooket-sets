@@ -12,10 +12,6 @@
     "file": "games/retrobowl.html"
   },
   {
-    "name": "Rocketleague",
-    "file": "games/rocketgoal.io/index.html"
-  },
-  {
     "name": "Cookie Clicker",
     "file": "games/cookieclicker.html"
   },
@@ -86,6 +82,10 @@
   {
     "name": "5 Nights down",
     "file": "games/5-Nights-down.html"
+  },
+  {
+    "name": "Rocketleague",
+    "file": "games/rocketgoal.io/index.html"
   },
   {
     "name": "Wheeliebike",
