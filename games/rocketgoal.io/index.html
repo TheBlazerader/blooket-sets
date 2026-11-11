@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+  <title>RocketGoal | Online Multiplayer Car Soccer Game</title>
+
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="TemplateData/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="TemplateData/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="TemplateData/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="TemplateData/favicon-64x64.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="TemplateData/favicon-128x128.png">
+
+  <link rel="stylesheet" href="TemplateData/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <script>
+    window.PlaygamaAds = window.PlaygamaAds || {
+      Initialize: function() { 
+        console.warn("Adblocker/SDK Missing: Using dummy Initialize."); 
+        return Promise.resolve(); 
+      },
+      ShowAd: function(type, callbacks) {
+        console.warn("Adblocker active: Skipping " + type + " ad.");
+        if (callbacks) {
+          if (typeof callbacks.onClose === 'function') callbacks.onClose();
+          if (typeof callbacks.onCompleted === 'function') callbacks.onCompleted();
+        }
+      },
+      AdSelection: function() { return false; }
+    };
+  </script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-remote-config-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore-compat.js"></script>
+  <script>
+    if (window.location.href.includes("dev")) {
+      const s = document.createElement("script");
+      s.src = "firebase/firebase_dev.js";
+      document.head.appendChild(s);
+    }
+  </script>
+
+  <script src="firebase/firebase.js"></script>
+  <script src="xsolla/xsolla.js"></script>
+  <script src="utils.js"></script>
+
+  <meta name="description" content="Play RocketGoal - ultimate online multiplayer car soccer.">
+  <meta name="robots" content="index, follow">
+
+  <script type='text/javascript'>
+    window.smartlook || (function(d) {
+      var o = smartlook = function() { o.api.push(arguments) }, h = d.getElementsByTagName('head')[0];
+      var c = d.createElement('script'); o.api = new Array(); c.async = true; c.type = 'text/javascript';
+      c.charset = 'utf-8'; c.src = 'https://web-sdk.smartlook.com/recorder.js'; h.appendChild(c);
+    })(document);
+  </script>
+
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('consent', 'default', { ad_storage: 'granted', analytics_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted' });
+  </script>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZN6YDCFCY8" onload="onGtagLoaded()" onerror="onGtagLoaded()"> </script>
+
+  <script>
+    function onGtagLoaded() {
+      if (window.playgamaScript) return;
+      gtag('js', new Date());
+      gtag('config', 'G-ZN6YDCFCY8');
+
+      window.playgamaScript = document.createElement("script");
+      window.playgamaScript.src = "https://playgama.com/ads/pockethaven.v0.1.js";
+      window.playgamaScript.async = true;
+      // If the ad script fails to load (blocked), the dummy window.PlaygamaAds created above handles it.
+      document.head.appendChild(window.playgamaScript);
+    }
+  </script>
+
+  <style>
+    body { background: #000; margin: 0; overflow: hidden; }
+    #unity-canvas { outline: none; width: 100%; height: 100%; }
+  </style>
+</head>
+
+<body>
+  <div id="unity-container">
+    <canvas id="unity-canvas" width="960" height="600" tabindex="-1" data-sl="canvas-lq"></canvas>
+    <div id="unity-loading-bar">
+      <div id="loading-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+    <div id="unity-warning"> </div>
+  </div>
+
+  <script>
+    var container = document.querySelector("#unity-container");
+    var canvas = document.querySelector("#unity-canvas");
+    var loadingBar = document.querySelector("#unity-loading-bar");
+    var progressBarFull = document.querySelector("#unity-progress-bar-full");
+    var warningBanner = document.querySelector("#unity-warning");
+
+    function unityShowBanner(msg, type) {
+      function updateBannerVisibility() { warningBanner.style.display = warningBanner.children.length ? 'block' : 'none'; }
+      var div = document.createElement('div');
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+      if (type == 'error') div.style = 'background: red; padding: 10px;';
+      else {
+        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+        setTimeout(function() { warningBanner.removeChild(div); updateBannerVisibility(); }, 5000);
+      }
+      updateBannerVisibility();
+    }
+
+    var buildUrl = "https://pockethaven.lon1.cdn.digitaloceanspaces.com/rocketgoal/33";
+    var loaderUrl = buildUrl + "/b23dd96997961653e2825455633aac82.loader.js";
+    var config = {
+      dataUrl: buildUrl + "/913e38fc4f019cbef3b96126ea9331a5.data.unityweb",
+      frameworkUrl: buildUrl + "/924abc59792b1df59857c715aa8b8c90.framework.js.unityweb",
+      codeUrl: buildUrl + "/cd7d7b4a616e3504e4f9fea4743c528d.wasm.unityweb",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "PocketHaven",
+      productName: "RocketGoal",
+      productVersion: "0.309",
+      showBanner: unityShowBanner,
+    };
+
+    loadingBar.style.display = "block";
+
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        progressBarFull.style.width = 100 * progress + "%";
+      }).then((unityInstance) => {
+        loadingBar.style.display = "none";
+        window.unityInstance = unityInstance;
+        window.unityGame = unityInstance;
+        initializeFirebase(unityInstance);
+        initializeUtils(unityInstance);
+      }).catch((message) => { alert(message); });
+    };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
