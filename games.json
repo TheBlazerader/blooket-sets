@@ -9,11 +9,11 @@
   },
   {
     "name": "Retrobowl",
-    "file": "games/rocketgoal.io/index.html"
+    "file": "games/retrobowl.html"
   },
   {
     "name": "Rocketleague",
-    "file": "games/retrobowl.html"
+    "file": "games/rocketgoal.io/index.html"
   },
   {
     "name": "Cookie Clicker",
