@@ -16,6 +16,10 @@
     "file": "games/cookieclicker.html"
   },
   {
+    "name": "Sandboxels",
+    "file": "games/sandboxels/index.html"
+  },
+  {
     "name": "UNDERTALE",
     "file": "games/UNDERTALE.html"
   },
