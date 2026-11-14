@@ -28,6 +28,10 @@
     "file": "games/crossyroad.html"
   },
   {
+    "name": "Hillclimb Racing",
+    "file": "games/hillclimbracing.html"
+  },
+  {
     "name": "Drift Boss",
     "file": "games/driftboss.html"
   },
