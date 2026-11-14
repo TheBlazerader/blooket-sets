@@ -20,6 +20,18 @@
     "file": "games/sandboxels/index.html"
   },
   {
+    "name": "Drivemad",
+    "file": "games/drivemad.html"
+  },
+  {
+    "name": "Crossyroad",
+    "file": "games/crossyroad.html"
+  },
+  {
+    "name": "Drift Boss",
+    "file": "games/driftboss.html"
+  },
+  {
     "name": "UNDERTALE",
     "file": "games/UNDERTALE.html"
   },
