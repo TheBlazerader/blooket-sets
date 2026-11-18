@@ -56,6 +56,10 @@
     "file": "games/voxel.html"
   },
   {
+    "name": "Gridiron Dynasty",
+    "file": "games/gridirondynasty.html"
+  },
+  {
     "name": "Snake Game",
     "file": "games/snake.html"
   },
