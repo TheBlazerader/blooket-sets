@@ -21,6 +21,10 @@ superpass
     "file": "games/sandboxels/index.html"
   },
   {
+    "name": "Supercar",
+    "file": "games/supercar.html"
+  },
+  {
     "name": "Drivemad",
     "file": "games/drivemad.html"
   },
