@@ -62,8 +62,9 @@
   #mods .pre { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
   #mods details { border-top:1px solid rgba(255,255,255,.1); padding:4px 0; }
   #mods summary { cursor:pointer; font-weight:700; color:var(--amber); padding:4px 0; user-select:none; }
-  #mods .row { display:grid; grid-template-columns:1fr 54px; gap:2px 8px; align-items:center; margin:5px 0 8px; }
-  #mods .row label { color:var(--dim); } #mods .row output { text-align:right; font-variant-numeric:tabular-nums; }
+  #mods .row { display:grid; grid-template-columns:1fr 76px; gap:2px 8px; align-items:center; margin:5px 0 8px; }
+  #mods .row label { color:var(--dim); } #mods .row .val { width:100%; box-sizing:border-box; text-align:right; font:inherit; font-variant-numeric:tabular-nums; color:#fff; background:transparent; border:1px solid transparent; border-radius:4px; padding:1px 3px; }
+  #mods .row .val.edit { background:rgba(255,179,0,.14); border-color:rgba(255,179,0,.6); }
   #mods .row input[type=range] { grid-column:1 / 3; width:100%; accent-color:#ffb300; }
   #mods .row.bool { grid-template-columns:1fr auto; } #mods .row.bool input { accent-color:#ffb300; width:18px; height:18px; }
   #netBtn { position:fixed; right:358px; top:16px; z-index:12; padding:9px 16px; border-radius:8px; border:1px solid rgba(255,255,255,.3);
@@ -86,6 +87,26 @@
   #players { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:10; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:60vw;
     font-size:13px; font-weight:700; text-shadow:0 2px 8px rgba(0,0,0,.8); pointer-events:none; }
   #players i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; border:1px solid rgba(255,255,255,.6); }
+  #raceBox { margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.14); } #raceBox.hidden { display:none; }
+  #raceBox .rh { font-weight:800; margin-bottom:6px; } #net #raceLaps { width:64px; } #raceNote { margin-top:8px; color:var(--dim); font-size:12px; }
+  #net button:disabled, #mods button:disabled { opacity:.4; cursor:not-allowed; }
+  #modsNote { background:rgba(255,179,0,.15); border:1px solid rgba(255,179,0,.5); border-radius:6px; padding:6px 8px; margin-bottom:6px; font-size:12px; } #modsNote.hidden { display:none; }
+  #raceHud { position:fixed; top:116px; left:50%; transform:translateX(-50%); z-index:10; text-align:center; text-shadow:0 2px 10px rgba(0,0,0,.85); pointer-events:none; } #raceHud.hidden { display:none; }
+  #raceTop { font-size:26px; font-weight:800; color:var(--amber); } #raceSub { font-size:16px; font-weight:700; }
+  #raceBoard { display:inline-block; margin-top:6px; padding:6px 12px; background:var(--panel); border-radius:8px; white-space:pre; text-align:left; font-size:13px; line-height:1.55; text-shadow:none; }
+  #raceCount { position:fixed; left:50%; top:32%; transform:translate(-50%,-50%); z-index:11; pointer-events:none; font-size:clamp(70px,16vw,170px); font-weight:900; color:#fff;
+    text-shadow:0 4px 30px rgba(0,0,0,.85); opacity:0; transition:opacity .15s; } #raceCount.show { opacity:1; }
+  #raceRes { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:14; min-width:260px; padding:16px 22px; background:rgba(13,17,23,.94); border-radius:12px; border:1px solid rgba(255,255,255,.2); font-size:15px; } #raceRes.hidden { display:none; }
+  #raceRes button { margin-top:10px; font:700 13px inherit; font-family:inherit; color:#fff; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.28); border-radius:6px; padding:6px 12px; cursor:pointer; }
+  #modsAdmin { border-top:1px solid rgba(255,255,255,.1); margin-top:6px; padding:4px 0; } #modsAdmin summary { color:#ff7a59; }
+  #modsAdmin .hidden { display:none; } #modsAdmin .ar { color:var(--dim); display:block; margin:6px 0 3px; }
+  #modsAdmin .ab { display:flex; gap:6px; margin:6px 0; align-items:center; }
+  #modsAdmin .ab input[type=text] { min-width:0; flex:1; box-sizing:border-box; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.07); color:#fff; font:inherit; }
+  #modsAdmin .ab #admStr, #modsAdmin .ab #admAmt { flex:0 0 46px; text-align:center; } #modsAdmin .ab select { flex:1; min-width:0; padding:6px; border-radius:6px; background:#1b222c; color:#fff; border:1px solid rgba(255,255,255,.25); font:inherit; }
+  #modsAdmin .ab button { font:700 12px inherit; font-family:inherit; color:#fff; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.25); border-radius:6px; padding:6px 10px; cursor:pointer; }
+  #modsAdmin .ab button:hover { border-color:var(--amber); color:var(--amber); } #modsAdmin .ab button:disabled { opacity:.4; cursor:not-allowed; }
+  #modsAdmin .chk { display:flex; gap:8px; align-items:flex-start; margin:8px 0; color:#fff; } #modsAdmin .chk input { margin-top:2px; accent-color:#ffb300; } #modsAdmin small { color:var(--dim); }
+  #modsAdmin .as { font-weight:800; margin:10px 0 2px; color:var(--amber); } #admStats, #admMsg { color:var(--dim); font-size:12px; margin:4px 0; }
   canvas { cursor:grab; touch-action:none; } canvas.dragging { cursor:grabbing; }
   #touch { display:none; position:fixed; inset:auto 0 0 0; z-index:12; height:0; pointer-events:none; }
   @media (pointer:coarse) { #touch { display:block; } #help { display:none; } #boost { bottom:150px; } #dmg { bottom:190px; } }
@@ -129,17 +150,26 @@
 <div id="mods" class="hidden"></div>
 <button id="netBtn" tabindex="-1" title="Play with friends (O)">🌐 Online</button>
 <div id="players"></div>
+<div id="raceHud" class="hidden"><div id="raceTop"></div><div id="raceSub"></div><div id="raceBoard"></div></div>
+<div id="raceCount"></div>
+<div id="raceRes" class="hidden"></div>
 <div id="net" class="hidden">
   <div class="mh"><span>🌐 Play with friends</span><button id="netClose">Close</button></div>
   <label for="netName">Your name</label><input id="netName" type="text" maxlength="16" placeholder="Driver" autocomplete="off">
   <label for="netRoom">Room code (friends who use the same code meet here)</label><input id="netRoom" type="text" maxlength="24" placeholder="friends" autocomplete="off">
   <details><summary>Server address (advanced)</summary>
-    <label for="netServer">Leave blank when this page is hosted together with the server</label>
+    <label for="netServer">Room server (default is already set)</label>
     <input id="netServer" type="text" placeholder="apex-arena.yourname.workers.dev" autocomplete="off"></details>
   <label for="netModel">Other players' cars</label>
   <select id="netModel"><option value="ferrari">Ferrari model (same as yours)</option><option value="simple">Simple box car (faster)</option></select>
   <div class="btns"><button id="netJoin">Join</button><button id="netCopy">Copy invite link</button></div>
   <div id="netStatus">Not connected</div>
+  <div id="raceBox" class="hidden">
+    <div class="rh">🏁 Race – the track is south-west of the spawn</div>
+    <div class="btns"><select id="raceLaps"><option>1</option><option>2</option><option selected>3</option><option>5</option><option>8</option><option>10</option></select>
+      <span style="align-self:center;color:var(--dim)">laps</span><button id="raceStart">Start race</button><button id="raceStop">Stop</button></div>
+    <div id="raceNote"></div>
+  </div>
 </div>
 
 <div id="help">
@@ -155,7 +185,7 @@
   <b>Drag</b>Orbit camera<br>
   <b>P</b>Mod menu<br>
   <b>L</b>Low-end mode<br>
-  <b>O</b>Online / friends<br>
+  <b>O</b>Online / race<br>
   <b>C</b>Camera<br>
   <b>V</b>Paint colour<br>
   <b>M</b>Sound on/off<br>
@@ -440,6 +470,80 @@ function dynBox(x, y, z, hx, hy, hz, mass, material, yaw = 0) {
   return b;
 }
 
+
+/* ------------------------------------------------------------------ race track (south-west of the arena, trees are cleared around it) */
+const TRACK = { W: 18, N: 12, M: 220, pts: [], tans: [], gates: [] };
+const TRACK_CTRL = [[-120, -150], [-120, -60], [-120, 20], [-125, 100], [-150, 160], [-200, 190], [-240, 150], [-235, 80], [-200, 40],
+  [-215, -30], [-240, -90], [-225, -170], [-180, -215], [-140, -215]];
+function nearTrack(x, z) { for (const p of TRACK.pts) { const dx = p.x - x, dz = p.z - z; if (dx * dx + dz * dz < 24 * 24) return true; } return false; }
+function buildRaceTrack() {
+  const T = TRACK, M = T.M, W = T.W;
+  const curve = new THREE.CatmullRomCurve3(TRACK_CTRL.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, 'centripetal');
+  let sp = curve.getSpacedPoints(M); sp.pop();                       // closed loop: last point == first
+  let s0 = 0, bd = 1e9; sp.forEach((p, i) => { const d = Math.hypot(p.x + 120, p.z + 100); if (d < bd) { bd = d; s0 = i; } });
+  const pts = sp.slice(s0).concat(sp.slice(0, s0)); T.pts = pts;     // index 0 = start/finish line, on the first straight
+  T.tans = pts.map((p, i) => { const a = pts[(i + 1) % M], b = pts[(i - 1 + M) % M]; return new THREE.Vector3(a.x - b.x, 0, a.z - b.z).normalize(); });
+
+  /* asphalt ribbon */
+  const pos = [], uv = [], idx = []; let dist = 0;
+  for (let i = 0; i <= M; i++) {
+    const p = pts[i % M], t = T.tans[i % M], rx = -t.z, rz = t.x;
+    if (i > 0) { const q = pts[(i - 1) % M]; dist += Math.hypot(p.x - q.x, p.z - q.z); }
+    pos.push(p.x + rx * W / 2, 0.05, p.z + rz * W / 2, p.x - rx * W / 2, 0.05, p.z - rz * W / 2); uv.push(0, dist / 28, 1, dist / 28);
+    if (i < M) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  const tex = canvasTexture(256, 256, (g, w, h) => {
+    asphaltNoise(g, w, h);
+    g.fillStyle = '#f2f2ee'; g.fillRect(10, 0, 8, h); g.fillRect(w - 18, 0, 8, h);
+    g.fillStyle = '#e8b923'; g.fillRect(w / 2 - 3, 20, 6, 100);
+  }, 1, 1);
+  const road = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, envMapIntensity: 0.25, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  road.receiveShadow = true; scene.add(road);
+
+  /* barriers on both sides: visual (one instanced mesh) + static physics boxes */
+  const bar = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }), M * 2);
+  bar.castShadow = bar.receiveShadow = true; bar.frustumCulled = false;
+  const col = new THREE.Color(), off = W / 2 + 0.6; let k = 0;
+  for (let i = 0; i < M; i++) {
+    const a = pts[i], b = pts[(i + 1) % M], t = T.tans[i], len = Math.hypot(b.x - a.x, b.z - a.z) * 1.08;
+    const yaw = Math.atan2(-(b.z - a.z), b.x - a.x);
+    for (const sd of [1, -1]) {
+      const cx = (a.x + b.x) / 2 + -t.z * sd * off, cz = (a.z + b.z) / 2 + t.x * sd * off;
+      _m4.compose(_p3.set(cx, 0.5, cz), _q4.setFromEuler(new THREE.Euler(0, yaw, 0)), _s3.set(len, 1, 0.6)); bar.setMatrixAt(k, _m4);
+      bar.setColorAt(k, col.set(i % 2 ? 0xf0f0f0 : 0xd9342b)); k++;
+      staticBox(cx, 0.5, cz, len / 2, 0.5, 0.3, yaw, null, false);
+    }
+  }
+  scene.add(bar);
+
+  /* start/finish line + checkpoint gates (posts and a beam; the next gate glows green during a race) */
+  const postG = new THREE.CylinderGeometry(0.35, 0.35, 6, 10), banner = canvasTexture(1024, 64, (g, w, h) => {
+    g.fillStyle = '#14181f'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffffff'; g.font = '800 46px "Segoe UI", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('START / FINISH', w / 2, h / 2 + 2);
+  });
+  T.gateMats = [];
+  for (let n = 0; n < T.N; n++) {
+    const i = Math.round(n * M / T.N) % M, p = pts[i], t = T.tans[i], right = new THREE.Vector3(-t.z, 0, t.x), yaw = Math.atan2(-right.z, right.x);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffb300, emissive: 0x6a4300, roughness: 0.5 }); T.gateMats.push(mat);
+    for (const sd of [1, -1]) { const post = new THREE.Mesh(postG, mat); post.position.set(p.x + right.x * sd * (W / 2 + 2.2), 3, p.z + right.z * sd * (W / 2 + 2.2)); post.castShadow = true; scene.add(post); }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(W + 4.4, n === 0 ? 1.2 : 0.5, 0.5), n === 0 ? new THREE.MeshStandardMaterial({ map: banner, roughness: 0.6 }) : mat);
+    beam.position.set(p.x, 6, p.z); beam.rotation.y = yaw; beam.castShadow = true; scene.add(beam);
+    if (n === 0) {
+      const chk = canvasTexture(128, 32, (g, w, h) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 4; y++) { g.fillStyle = (x + y) % 2 ? '#111' : '#fff'; g.fillRect(x * 8, y * 8, 8, 8); } }, 1, 1);
+      const line = new THREE.Mesh(new THREE.BoxGeometry(W, 0.02, 2.4), new THREE.MeshBasicMaterial({ map: chk }));
+      line.position.set(p.x, 0.075, p.z); line.rotation.y = yaw; scene.add(line);
+    }
+    T.gates.push({ pos: new THREE.Vector3(p.x, 0, p.z), tan: t.clone(), right });
+  }
+}
+function setNextGate(g) {
+  TRACK.gateMats.forEach((m, i) => { const on = i === g; m.color.setHex(on ? 0x2bd96b : 0xffb300); m.emissive.setHex(on ? 0x0e7a38 : 0x6a4300); });
+}
+
 /* ------------------------------------------------------------------ the arena */
 const dynamicGroups = [];
 const boostPads = [];
@@ -552,11 +656,14 @@ function buildArena() {
   dynamicGroups.push(makeInstanced(new THREE.BoxGeometry(1, 1, 1), crateMat, crates));
 
   const coneMat = new THREE.MeshStandardMaterial({ color: 0xff6a13, roughness: 0.55, envMapIntensity: 0.4 });
+  crateMatG = crateMat; coneMatG = coneMat;
   const cones = [];
   for (let i = 0; i < 12; i++) cones.push(dynBox(-55 + i * 9.5, 0.35, -32 + (i % 2 ? 2.2 : -2.2), 0.22, 0.35, 0.22, 3, mCrate));
   for (let i = 0; i < 8; i++) cones.push(dynBox(120 + i * 3, 0.35, 12.5, 0.22, 0.35, 0.22, 3, mCrate));
   for (let i = 0; i < 8; i++) cones.push(dynBox(120 + i * 3, 0.35, -12.5, 0.22, 0.35, 0.22, 3, mCrate));
   dynamicGroups.push(makeInstanced(new THREE.ConeGeometry(0.3, 0.7, 14), coneMat, cones));
+
+  buildRaceTrack();
 
   /* 10. Trees around the outside (solid trunks) */
   const rand = rng(1234);
@@ -564,6 +671,7 @@ function buildArena() {
   while (treeSpots.length < 260) {
     const x = (rand() * 2 - 1) * 268, z = (rand() * 2 - 1) * 268;
     if (x > -78 && x < 278 && z > -72 && z < 136) continue;
+    if (nearTrack(x, z)) continue;                      // keep the race track clear
     treeSpots.push([x, z, 0.8 + rand() * 0.9]);
   }
   const trunkM = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.28, 0.4, 3, 8), new THREE.MeshStandardMaterial({ color: 0x5d4330, roughness: 1 }), treeSpots.length);
@@ -665,7 +773,7 @@ function buildProceduralCar() {
 }
 
 /* ------------------------------------------------------------------ vehicle (cannon-es RaycastVehicle) */
-let chassis, vehicle, carRoot, carBox, modelTemplate = null;
+let chassis, vehicle, carRoot, carBox, modelTemplate = null, crateMatG = null, coneMatG = null;
 const rigs = [];
 let CAR_RADIUS = 0.35;
 const calib = { drive: 1, steer: 1 };
@@ -808,7 +916,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 addEventListener('pointerdown', initAudio);
-function resetToSpawn() { spawnAt(0, 0, 0); repairCar(false); camSnap = true; orbYaw = 0; orbPitch = 0; toast('Back at the spawn point, car repaired'); }
+function resetToSpawn() {
+  if (race.active) { if (!race.lock) respawnOnTrack(); return; }
+  spawnAt(0, 0, 0); repairCar(false); camSnap = true; orbYaw = 0; orbPitch = 0; toast('Back at the spawn point, car repaired'); }
 $('resetBtn').addEventListener('click', e => { resetToSpawn(); e.currentTarget.blur(); });
 
 /* drag to orbit the camera around the car; driving brings it back behind the car */
@@ -879,6 +989,7 @@ function applyControls(dt) {
   else if (I.down) { if (fv > 1.5) brk = 1; else eng = -I.down; }
   else brk = 0.04;                                         // rolling resistance
 
+  if (race.lock) { eng = 0; brk = 1; }                     // race countdown: held on the grid
   boosting = I.boost && eng > 0 && nitro > 0.02;
   nitro = clamp(nitro + (boosting ? -0.32 : 0.07) * dt, 0, 1);
   if (TUNE.infNitro) nitro = 1;
@@ -932,6 +1043,7 @@ function uprightHere() {
   repairCar(false); camSnap = true; toast('Back on four wheels, car repaired');
 }
 const airFrom = new CANNON.Vec3(), airTo = new CANNON.Vec3(), airRes = new CANNON.RaycastResult();
+let carGrounded = true;
 function trackAirtime(dt) {
   /* airborne = clearly off the ground: no wheel/body contact AND nothing solid within ~2 m below the car */
   const bodyTouch = world.contacts.some(c => c.bi === chassis || c.bj === chassis);
@@ -944,6 +1056,7 @@ function trackAirtime(dt) {
     chassis.collisionResponse = cr;
     grounded = airRes.hasHit;
   }
+  carGrounded = grounded;
   if (!grounded) {
     airTime += dt;
     if (airTime > 0.45 && !airStart) airStart = { x: chassis.position.x, z: chassis.position.z };
@@ -1128,7 +1241,7 @@ function syncCar(dt) {
     chassis.pointToLocalFrame(wi.worldTransform.position, tmpV);
     r.pivot.position.set(tmpV.x, tmpV.y, tmpV.z);
     r.pivot.rotation.y = wi.steering;
-    if (wi.isInContact) r.rate = (r.rear && handbrakeOn) ? 0 : state.fv / CAR_RADIUS;
+    if (wi.isInContact || carGrounded) r.rate = state.fv / CAR_RADIUS;
     else r.rate *= Math.exp(-dt * 0.35);
     r.spin += r.rate * dt;
     r.spinner.rotation.z = -r.spin;               // rolling forward = positive rotation about the car's left axis (-Z)
@@ -1243,15 +1356,17 @@ function applyMods() {
     if (dRest) w.chassisConnectionPointLocal.y += dRest;
   });
 }
-const modEls = {};
+const modEls = {}, valEls = {}, ADM = { unlocked: false, boundless: false };
 function buildMods() {
   const root = $('mods');
   const head = document.createElement('div'); head.className = 'mh';
   head.innerHTML = '<span>⚙ Mod menu</span><span><button data-a="close">Close</button></span>';
   root.appendChild(head);
+  const note = document.createElement('div'); note.id = 'modsNote'; note.className = 'hidden'; note.textContent = '🔒 Only the room leader can change the car physics.'; root.appendChild(note);
+  const phys = document.createElement('div'); phys.id = 'modsPhys'; root.appendChild(phys);
   const pre = document.createElement('div'); pre.className = 'pre';
   Object.keys(MOD_PRESETS).forEach(n => { const b = document.createElement('button'); b.textContent = n; b.dataset.p = n; pre.appendChild(b); });
-  root.appendChild(pre);
+  phys.appendChild(pre);
   MOD_GROUPS.forEach(([title, items], gi) => {
     const d = document.createElement('details'); if (gi === 0) d.open = true;
     d.innerHTML = '<summary>' + title + '</summary>';
@@ -1260,44 +1375,214 @@ function buildMods() {
       if (min === 'bool') {
         row.className = 'row bool'; row.innerHTML = '<label>' + label + '</label><input type="checkbox">';
         const inp = row.querySelector('input'); inp.checked = !!TUNE[key];
-        inp.addEventListener('change', () => { TUNE[key] = inp.checked ? 1 : 0; applyMods(); inp.blur(); });
+        inp.addEventListener('change', () => { TUNE[key] = inp.checked ? 1 : 0; applyMods(); mpSendPhys(); inp.blur(); });
         modEls[key] = { set: v => { inp.checked = !!v; } };
       } else {
         const dec = step < 0.01 ? 3 : step < 0.1 ? 2 : step < 1 ? 1 : 0;
         row.className = 'row'; row.title = 'Double-click to reset this value';
-        row.innerHTML = '<label>' + label + '</label><output></output><input type="range" min="' + min + '" max="' + max + '" step="' + step + '">';
-        const inp = row.querySelector('input'), out = row.querySelector('output');
-        const show = () => { out.textContent = (+TUNE[key]).toFixed(dec); };
+        row.innerHTML = '<label>' + label + '</label><input class="val" type="text" inputmode="decimal" readonly><input type="range" min="' + min + '" max="' + max + '" step="' + step + '">';
+        const inp = row.querySelector('input[type=range]'), out = row.querySelector('.val');
+        const show = () => { const x = +TUNE[key]; out.value = (x !== 0 && (Math.abs(x) < Math.pow(10, -dec) || Math.abs(x) >= 1e6)) ? String(+x.toPrecision(6)) : x.toFixed(dec); };
+        valEls[key] = out;
+        out.addEventListener('change', () => {                          // boundless physics: type any number
+          if (!ADM.boundless) { show(); return; }
+          const x = parseFloat(out.value.replace(',', '.'));
+          if (isFinite(x)) { TUNE[key] = x; inp.value = x; applyMods(); mpSendPhys(); } show();
+        });
+        out.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); out.blur(); } });
         inp.value = TUNE[key]; show();
-        inp.addEventListener('input', () => { TUNE[key] = +inp.value; show(); applyMods(); });
+        inp.addEventListener('input', () => { TUNE[key] = +inp.value; show(); applyMods(); mpSendPhys(); });
         ['change', 'pointerup'].forEach(ev => inp.addEventListener(ev, () => inp.blur()));   // keep arrow keys / space for driving
-        row.addEventListener('dblclick', () => { TUNE[key] = TUNE_DEFAULT[key]; inp.value = TUNE[key]; show(); applyMods(); });
+        row.addEventListener('dblclick', () => { if (inp.disabled) return; TUNE[key] = TUNE_DEFAULT[key]; inp.value = TUNE[key]; show(); applyMods(); mpSendPhys(); });
         modEls[key] = { set: v => { inp.value = v; show(); } };
       }
       d.appendChild(row);
     });
-    root.appendChild(d);
+    phys.appendChild(d);
   });
+  buildAdmin(root);
   root.addEventListener('click', e => {
     const t = e.target;
     if (t.dataset.a === 'close') toggleMods();
     if (t.dataset.p) {
       Object.assign(TUNE, TUNE_DEFAULT, MOD_PRESETS[t.dataset.p]);
       for (const k in modEls) modEls[k].set(TUNE[k]);
-      applyMods(); toast('Preset: ' + t.dataset.p, 1200); t.blur();
+      applyMods(); mpSendPhys(); toast('Preset: ' + t.dataset.p, 1200); t.blur();
     }
   });
 }
-function toggleMods() { const el = $('mods'); if (!el.childElementCount) buildMods(); el.classList.toggle('hidden'); }
+function toggleMods() { const el = $('mods'); if (!el.childElementCount) { buildMods(); lockMods(); } el.classList.toggle('hidden'); }
 $('lowBtn').addEventListener('click', e => { toggleLowEnd(); e.currentTarget.blur(); });
 $('modBtn').addEventListener('click', e => { toggleMods(); e.currentTarget.blur(); });
 
+
+/* ------------------------------------------------------------------ summoned objects (admin) */
+const SUMMON = { map: new Map(), order: [], localSid: 1 };
+let ballMat = null, heavyMat = null;
+const SUMMON_KINDS = {
+  crate: { label: 'Crate', mass: 14, gap: 1.2, geo: () => new THREE.BoxGeometry(1, 1, 1), shape: () => new CANNON.Box(new CANNON.Vec3(.5, .5, .5)), mat: () => crateMatG },
+  big: { label: 'Big crate', mass: 90, gap: 2.4, geo: () => new THREE.BoxGeometry(2, 2, 2), shape: () => new CANNON.Box(new CANNON.Vec3(1, 1, 1)), mat: () => crateMatG },
+  cone: { label: 'Cone', mass: 3, gap: 1.0, geo: () => new THREE.ConeGeometry(0.3, 0.7, 14), shape: () => new CANNON.Box(new CANNON.Vec3(.22, .35, .22)), mat: () => coneMatG },
+  ball: { label: 'Big ball', mass: 25, gap: 3.0, geo: () => new THREE.SphereGeometry(1.2, 20, 14), shape: () => new CANNON.Sphere(1.2),
+    mat: () => ballMat || (ballMat = new THREE.MeshStandardMaterial({ color: 0x3aa0ff, roughness: 0.35, metalness: 0.2 })) },
+  heavy: { label: 'Heavy block', mass: 900, gap: 2.6, geo: () => new THREE.BoxGeometry(1.8, 1.8, 1.8), shape: () => new CANNON.Box(new CANNON.Vec3(.9, .9, .9)),
+    mat: () => heavyMat || (heavyMat = new THREE.MeshStandardMaterial({ color: 0x555a63, roughness: 0.5, metalness: 0.7 })) }
+};
+function createSummon(kind, sid, p, q, by) {
+  const K = SUMMON_KINDS[kind]; if (!K || SUMMON.map.has(sid)) return;
+  const b = new CANNON.Body({ mass: K.mass, material: mCrate, allowSleep: true, sleepSpeedLimit: 0.35, sleepTimeLimit: 0.6 });
+  b.addShape(K.shape()); b.position.set(p[0], p[1], p[2]); b.quaternion.set(q[0], q[1], q[2], q[3]);
+  b.linearDamping = 0.05; b.angularDamping = 0.1; b.mpId = 1000 + sid; world.addBody(b);
+  const mesh = new THREE.Mesh(K.g || (K.g = K.geo()), K.mat()); mesh.castShadow = mesh.receiveShadow = true;
+  mesh.position.set(p[0], p[1], p[2]); mesh.quaternion.set(q[0], q[1], q[2], q[3]); scene.add(mesh);
+  SUMMON.map.set(sid, { b, mesh }); SUMMON.order.push(sid);
+  if (by !== undefined) { MP.owner[b.mpId] = by; MP.seqs[b.mpId] = 1; if (by === MP.id) MP.owned.add(b.mpId); }   // the summoner simulates it first
+  while (SUMMON.order.length > 40) removeSummon(SUMMON.order[0]);
+}
+function removeSummon(sid) {
+  const e = SUMMON.map.get(sid); if (!e) return;
+  world.removeBody(e.b); scene.remove(e.mesh); MP.owned.delete(1000 + sid); MP.owner[1000 + sid] = null;
+  SUMMON.map.delete(sid); SUMMON.order = SUMMON.order.filter(x => x !== sid);
+}
+function clearSummons() { [...SUMMON.order].forEach(removeSummon); }
+function syncSummons() {
+  SUMMON.map.forEach(e => {
+    if (e.b.sleepState === CANNON.Body.SLEEPING) return;
+    e.mesh.position.set(e.b.position.x, e.b.position.y, e.b.position.z); e.mesh.quaternion.set(e.b.quaternion.x, e.b.quaternion.y, e.b.quaternion.z, e.b.quaternion.w);
+  });
+}
+function summonItems(kind, n) {                         // a small grid of objects dropped in front of my car
+  const K = SUMMON_KINDS[kind], cols = Math.ceil(Math.sqrt(n)), items = [];
+  chassis.quaternion.vmult(AX, fwdW); const fl = Math.hypot(fwdW.x, fwdW.z) || 1, fx = fwdW.x / fl, fz = fwdW.z / fl, psi = Math.atan2(-fz, fx);
+  const qq = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, psi, 0));
+  for (let i = 0; i < n; i++) {
+    const col = i % cols, row = Math.floor(i / cols), lat = (col - (cols - 1) / 2) * K.gap, ahead = 9 + row * K.gap;
+    items.push({ p: [r2(chassis.position.x + fx * ahead - fz * lat), r2(chassis.position.y + 1.2 + (kind === 'ball' ? 1 : 0)), r2(chassis.position.z + fz * ahead + fx * lat)],
+      q: [r3(qq.x), r3(qq.y), r3(qq.z), r3(qq.w)] });
+  }
+  return items;
+}
+
+/* ------------------------------------------------------------------ admin menu (bottom of the mod menu, code-protected) */
+const ADMIN_CODE = 'nimda321';
+function canAdmin() { return ADM.unlocked && (!MP.joined || isLeader() || MP.adminOpen); }
+function buildAdmin(root) {
+  const d = document.createElement('details'); d.id = 'modsAdmin';
+  d.innerHTML = '<summary>🔐 Admin</summary>' +
+    '<div id="admLogin"><label class="ar">Admin code</label><div class="ab"><input id="admCode" type="text" autocomplete="off" placeholder="enter code"><button id="admUnlock">Unlock</button></div><div id="admMsg"></div></div>' +
+    '<div id="admBody" class="hidden">' +
+      '<label class="chk"><input id="admBoundless" type="checkbox"> Boundless physics <small>(click a number next to a slider and type any value)</small></label>' +
+      '<label class="chk"><input id="admCull" type="checkbox" checked> Object culling <small>(hides/sleeps what is far away or out of view)</small></label>' +
+      '<div id="admStats"></div>' +
+      '<div id="admMP"><div class="as">Multiplayer</div>' +
+        '<label class="chk" id="admOpenRow"><input id="admOpen" type="checkbox"> Let other players use the admin menu <small>(leader only)</small></label>' +
+        '<div class="ab"><select id="admTarget"></select><input id="admStr" type="text" value="45" title="Fling speed (m/s)"><button id="admFling">Fling</button></div>' +
+        '<div class="ab"><button id="admPhysAll">Set my physics for everyone</button></div></div>' +
+      '<div class="as">Summon in front of you</div>' +
+      '<div class="ab"><select id="admKind">' + Object.keys(SUMMON_KINDS).map(k => '<option value="' + k + '">' + SUMMON_KINDS[k].label + '</option>').join('') + '</select>' +
+        '<input id="admAmt" type="text" value="3" title="How many (1-12)"><button id="admSummon">Summon</button><button id="admClear">Clear</button></div>' +
+    '</div>';
+  root.appendChild(d);
+  const g = id => d.querySelector('#' + id);
+  const tryUnlock = () => {
+    if (g('admCode').value.trim() === ADMIN_CODE) { ADM.unlocked = true; g('admCode').value = ''; g('admMsg').textContent = ''; }
+    else g('admMsg').textContent = 'Wrong code';
+    updateAdminUi(); lockMods();
+  };
+  g('admUnlock').addEventListener('click', e => { tryUnlock(); e.currentTarget.blur(); });
+  g('admCode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
+  g('admBoundless').addEventListener('change', e => { ADM.boundless = e.target.checked; applyBoundless(); e.target.blur(); });
+  g('admCull').addEventListener('change', e => { CULL.on = e.target.checked; e.target.blur(); });
+  g('admOpen').addEventListener('change', e => { if (MP.ws && isLeader()) MP.ws.send(JSON.stringify({ t: 'adm', open: e.target.checked })); e.target.blur(); });
+  g('admFling').addEventListener('click', e => {
+    const to = g('admTarget').value, s = parseFloat(g('admStr').value.replace(',', '.')) || 45;
+    if (!canAdmin()) return;
+    if (to === 'me') flingMe(s); else if (MP.ws && MP.ws.readyState === 1) MP.ws.send(JSON.stringify({ t: 'fl', to, s }));
+    e.currentTarget.blur();
+  });
+  g('admPhysAll').addEventListener('click', e => { if (canAdmin() && MP.joined) { pushPhys(); toast('Your physics were sent to everyone', 1500); } e.currentTarget.blur(); });
+  g('admSummon').addEventListener('click', e => {
+    if (!canAdmin() || !chassis) return;
+    const kind = g('admKind').value, n = Math.max(1, Math.min(12, parseInt(g('admAmt').value, 10) || 1)), items = summonItems(kind, n);
+    if (MP.joined && MP.ws && MP.ws.readyState === 1) MP.ws.send(JSON.stringify({ t: 'sm', kind, items }));
+    else items.forEach(it => createSummon(kind, SUMMON.localSid++, it.p, it.q));
+    e.currentTarget.blur();
+  });
+  g('admClear').addEventListener('click', e => { if (!canAdmin()) return; if (MP.joined && MP.ws) MP.ws.send(JSON.stringify({ t: 'sc' })); else clearSummons(); e.currentTarget.blur(); });
+  ['admStr', 'admAmt'].forEach(id => g(id).addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); ev.target.blur(); } }));
+  updateAdminUi(); applyBoundless();
+}
+function applyBoundless() { for (const k in valEls) { valEls[k].readOnly = !ADM.boundless; valEls[k].classList.toggle('edit', ADM.boundless); } }
+function updateAdminUi() {
+  const d = $('modsAdmin'); if (!d) return;
+  const g = id => d.querySelector('#' + id), allowed = !MP.joined || isLeader() || MP.adminOpen;
+  g('admLogin').classList.toggle('hidden', ADM.unlocked && allowed);
+  g('admCode').disabled = g('admUnlock').disabled = !allowed;
+  if (!allowed) g('admMsg').textContent = 'The room leader has not allowed admin access.'; else if (g('admMsg').textContent.startsWith('The room')) g('admMsg').textContent = '';
+  g('admBody').classList.toggle('hidden', !(ADM.unlocked && allowed));
+  g('admMP').classList.toggle('hidden', !MP.joined);
+  g('admOpenRow').classList.toggle('hidden', !isLeader()); g('admOpen').checked = !!MP.adminOpen;
+  const sel = g('admTarget'), prev = sel.value; sel.textContent = '';
+  const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); };
+  add('me', 'Myself'); if (MP.peers.size) add('all', 'Everyone else'); MP.peers.forEach(p => add(p.id, p.name));
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+function flingMe(s) {
+  const a = Math.random() * Math.PI * 2;
+  chassis.velocity.x += Math.cos(a) * s; chassis.velocity.z += Math.sin(a) * s; chassis.velocity.y += s * 0.55;
+  chassis.angularVelocity.x += (Math.random() - 0.5) * 4; chassis.angularVelocity.z += (Math.random() - 0.5) * 4; chassis.wakeUp();
+  toast('💥 You got flung!', 1500);
+}
+
+/* ------------------------------------------------------------------ object culling: hide what is far away / out of view, sleep far-away physics */
+const CULL = { on: true, list: [], shown: 0, last: 0, lastPhys: 0, frustum: new THREE.Frustum(), pv: new THREE.Matrix4(), sph: new THREE.Sphere(), box: new THREE.Box3() };
+function initCulling() {
+  CULL.list = [];
+  scene.children.forEach(o => {
+    if ((!o.isMesh && !o.isGroup) || o.isInstancedMesh || o === sky || o === carRoot) return;
+    CULL.box.setFromObject(o); if (CULL.box.isEmpty()) return;
+    const sph = CULL.box.getBoundingSphere(new THREE.Sphere());
+    if (!isFinite(sph.radius) || sph.radius > 400) return;                       // ground-sized things are always drawn
+    CULL.list.push({ o, c: sph.center.clone(), r: sph.radius + 3 });
+  });
+}
+function cullTick(now) {
+  if (now - CULL.last < 100) return; CULL.last = now;
+  camera.updateMatrixWorld(); CULL.pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); CULL.frustum.setFromProjectionMatrix(CULL.pv);
+  const cp = camera.position, maxD = lowMode ? 320 : 540, keep = 70; let shown = 0;
+  for (const e of CULL.list) {
+    let vis = true;
+    if (CULL.on) {
+      const dx = e.c.x - cp.x, dy = e.c.y - cp.y, dz = e.c.z - cp.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) - e.r;
+      if (d > maxD) vis = false;
+      else if (d > keep) { CULL.sph.center.copy(e.c); CULL.sph.radius = e.r; vis = CULL.frustum.intersectsSphere(CULL.sph); }   // near things stay (they cast shadows into view)
+    }
+    e.o.visible = vis; if (vis) shown++;
+  }
+  CULL.shown = shown;
+  if (now - CULL.lastPhys > 500 && chassis) {                                     // physics: far-away, nearly settled props go to sleep
+    CULL.lastPhys = now;
+    const cx = chassis.position.x, cz = chassis.position.z;
+    const each = b => {
+      const dx = b.position.x - cx, dz = b.position.z - cz, d2 = dx * dx + dz * dz;
+      if (CULL.on && d2 > 260 * 260 && b.sleepState !== CANNON.Body.SLEEPING && b.velocity.lengthSquared() < 2.25 && MP.owner[b.mpId] !== MP.id) { b.sleep(); b._cs = true; }
+      else if (b._cs && (d2 < 200 * 200 || !CULL.on)) { b._cs = false; b.wakeUp(); }
+    };
+    getDyn().forEach(each); SUMMON.map.forEach(e => each(e.b));
+  }
+  const st = document.getElementById('admStats');
+  if (st && st.offsetParent !== null && now - (CULL.lastStat || 0) > 500) {
+    CULL.lastStat = now; const r = renderer.info.render;
+    st.textContent = 'Culling: ' + shown + '/' + CULL.list.length + ' objects drawn · ' + r.calls + ' draw calls · ' + Math.round(r.triangles / 1000) + 'k triangles';
+  }
+}
 
 /* ------------------------------------------------------------------ multiplayer (Cloudflare Durable Object room server, see /src/worker.js)
    Every player simulates their own car locally. We send our car 10x per second, other cars are drawn ~150 ms in the past and interpolated.
    Other cars are also kinematic bodies in the physics world, so you can bump into each other. Crates and cones are shared by "ownership":
    whoever touches a prop last simulates it and broadcasts its state (a sequence number settles conflicts). */
-const MP = { ws: null, id: null, joined: false, room: '', name: 'Driver', peers: new Map(), lastSend: 0, lastCrate: 0, owner: [], seqs: [], owned: new Set(), lastColor: -1 };
+const MP = { ws: null, id: null, leader: null, racingRemote: false, adminOpen: false, joined: false, room: '', name: 'Driver', peers: new Map(), lastSend: 0, lastCrate: 0, owner: [], seqs: [], owned: new Set(), lastColor: -1 };
+const DEFAULT_SERVER = 'https://apex-arena.pfeiferblaise.workers.dev/';
 let dynList = null;
 function getDyn() { if (!dynList) { dynList = dynamicGroups.flatMap(g => g.bodies); dynList.forEach((b, i) => { b.mpId = i; }); } return dynList; }
 const r2 = n => Math.round(n * 100) / 100, r3 = n => Math.round(n * 1000) / 1000;
@@ -1383,8 +1668,9 @@ function removePeer(id) {
   MP.peers.delete(id); renderPlayers();
 }
 
+function bodyById(i) { if (i >= 1000) { const e = SUMMON.map.get(i - 1000); return e ? e.b : null; } return getDyn()[i]; }
 function applyCrate(c, sender) {
-  const b = getDyn()[c[0]]; if (!b) return;
+  const b = bodyById(c[0]); if (!b) return;
   const i = c[0], seq = c[11] || 0, mine = MP.seqs[i] || 0, cur = MP.owner[i];
   const ok = seq > mine || (seq === mine && (cur === sender || cur == null || (cur === MP.id && sender < MP.id)));
   if (!ok) return;                                                     // we hold a newer claim on this prop
@@ -1406,9 +1692,10 @@ function scanClaims() {                                                // props 
   }
 }
 function sendCrates() {
-  const list = getDyn(), out = [];
+  const out = [];
   for (const i of MP.owned) {
-    const b = list[i], sl = b.sleepState === CANNON.Body.SLEEPING, p = b.position, q = b.quaternion, v = b.velocity;
+    const b = bodyById(i); if (!b) { MP.owned.delete(i); continue; }
+    const sl = b.sleepState === CANNON.Body.SLEEPING, p = b.position, q = b.quaternion, v = b.velocity;
     out.push([i, r3(p.x), r3(p.y), r3(p.z), r3(q.x), r3(q.y), r3(q.z), r3(q.w), r2(v.x), r2(v.y), r2(v.z), MP.seqs[i] || 0, sl ? 1 : 0]);
     if (sl) { MP.owned.delete(i); MP.owner[i] = null; }                // at rest: hand the prop back to nobody
     if (out.length >= 40) break;
@@ -1436,25 +1723,27 @@ function updatePeers(dt) {
     const s = pr.snaps; if (!s.length) return;
     let i = s.length - 1; while (i > 0 && s[i].t > rt) i--;
     const a = s[i], b = s[i + 1];
-    let x, y, z, vx, vy, vz, st;
+    let x, y, z, vx, vy, vz, st, mx = null, my = 0, mz = 0;
     _qa.set(a.q[0], a.q[1], a.q[2], a.q[3]);
     if (b && rt >= a.t) {
       const f = clamp((rt - a.t) / Math.max(1, b.t - a.t), 0, 1), L = (u, w) => u + (w - u) * f;
       x = L(a.p[0], b.p[0]); y = L(a.p[1], b.p[1]); z = L(a.p[2], b.p[2]);
       vx = L(a.v[0], b.v[0]); vy = L(a.v[1], b.v[1]); vz = L(a.v[2], b.v[2]); st = L(a.st, b.st);
       _qb.set(b.q[0], b.q[1], b.q[2], b.q[3]); _qa.slerp(_qb, f);
+      const dtS = Math.max(0.001, (b.t - a.t) / 1000); mx = (b.p[0] - a.p[0]) / dtS; my = (b.p[1] - a.p[1]) / dtS; mz = (b.p[2] - a.p[2]) / dtS;   // speed from motion
     } else {
       const ex = clamp((rt - a.t) / 1000, 0, 0.25);                    // no newer snapshot yet: coast on the last velocity (max 0.25 s)
       x = a.p[0] + a.v[0] * ex; y = a.p[1] + a.v[1] * ex; z = a.p[2] + a.v[2] * ex; vx = a.v[0]; vy = a.v[1]; vz = a.v[2]; st = a.st;
     }
     if (i > 0) s.splice(0, i);
     if (!isFinite(x + y + z + _qa.x + _qa.w)) return;
-    pr.vis.root.visible = pr.label.visible = true;
+    pr.vis.root.visible = pr.label.visible = !CULL.on || Math.hypot(x - camera.position.x, z - camera.position.z) < 650;
     pr.vis.root.position.set(x, y, z); pr.vis.root.quaternion.copy(_qa);
     pr.label.position.set(x, y + 1.9, z);
     if (pr.body) { pr.body.position.set(x, y, z); pr.body.quaternion.set(_qa.x, _qa.y, _qa.z, _qa.w); pr.body.velocity.set(vx, vy, vz); pr.body.angularVelocity.set(0, 0, 0); }
     _fw.set(1, 0, 0).applyQuaternion(_qa);
-    pr.spin += (vx * _fw.x + vy * _fw.y + vz * _fw.z) / 0.36 * dt;
+    const fs = mx === null ? (vx * _fw.x + vy * _fw.y + vz * _fw.z) : (mx * _fw.x + my * _fw.y + mz * _fw.z);
+    pr.spin += fs / 0.36 * dt;
     pr.vis.wheels.forEach(w => { if (w.front) w.pivot.rotation.y = st; w.spinner.rotation.z = -pr.spin; });
   });
 }
@@ -1463,13 +1752,15 @@ function mpMessage(ev) {
   let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
   switch (m.t) {
     case 'w':
-      MP.id = m.id; MP.joined = true; MP.lastColor = -1;
+      MP.id = m.id; MP.leader = m.leader; MP.racingRemote = !!m.racing; MP.joined = true; MP.lastColor = -1;
       (m.players || []).forEach(p => addPeer(p.id, p.name, p.ci));
+      MP.adminOpen = !!m.adminOpen; clearSummons(); (m.summons || []).forEach(x => createSummon(x.kind, x.sid, x.p, x.q));
       (m.crates || []).forEach(c => applyCrate(c, ''));
-      setNet('Connected to room “' + MP.room + '” – ' + (MP.peers.size + 1) + ' in room'); updateNetBtn(); renderPlayers();
+      if (MP.leader === MP.id) mpSendPhys(true); else applyPhys(m.phys || TUNE_DEFAULT);          // the leader's physics settings rule the room
+      setNet('Connected to room “' + MP.room + '” – ' + (MP.peers.size + 1) + ' in room'); updateNetBtn(); renderPlayers(); lockMods(); updateRaceUi();
       toast('Joined room “' + MP.room + '”', 1800); break;
     case 'j': addPeer(m.id, m.name, m.ci); toast((m.name || 'Someone') + ' joined', 1500); break;
-    case 'l': { const p = MP.peers.get(m.id); if (p) { toast(p.name + ' left', 1500); removePeer(m.id); } break; }
+    case 'l': { const p = MP.peers.get(m.id); if (p) { toast(p.name + ' left', 1500); removePeer(m.id); race.order = race.order.filter(x => x !== m.id); } break; }
     case 's': {
       const p = MP.peers.get(m.i); if (!p || !m.p || !m.q || !m.v) return;
       if (m.c !== undefined && m.c !== p.ci) { p.ci = m.c; p.vis.paint.color.setHex(CAR_COLORS[m.c % CAR_COLORS.length]); renderPlayers(); }
@@ -1477,22 +1768,164 @@ function mpMessage(ev) {
     }
     case 'k': (m.c || []).forEach(c => applyCrate(c, m.i)); break;
     case 'full': setNet('That room is full (8 players max)'); break;
+    case 'ld': MP.leader = m.id; if (m.id === MP.id) toast('You are now the room leader', 2200); renderPlayers(); lockMods(); updateRaceUi(); break;
+    case 'ph': applyPhys(m.v); break;
+    case 'am': MP.adminOpen = !!m.open; toast(MP.adminOpen ? 'Admin menu enabled for everyone' : 'Admin menu restricted to the leader', 2000); updateAdminUi(); lockMods(); break;
+    case 'fl': flingMe(+m.s || 45); break;
+    case 'sm': (m.items || []).forEach(it => createSummon(m.kind, it.sid, it.p, it.q, m.by)); break;
+    case 'sc': clearSummons(); break;
+    case 'rs': MP.racingRemote = true; startRace(m); break;
+    case 'rp': race.prog[m.i] = { lap: m.lap, cp: m.cp, tm: m.tm }; break;
+    case 'rf': race.fin[m.i] = m.tm; if (m.i !== MP.id && race.active) toast((race.names[m.i] || 'Someone') + ' finished!', 1800); break;
+    case 're': MP.racingRemote = false; endRace(m); break;
   }
 }
+
+
+/* ------------------------------------------------------------------ room leader: physics + race control */
+const PHYS_KEYS = MOD_GROUPS.flatMap(g => g[1].map(it => it[0]));
+let physTimer = 0;
+function isLeader() { return MP.joined && MP.leader === MP.id; }
+function mpSendPhys(now) {
+  if (!isLeader()) return;
+  clearTimeout(physTimer);
+  physTimer = setTimeout(pushPhys, now ? 0 : 120);
+}
+function pushPhys() {                                  // send my physics settings to everybody in the room
+  if (!MP.ws || MP.ws.readyState !== 1) return;
+  const v = {}; PHYS_KEYS.forEach(k => { v[k] = TUNE[k]; });
+  MP.ws.send(JSON.stringify({ t: 'ph', v }));
+}
+function applyPhys(v) {
+  if (!v) return;
+  PHYS_KEYS.forEach(k => { const x = v[k]; if (typeof x === 'number' && isFinite(x)) { TUNE[k] = x; if (modEls[k]) modEls[k].set(x); } });
+  applyMods();
+}
+function lockMods() {
+  const locked = MP.joined && !isLeader() && !canAdmin(), root = $('mods'), note = $('modsNote');
+  if (note) note.classList.toggle('hidden', !locked);
+  root.querySelectorAll('#modsPhys input, #modsPhys .pre button').forEach(el => { el.disabled = locked; });
+}
+
+/* ------------------------------------------------------------------ race mode */
+const race = { active: false, lock: false, go: false, laps: 3, order: [], names: {}, goAt: 0, startedAt: 0, countShown: -1, prog: {}, fin: {}, lastGate: 0, lastHud: 0, countTimer: 0, resTimer: 0,
+  my: { lap: 0, cp: 1, prev: null, prevG: -1, fin: false, tm: 0, last: 0 } };
+const fmtTime = ms => { ms = Math.max(0, ms); const m = Math.floor(ms / 60000), sec = (ms % 60000) / 1000; return m + ':' + (sec < 10 ? '0' : '') + sec.toFixed(1); };
+function gateInfo(g) {
+  const G = TRACK.gates[g], dx = chassis.position.x - G.pos.x, dz = chassis.position.z - G.pos.z;
+  return { along: dx * G.tan.x + dz * G.tan.z, lat: Math.abs(dx * G.right.x + dz * G.right.z) };
+}
+function gridPose(i) {
+  const G = TRACK.gates[0], row = i >> 1, side = (i & 1) ? 1 : -1, back = 9 + row * 9;
+  return { x: G.pos.x - G.tan.x * back + G.right.x * side * 4.5, z: G.pos.z - G.tan.z * back + G.right.z * side * 4.5, psi: Math.atan2(-G.tan.z, G.tan.x) };
+}
+function teleportTo(x, z, psi) { spawnAt(x, z, psi, 1.0); repairCar(false); camSnap = true; orbYaw = 0; orbPitch = 0; }
+function respawnOnTrack() {
+  const my = race.my;
+  if (my.lap === 0 && my.cp === 1) { const g = gridPose(Math.max(0, race.order.indexOf(MP.id))); teleportTo(g.x, g.z, g.psi); }
+  else { const G = TRACK.gates[race.lastGate]; teleportTo(G.pos.x + G.tan.x * 2, G.pos.z + G.tan.z * 2, Math.atan2(-G.tan.z, G.tan.x)); }
+  toast('Back on the track', 1200);
+}
+function showCount(text, ms) {
+  const el = $('raceCount'); el.textContent = text; el.classList.add('show');
+  clearTimeout(race.countTimer); race.countTimer = setTimeout(() => el.classList.remove('show'), ms || 900);
+}
+function startRace(m) {
+  if (!MP.joined || !m.order || m.order.indexOf(MP.id) < 0) return;      // joined mid-race: just watch
+  race.active = true; race.laps = m.laps | 0 || 3; race.order = m.order.slice(); race.prog = {}; race.fin = {}; race.go = false; race.countShown = -1;
+  race.names = { [MP.id]: MP.name }; MP.peers.forEach(p => { race.names[p.id] = p.name; });
+  race.my = { lap: 0, cp: 1, prev: null, prevG: -1, fin: false, tm: 0, last: 0 }; race.lastGate = 0;
+  race.prog[MP.id] = { lap: 0, cp: 1, tm: 0 };
+  const g = gridPose(race.order.indexOf(MP.id)); teleportTo(g.x, g.z, g.psi);
+  race.lock = true; race.goAt = performance.now() + (m.cd || 5) * 1000;
+  setNextGate(1); $('net').classList.add('hidden'); $('raceRes').classList.add('hidden'); $('raceHud').classList.remove('hidden'); updateRaceUi();
+  toast('Race: ' + race.laps + (race.laps === 1 ? ' lap' : ' laps') + ' – get ready!', 2200);
+}
+function passGate(g, now) {
+  const my = race.my, N = TRACK.N, tm = now - race.startedAt;
+  if (g === 0) {
+    my.lap++; my.cp = 1; race.lastGate = 0;
+    const lapT = tm - my.last; my.last = tm;
+    if (my.lap >= race.laps) {
+      my.fin = true; my.tm = tm; race.fin[MP.id] = tm; setNextGate(-1);
+      if (MP.ws && MP.ws.readyState === 1) MP.ws.send(JSON.stringify({ t: 'rf', tm: Math.round(tm) }));
+      const pos = standings().findIndex(r => r.id === MP.id) + 1;
+      toast('Finished! P' + pos + ' – ' + fmtTime(tm), 3500); return;
+    }
+    toast('Lap ' + my.lap + '/' + race.laps + ' – ' + fmtTime(lapT), 2000);
+  } else { my.cp++; race.lastGate = g; }
+  my.prevG = -1; setNextGate(my.cp >= N ? 0 : my.cp);
+  race.prog[MP.id] = { lap: my.lap, cp: my.cp, tm: Math.round(tm) };
+  if (MP.ws && MP.ws.readyState === 1) MP.ws.send(JSON.stringify({ t: 'rp', lap: my.lap, cp: my.cp, tm: Math.round(tm) }));
+}
+function standings() {
+  const N = TRACK.N;
+  const rows = race.order.map(id => {
+    const f = race.fin[id], pr = race.prog[id];
+    return { id, name: race.names[id] || '???', fin: f !== undefined, passed: f !== undefined ? 1e6 : (pr ? pr.lap * N + pr.cp - 1 : 0), tm: f !== undefined ? f : (pr ? pr.tm : 0) };
+  });
+  rows.sort((a, b) => (b.passed - a.passed) || (a.tm - b.tm));
+  return rows;
+}
+function raceTick(now) {
+  if (!race.active) return;
+  if (race.lock) {
+    const rem = race.goAt - now;
+    if (rem <= 0) { race.lock = false; race.go = true; race.startedAt = race.goAt; race.my.prevG = -1; showCount('GO!', 900); }
+    else { const c = Math.ceil(rem / 1000); if (c !== race.countShown) { race.countShown = c; showCount(String(c), 1000); } }
+    return;
+  }
+  const my = race.my;
+  if (!my.fin) {
+    const N = TRACK.N, g = my.cp >= N ? 0 : my.cp, gi = gateInfo(g);
+    if (my.prevG !== g) { my.prevG = g; my.prev = gi.along; }
+    else { if (my.prev < 0 && gi.along >= 0 && gi.along < 20 && gi.lat < TRACK.W / 2 + 4) passGate(g, now); else my.prev = gi.along; }
+  }
+  if (now - race.lastHud > 100) {
+    race.lastHud = now;
+    const rows = standings(), pos = rows.findIndex(r => r.id === MP.id) + 1, N = TRACK.N;
+    $('raceTop').textContent = 'LAP ' + Math.min(race.laps, my.lap + 1) + '/' + race.laps + '    P' + pos + '/' + rows.length;
+    $('raceSub').textContent = fmtTime(my.fin ? my.tm : now - race.startedAt) + (my.fin ? '   FINISHED' : '   Gate ' + (my.cp >= N ? 'FINISH' : my.cp + '/' + (N - 1)));
+    $('raceBoard').textContent = rows.slice(0, 6).map((r, i) => (i + 1) + '. ' + r.name + (r.fin ? '   ' + fmtTime(r.tm) : '')).join('\n');
+  }
+}
+function endRace(m) {
+  const was = race.active;
+  race.active = race.lock = false; setNextGate(-1); updateRaceUi();
+  $('raceHud').classList.add('hidden'); $('raceCount').classList.remove('show');
+  if (!was) return;
+  const box = $('raceRes'); box.textContent = '';
+  const h = document.createElement('div'); h.className = 'mh'; h.textContent = m.stopped ? '🏁 Race stopped' : '🏁 Race finished'; box.appendChild(h);
+  const done = (m.res || []).map(r => r[0]);
+  const lines = (m.res || []).map((r, i) => (i + 1) + '. ' + (race.names[r[0]] || '???') + '   ' + fmtTime(r[1]));
+  race.order.forEach(id => { if (done.indexOf(id) < 0) lines.push('–  ' + (race.names[id] || '???') + '   did not finish'); });
+  lines.forEach(t => { const d = document.createElement('div'); d.textContent = t; d.style.margin = '5px 0'; box.appendChild(d); });
+  const b = document.createElement('button'); b.textContent = 'Close'; b.addEventListener('click', () => { box.classList.add('hidden'); b.blur(); }); box.appendChild(b);
+  box.classList.remove('hidden'); clearTimeout(race.resTimer); race.resTimer = setTimeout(() => box.classList.add('hidden'), 20000);
+}
+function updateRaceUi() {
+  $('raceBox').classList.toggle('hidden', !MP.joined);
+  const leader = isLeader(), busy = race.active || MP.racingRemote;
+  $('raceStart').disabled = !leader || busy; $('raceStop').disabled = !leader || !busy; $('raceLaps').disabled = !leader || busy;
+  $('raceNote').textContent = busy ? 'A race is in progress…' : leader ? 'You are the room leader (👑): you start races and set the car physics in the mod menu.' : 'Only the room leader (👑) can start races and change car physics.';
+}
+$('raceStart').addEventListener('click', e => { if (MP.ws && isLeader()) MP.ws.send(JSON.stringify({ t: 'rc', a: 'start', laps: +$('raceLaps').value })); e.currentTarget.blur(); });
+$('raceStop').addEventListener('click', e => { if (MP.ws && isLeader()) MP.ws.send(JSON.stringify({ t: 'rc', a: 'stop' })); e.currentTarget.blur(); });
 
 function setNet(t) { $('netStatus').textContent = t; }
 function updateNetBtn() { $('netBtn').textContent = MP.joined ? '🌐 ' + MP.room + ' (' + (MP.peers.size + 1) + ')' : '🌐 Online'; $('netJoin').textContent = MP.ws ? 'Leave' : 'Join'; }
 function renderPlayers() {
+  updateAdminUi();
   const box = $('players'); box.textContent = '';
   if (!MP.joined) return;
   const chip = (name, ci) => { const d = document.createElement('span'), i = document.createElement('i');
     i.style.background = '#' + CAR_COLORS[ci % CAR_COLORS.length].toString(16).padStart(6, '0'); d.appendChild(i); d.appendChild(document.createTextNode(name)); box.appendChild(d); };
-  chip(MP.name + ' (you)', colorIdx); MP.peers.forEach(p => chip(p.name, p.ci));
+  chip((MP.leader === MP.id ? '👑 ' : '') + MP.name + ' (you)', colorIdx); MP.peers.forEach(p => chip((MP.leader === p.id ? '👑 ' : '') + p.name, p.ci));
   updateNetBtn();
 }
 function serverBase() {
   let s = $('netServer').value.trim();
-  if (!s) return /^https?:$/.test(location.protocol) ? (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host : null;
+  if (!s) s = DEFAULT_SERVER;
   s = s.replace(/\/+$/, '');
   if (/^wss?:\/\//i.test(s)) return s;
   s = s.replace(/^https?:\/\//i, '');
@@ -1501,8 +1934,9 @@ function serverBase() {
 function mpLeave() {
   const ws = MP.ws; MP.ws = null; MP.joined = false; MP.id = null;
   if (ws) { ws.onclose = ws.onmessage = ws.onerror = null; try { ws.close(); } catch (e) {} }
-  [...MP.peers.keys()].forEach(removePeer);
-  MP.owner = []; MP.seqs = []; MP.owned.clear(); renderPlayers(); updateNetBtn();
+  [...MP.peers.keys()].forEach(removePeer); MP.leader = null; MP.racingRemote = false; MP.adminOpen = false; clearSummons();
+  MP.owner = []; MP.seqs = []; MP.owned.clear(); renderPlayers(); updateNetBtn(); race.active = race.lock = false; setNextGate(-1);
+  $('raceHud').classList.add('hidden'); $('raceCount').classList.remove('show'); lockMods(); updateRaceUi();
 }
 function mpJoin() {
   mpLeave();
@@ -1523,7 +1957,8 @@ function mpJoin() {
 function toggleNet() { $('net').classList.toggle('hidden'); }
 (function initNet() {
   const q = new URLSearchParams(location.search);
-  try { $('netName').value = localStorage.getItem('apexName') || ''; $('netServer').value = localStorage.getItem('apexServer') || ''; } catch (e) {}
+  $('netServer').value = DEFAULT_SERVER;
+  try { $('netName').value = localStorage.getItem('apexName') || ''; $('netServer').value = localStorage.getItem('apexServer') || DEFAULT_SERVER; } catch (e) {}
   if (q.get('server')) $('netServer').value = q.get('server');
   if (q.get('room')) { $('netRoom').value = q.get('room'); $('net').classList.remove('hidden'); setNet('Pick a name and press Join'); }
   $('netModel').value = peerModel;
@@ -1537,7 +1972,7 @@ function toggleNet() { $('net').classList.toggle('hidden'); }
   ['netName', 'netRoom', 'netServer'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (!MP.ws) mpJoin(); e.target.blur(); } }));
   $('netCopy').addEventListener('click', e => {
     const room = $('netRoom').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'lobby', sv = $('netServer').value.trim();
-    const link = location.origin + location.pathname + '?room=' + encodeURIComponent(room) + (sv ? '&server=' + encodeURIComponent(sv) : '');
+    const link = location.origin + location.pathname + '?room=' + encodeURIComponent(room) + (sv && sv.replace(/\/+$/, '') !== DEFAULT_SERVER.replace(/\/+$/, '') ? '&server=' + encodeURIComponent(sv) : '');
     (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => setNet('Invite link copied'), () => setNet(link));
     e.currentTarget.blur();
   });
@@ -1557,6 +1992,9 @@ function frame(now) {
   while (acc >= TUNE.dt && n < maxSub) { world.step(TUNE.dt); acc -= TUNE.dt; n++; }
   if (n === maxSub) acc = 0;
   netTick(performance.now());
+  raceTick(performance.now());
+  syncSummons();
+  cullTick(performance.now());
 
   const p = chassis.position;
   if (!isFinite(p.x + p.y + p.z) || p.y < -30) { spawnAt(0, 0, 0); camSnap = true; }
@@ -1600,6 +2038,7 @@ function frame(now) {
     await new Promise(r => setTimeout(r, 30));
     buildVehicle(spec);
     applyQuality(lowMode);
+    initCulling();
     calibrate();
     repairCar(false);
     updateCamera(0.016);
