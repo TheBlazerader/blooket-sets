@@ -1,137 +1,327 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Launcher</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background: #101114;
-      color: #f5f5f5;
-      font-family: Arial, sans-serif;
-    }
-    body { padding: 28px 18px 36px; }
-    .page {
-      width: min(1100px, 100%);
-      margin: 0 auto;
-      text-align: center;
-    }
-    h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 38px); }
-    .instructions {
-      margin: 0 auto 22px;
-      max-width: 720px;
-      color: #c7c9d1;
-      line-height: 1.55;
-      font-size: 16px;
-    }
-    .drop-area {
-      min-height: 150px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      border: 2px dashed #7d8495;
-      border-radius: 14px;
-      background: #1b1e25;
-      transition: border-color .15s, background .15s;
-      cursor: default;
-    }
-    .drop-area.dragging {
-      border-color: #69a7ff;
-      background: #202d40;
-    }
-    .drop-title { font-size: 21px; font-weight: 700; margin-bottom: 7px; }
-    .drop-subtitle { color: #b8bdc9; font-size: 14px; }
-    .drive-heading { margin: 30px 0 12px; font-size: 21px; }
-    .drive-frame {
-      display: block;
-      width: 100%;
-      height: 540px;
-      border: 1px solid #3a3e49;
-      border-radius: 12px;
-      background: #fff;
-    }
-    .drive-link { margin-top: 12px; font-size: 14px; }
-    a { color: #8dbbff; }
-    .note { margin: 18px auto 0; color: #9da3b1; font-size: 13px; line-height: 1.5; }
-    @media (max-width: 600px) {
-      body { padding: 20px 12px 28px; }
-      .drive-frame { height: 460px; }
-      .drop-area { min-height: 130px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drive folder viewer (Worker)</title>
+<style>
+  :root{
+    --bg:#eef1f4; --surface:#ffffff; --ink:#1b2430; --muted:#64707e; --line:#d5dbe2; --accent:#1f5fd6; --accent-ink:#fff; --danger:#b3261e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14181d; --surface:#1d232a; --ink:#e6eaef; --muted:#93a0ae; --line:#2f3841; --accent:#6ea0ff; --accent-ink:#0b1220; --danger:#ff8a80; }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+  button,input{font:inherit;color:inherit}
+  #list{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+  h1{font-size:1.9rem;margin:0 0 4px;font-weight:600;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 24px;font-family:system-ui,sans-serif;font-size:.9rem}
+  .bar{display:flex;gap:8px;margin-bottom:16px;font-family:system-ui,sans-serif}
+  .bar input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+  .bar input:focus,button:focus-visible,.item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .crumbs{font-family:system-ui,sans-serif;font-size:.9rem;margin-bottom:12px;color:var(--muted)}
+  .crumbs button{background:none;border:0;padding:0;color:var(--accent);cursor:pointer}
+  .items{display:grid;gap:8px}
+  .item{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+  .item:hover{border-color:var(--accent)}
+  .item .ico{width:28px;height:34px;flex:none;border:1.5px solid var(--muted);border-radius:3px;display:grid;place-items:center;font:600 .6rem system-ui,sans-serif;color:var(--muted)}
+  .item.folder .ico{height:26px;border-radius:3px 8px 3px 3px}
+  .item .name{flex:1;min-width:0;overflow-wrap:anywhere}
+  .item .meta{color:var(--muted);font:.8rem system-ui,sans-serif}
+  .note{font:.9rem system-ui,sans-serif;color:var(--muted);margin-top:16px}
+  .err{font:.95rem system-ui,sans-serif;color:var(--danger);background:var(--surface);border:1px solid var(--danger);border-radius:8px;padding:12px 14px;margin-bottom:16px;white-space:pre-wrap}
+  .keybox{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:20px;font-family:system-ui,sans-serif;font-size:.9rem}
+  .keybox p{margin:0 0 10px}
+  .keybox .row{display:flex;gap:8px}
+  .keybox input{flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+  .btn{padding:9px 16px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);cursor:pointer;font-family:system-ui,sans-serif}
+  .opts{margin-top:12px;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem}
+
+  #list.wide{max-width:1100px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);flex:none}
+  .seg button{border:0;background:none;padding:0 14px;cursor:pointer;color:var(--muted)}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+  .items.grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .items.grid .item{flex-direction:column;align-items:stretch;gap:0;padding:0;overflow:hidden}
+  .thumb{aspect-ratio:16/10;background:var(--bg);display:grid;place-items:center;overflow:hidden;position:relative;border-bottom:1px solid var(--line)}
+  .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .thumb .letter{font-size:2.2rem;font-weight:600;color:var(--muted);opacity:.6}
+  .thumb .ico{border-color:var(--muted)}
+  .items.grid .name{padding:10px 12px;font-size:.92rem;line-height:1.3}
+  #viewer{position:fixed;inset:0;background:#fff;display:none}
+  #viewer.on{display:block}
+  #frame{width:100%;height:100%;border:0;background:#fff}
+  #close{position:fixed;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(0,0,0,.25);background:rgba(20,24,29,.85);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:10;display:grid;place-items:center}
+  #close:hover{background:#000}
+  #loading{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.35);color:#fff;font-family:system-ui,sans-serif;z-index:20}
+  #loading.on{display:grid}
+</style>
 </head>
 <body>
-  <main class="page">
-    <h1>Game Launcher</h1>
-    <p class="instructions">
-      Choose a game from the Google Drive folder below and download its HTML file to your device.
-      Then drag the downloaded HTML file into the drop area above to open and play it in a new tab.
-    </p>
 
-    <section id="dropArea" class="drop-area" aria-label="HTML game drop area">
-      <div>
-        <div class="drop-title">Drop your downloaded game here</div>
-        <div class="drop-subtitle">Drag and drop an .html file into this area</div>
-      </div>
-    </section>
+<main id="list">
+  <h1>Folder files</h1>
+  <p class="sub" id="status">Not loaded yet</p>
 
-    <h2 class="drive-heading">Choose a game</h2>
-    <iframe
-      class="drive-frame"
-      title="Available games in Google Drive"
-      src="https://drive.google.com/embeddedfolderview?id=1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T#grid"
-      loading="lazy">
-    </iframe>
-    <p class="drive-link">
-      If the folder doesn't appear, <a href="https://drive.google.com/drive/folders/1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T?usp=drive_link" target="_blank" rel="noopener">open it directly in Google Drive</a>.
-    </p>
-    <p class="note">Only download and drop HTML games you trust. Games that require separate files or online services may not work from a single downloaded HTML file.</p>
-  </main>
+  <div class="keybox" id="keybox">
+    <p>Paste the address of your Cloudflare Worker. It only fetches the folder list and file text; everything you open still shows inside this page.</p>
+    <div class="row">
+      <input id="key" type="text" placeholder="https://drived.blaisepfeifer.workers.dev" autocomplete="off" spellcheck="false">
+      <button class="btn" id="save">Load folder</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="folder" type="text" placeholder="Folder ID or URL" spellcheck="false">
+    </div>
+  </div>
 
-  <script>
-    const dropArea = document.getElementById('dropArea');
+  <div id="error"></div>
+  <div class="crumbs" id="crumbs"></div>
+  <div class="bar"><input id="search" type="search" placeholder="Filter by name" aria-label="Filter files">
+    <div class="seg" role="group" aria-label="Layout"><button id="vList" aria-pressed="true">List</button><button id="vGrid" aria-pressed="false">Grid</button></div>
+  </div>
+  <label class="opts"><input type="checkbox" id="storage"> Compatibility mode: let pages use storage and let the viewer fix page sizing (less isolated)</label>
+  <div class="items" id="items"></div>
+  <p class="note" id="note"></p>
+</main>
 
-    dropArea.addEventListener('dragover', (event) => {
-      event.preventDefault();
-      dropArea.classList.add('dragging');
-    });
+<div id="viewer">
+  <button id="close" aria-label="Close and return to the list" title="Close (Esc)">&times;</button>
+  <iframe id="frame" title="Opened file"></iframe>
+</div>
+<div id="loading">Opening&hellip;</div>
 
-    dropArea.addEventListener('dragleave', (event) => {
-      if (!dropArea.contains(event.relatedTarget)) {
-        dropArea.classList.remove('dragging');
-      }
-    });
+<script>
+(function(){
+  var DEFAULT_WORKER = "https://drived.blaisepfeifer.workers.dev";
+  var DEFAULT_FOLDER = "1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T";
+    var $ = function(id){ return document.getElementById(id); };
 
-    dropArea.addEventListener('drop', (event) => {
-      event.preventDefault();
-      dropArea.classList.remove('dragging');
+  function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 
-      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-      if (!file) return;
+  var state = { key:"", stack:[], entries:[], cache:{}, view: (lsGet("dv_view2") === "list" ? "list" : "grid") };
 
-      if (!file.name.toLowerCase().endsWith('.html') && file.type !== 'text/html') {
-        alert('Please drop an HTML game file (.html).');
-        return;
-      }
+  function parseFolderId(s){
+    s = (s||"").trim();
+    var m = s.match(/folders\/([A-Za-z0-9_-]+)/) || s.match(/[?&]id=([A-Za-z0-9_-]+)/);
+    return m ? m[1] : s;
+  }
 
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        const gameTab = window.open('about:blank', '_blank');
-        if (!gameTab) {
-          alert('Your browser blocked the new tab. Allow pop-ups for this page, then try again.');
-          return;
+  function showError(msg){
+    var box = $("error");
+    box.innerHTML = "";
+    if(!msg) return;
+    var d = document.createElement("div");
+    d.className = "err";
+    d.textContent = msg;
+    box.appendChild(d);
+  }
+
+  async function listFolder(id){
+    if(state.cache[id]) return state.cache[id];
+    var r = await fetch(state.key + "/list?id=" + encodeURIComponent(id));
+    var j = null;
+    try { j = await r.json(); } catch(e){}
+    if(!r.ok || !Array.isArray(j)){
+      throw new Error("Worker returned " + r.status + (j && j.error ? ": " + j.error : "") +
+        "\n\nCheck the Worker address, and that the folder is shared with anyone who has the link.");
+    }
+    j.sort(function(x,y){ return (y.folder - x.folder) || x.name.localeCompare(y.name, undefined, {numeric:true}); });
+    if(!j.length) throw new Error("The Worker found no files. The folder may be private, or Google's page layout may have changed.");
+    state.cache[id] = j;
+    return j;
+  }
+
+  function isFolder(f){ return !!f.folder; }
+  function isHtml(f){ return /\.html?$/i.test(f.name); }
+
+  function render(){
+    var q = $("search").value.trim().toLowerCase();
+    var items = $("items");
+    items.innerHTML = "";
+    items.className = "items" + (state.view === "grid" ? " grid" : "");
+    $("list").classList.toggle("wide", state.view === "grid");
+    $("vList").setAttribute("aria-pressed", state.view !== "grid");
+    $("vGrid").setAttribute("aria-pressed", state.view === "grid");
+    var hidden = 0, shown = 0;
+    state.entries.forEach(function(f){
+      var folder = isFolder(f);
+      if(!folder && !isHtml(f)){ hidden++; return; }
+      if(q && f.name.toLowerCase().indexOf(q) === -1) return;
+      shown++;
+      var b = document.createElement("button");
+      b.className = "item" + (folder ? " folder" : "");
+      var title = f.name.replace(/\.html?$/i,"");
+      var name = document.createElement("span"); name.className = "name"; name.textContent = title;
+      if(state.view === "grid"){
+        var th = document.createElement("span"); th.className = "thumb";
+        if(folder){
+          var fi = document.createElement("span"); fi.className = "ico"; th.appendChild(fi);
+        } else {
+          var letter = document.createElement("span"); letter.className = "letter"; letter.textContent = (title.charAt(0) || "?").toUpperCase();
+          th.appendChild(letter);
+          var img = new Image();
+          img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+          img.style.visibility = "hidden";
+          img.onload = function(){
+            // Drive answers with a tiny generic icon when a file has no preview; keep the letter in that case.
+            if(img.naturalWidth >= 120) img.style.visibility = "visible"; else img.remove();
+          };
+          img.onerror = function(){ img.remove(); };
+          th.appendChild(img);
+          img.src = "https://drive.google.com/thumbnail?id=" + encodeURIComponent(f.id) + "&sz=w400";
         }
-        gameTab.document.open();
-        gameTab.document.write(loadEvent.target.result);
-        gameTab.document.close();
-      };
-      reader.onerror = () => alert('The HTML file could not be read.');
-      reader.readAsText(file);
+        b.append(th, name);
+      } else {
+        var ico = null;
+        if(folder){ ico = document.createElement("span"); ico.className = "ico"; }
+        var meta = document.createElement("span"); meta.className = "meta";
+        meta.textContent = folder ? "Folder" : "";
+        if(ico) b.append(ico);
+        b.append(name, meta);
+      }
+      b.addEventListener("click", function(){ folder ? enterFolder(f) : openFile(f); });
+      items.appendChild(b);
     });
-  </script>
+    var note = [];
+    if(!shown) note.push(q ? "Nothing matches that filter." : "No HTML files here.");
+    if(hidden) note.push(hidden + " non-HTML file" + (hidden>1?"s":"") + " hidden.");
+    $("note").textContent = note.join(" ");
+    var count = state.entries.filter(isHtml).length;
+    $("status").textContent = count + " HTML file" + (count===1?"":"s") + " in this folder";
+  }
+
+  function renderCrumbs(){
+    var c = $("crumbs");
+    c.innerHTML = "";
+    if(state.stack.length < 2) return;
+    state.stack.forEach(function(s, i){
+      if(i) c.append(" / ");
+      if(i < state.stack.length - 1){
+        var b = document.createElement("button");
+        b.textContent = s.name;
+        b.addEventListener("click", function(){ state.stack = state.stack.slice(0, i+1); loadCurrent(); });
+        c.appendChild(b);
+      } else c.append(s.name);
+    });
+  }
+
+  async function loadCurrent(){
+    showError("");
+    $("status").textContent = "Loading…";
+    try {
+      state.entries = await listFolder(state.stack[state.stack.length-1].id);
+      $("keybox").style.display = "none";
+      renderCrumbs();
+      render();
+    } catch(e){
+      $("keybox").style.display = "";
+      $("status").textContent = "Could not load the folder";
+      showError(e.message);
+    }
+  }
+
+  function enterFolder(f){
+    state.stack.push({id:f.id, name:f.name});
+    $("search").value = "";
+    loadCurrent();
+  }
+
+  async function openFile(f){
+    $("loading").classList.add("on");
+    try {
+      var r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id));
+      if(!r.ok) throw new Error("Worker returned " + r.status + " when opening " + f.name);
+      var html = await r.text();
+      var frame = $("frame");
+      var sb = "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-downloads";
+      if($("storage").checked) sb += " allow-same-origin";
+      frame.setAttribute("sandbox", sb);
+      currentName = f.name;
+      frame.srcdoc = html;
+      $("viewer").classList.add("on");
+      $("close").focus();
+    } catch(e){
+      showError(e.message);
+      window.scrollTo(0,0);
+    } finally {
+      $("loading").classList.remove("on");
+    }
+  }
+
+  function closeViewer(){
+    $("viewer").classList.remove("on");
+    $("frame").removeAttribute("srcdoc");
+    $("frame").src = "about:blank";
+  }
+
+  var currentName = "";
+  function pageIsBlank(d){
+    var t = (d.body ? d.body.innerText : "").trim();
+    if(t !== "]]>" && t !== "") return false;
+    var els = d.querySelectorAll("ruffle-object,ruffle-embed,ruffle-player,canvas,img,svg,video,iframe,object,embed");
+    for(var i=0;i<els.length;i++){ var r = els[i].getBoundingClientRect(); if(r.width>0 && r.height>0) return false; }
+    return t === "]]>";
+  }
+  function fixFrame(){
+    var fr = $("frame"), d;
+    if(!$("viewer").classList.contains("on")) return;
+    try { d = fr.contentDocument; } catch(e){ return; }
+    if(!d || !d.documentElement || !d.body) return;
+    // Flash/Ruffle pages size their player as 100% of the page; give the page a height if it has none.
+    var players = d.querySelectorAll("ruffle-object,ruffle-embed,object,embed"), collapsed = false;
+    for(var i=0;i<players.length;i++){ if(players[i].getBoundingClientRect().height === 0) collapsed = true; }
+    if(collapsed && !d.getElementById("dv-fix")){
+      var st = d.createElement("style"); st.id = "dv-fix";
+      st.textContent = "html,body{height:100%;margin:0}ruffle-object,ruffle-embed,object,embed{width:100%;height:100%}";
+      (d.head || d.documentElement).appendChild(st);
+    }
+  }
+  function checkFrame(){
+    var d;
+    if(!$("viewer").classList.contains("on")) return;
+    try { d = $("frame").contentDocument; } catch(e){ return; }
+    if(d && d.body && pageIsBlank(d)){
+      closeViewer();
+      showError("There was an error with the file \"" + currentName + "\". It loaded as just \"]]>\", so it was closed.");
+      window.scrollTo(0,0);
+    }
+  }
+  $("frame").addEventListener("load", function(){
+    if(!$("viewer").classList.contains("on")) return;
+    setTimeout(fixFrame, 600);
+    setTimeout(fixFrame, 2000);
+    setTimeout(checkFrame, 3500);
+  });
+  $("close").addEventListener("click", closeViewer);
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && $("viewer").classList.contains("on")) closeViewer(); });
+  $("search").addEventListener("input", render);
+  function setView(v){ state.view = v; lsSet("dv_view2", v); render(); }
+  $("vList").addEventListener("click", function(){ setView("list"); });
+  $("vGrid").addEventListener("click", function(){ setView("grid"); });
+  $("storage").checked = lsGet("dv_compat") !== "0";
+  $("storage").addEventListener("change", function(){ lsSet("dv_compat", this.checked ? "1" : "0"); });
+
+  function start(){
+    var key = $("key").value.trim();
+    var folder = parseFolderId($("folder").value) || DEFAULT_FOLDER;
+    if(!/^https?:\/\//i.test(key)){ showError("Enter your Worker address, starting with https://"); return; }
+    key = key.replace(/\/+$/, "");
+    lsSet("dv_worker", key); lsSet("dv_folder", folder);
+    state.key = key; state.cache = {};
+    state.stack = [{id:folder, name:"Folder"}];
+    loadCurrent();
+  }
+  $("save").addEventListener("click", start);
+  $("key").addEventListener("keydown", function(e){ if(e.key==="Enter") start(); });
+
+  $("folder").value = lsGet("dv_folder") || DEFAULT_FOLDER;
+  var saved = lsGet("dv_worker") || DEFAULT_WORKER;
+  $("key").value = saved;
+  start();
+})();
+</script>
 </body>
 </html>
