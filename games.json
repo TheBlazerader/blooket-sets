@@ -129,6 +129,10 @@ superpass
     "file": "games/romloader/rom-loader.html"
   },
   {
+    "name": "SnowSaveTransfer",
+    "file": "games/savetransfer.html"
+  },
+  {
     "name": "Football",
     "file": "games/football.html"
   },
