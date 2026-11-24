@@ -66,6 +66,9 @@
   #mods .row label { color:var(--dim); } #mods .row .val { width:100%; box-sizing:border-box; text-align:right; font:inherit; font-variant-numeric:tabular-nums; color:#fff; background:transparent; border:1px solid transparent; border-radius:4px; padding:1px 3px; }
   #mods .row .val.edit { background:rgba(255,179,0,.14); border-color:rgba(255,179,0,.6); }
   #mods .row input[type=range] { grid-column:1 / 3; width:100%; accent-color:#ffb300; }
+  #mods #modsMe { border-bottom:1px solid rgba(255,255,255,.14); margin-bottom:6px; padding-bottom:2px; }
+  #mods .sub { font-weight:700; color:var(--amber); padding:2px 0 0; } #mods .note { color:var(--dim); font-size:12px; margin:0 0 6px; }
+  #mods .row .bval { text-align:right; color:var(--amber); font-variant-numeric:tabular-nums; }
   #mods .row.bool { grid-template-columns:1fr auto; } #mods .row.bool input { accent-color:#ffb300; width:18px; height:18px; }
   #netBtn { position:fixed; right:358px; top:16px; z-index:12; padding:9px 16px; border-radius:8px; border:1px solid rgba(255,255,255,.3);
     background:var(--panel); backdrop-filter:blur(6px); color:#fff; font:700 14px inherit; font-family:inherit; cursor:pointer; touch-action:manipulation; user-select:none; }
@@ -164,6 +167,7 @@
   <select id="netModel"><option value="ferrari">Ferrari model (same as yours)</option><option value="simple">Simple box car (faster)</option></select>
   <div class="btns"><button id="netJoin">Join</button><button id="netCopy">Copy invite link</button></div>
   <div id="netStatus">Not connected</div>
+  <div id="roomOpts"><label id="ppRow" class="hidden" style="display:flex;gap:8px;align-items:flex-start;color:#fff;font-size:13px;margin-top:12px"><input id="ppBox" type="checkbox" style="margin-top:2px;accent-color:#ffb300"> <span>Let everyone set their own physics <small style="color:var(--dim)">(leader only)</small></span></label><div id="ppNote" style="color:var(--dim);font-size:12px;margin-top:6px"></div></div>
   <div id="raceBox" class="hidden">
     <div class="rh">🏁 Race – the track is south-west of the spawn</div>
     <div class="btns"><select id="raceLaps"><option>1</option><option>2</option><option selected>3</option><option>5</option><option>8</option><option>10</option></select>
@@ -185,10 +189,12 @@
   <b>Drag</b>Orbit camera<br>
   <b>P</b>Mod menu<br>
   <b>L</b>Low-end mode<br>
+  <b>[ ]</b>Brightness<br>
   <b>O</b>Online / race<br>
   <b>C</b>Camera<br>
   <b>V</b>Paint colour<br>
   <b>M</b>Sound on/off<br>
+  <b>N</b>Engine noise on/off<br>
   <b>H</b>Hide this panel<br>
   <span style="color:var(--dim)">In the air: W/S pitch, A/D yaw.</span>
 </div>
@@ -315,13 +321,48 @@ scene.add(hemi);
 /* low-end device mode: drops the expensive rendering features (shadows, sky shader, reflections, tree detail, long view distance, high resolution) */
 const treeMeshes = [];
 const FOG_HIGH = scene.fog, FOG_LOW = new THREE.Fog(0x9ec5ea, 90, 520);
+let brightLow = 1.3, brightHigh = 1.0;                 // brightness multipliers, remembered separately for low-end and normal mode
+try { brightLow = parseFloat(localStorage.getItem('apexBright')) || 1.3; brightHigh = parseFloat(localStorage.getItem('apexBrightHi')) || 1.0; } catch (e) {}
+function applyBrightness() {
+  const low = lowMode, b = low ? brightLow : brightHigh;
+  hemi.intensity = (low ? 1.0 : 0.35) * b; renderer.toneMappingExposure = (low ? 0.8 : 0.55) * b; sun.intensity = 3.2 * Math.pow(b, 0.6);
+  const sl = document.getElementById('brightSlider'); if (sl) sl.value = b;
+  const v = document.getElementById('brightVal'); if (v) v.textContent = Math.round(b * 100) + '%';
+  const rst = document.getElementById('brightRow'); if (rst) rst.title = 'Double-click to reset (' + Math.round((lowMode ? 1.3 : 1.0) * 100) + '%)';
+}
+function setBrightness(x) {
+  x = Math.min(3, Math.max(0.4, x));
+  if (lowMode) brightLow = x; else brightHigh = x;
+  applyBrightness();
+  try { localStorage.setItem(lowMode ? 'apexBright' : 'apexBrightHi', String(x)); } catch (e) {}
+}
+/* Safety net: if the car's centre of mass ends up below a static surface (inside a ramp), pull it back out instead of leaving it stuck */
+let stuckT = 0, stuckChk = 0;
+const _rayRes = new CANNON.RaycastResult(), _rayFrom = new CANNON.Vec3(), _rayTo = new CANNON.Vec3();
+function unstickTick(dt) {
+  stuckChk += dt; if (stuckChk < 0.1) return;
+  const step = stuckChk; stuckChk = 0;
+  const p = chassis.position;
+  _rayFrom.set(p.x, p.y + 40, p.z); _rayTo.set(p.x, p.y, p.z); _rayRes.reset();
+  const keepResp = chassis.collisionResponse; chassis.collisionResponse = false;   // the ray must ignore the car's own body
+  const hit = world.raycastClosest(_rayFrom, _rayTo, { skipBackfaces: true }, _rayRes);
+  chassis.collisionResponse = keepResp;
+  const under = hit && _rayRes.body && _rayRes.body.mass === 0 && _rayRes.body !== chassis && _rayRes.hitPointWorld.y > p.y + 0.15;
+  stuckT = under ? stuckT + step : 0;
+  if (stuckT >= 0.35) {
+    const topY = _rayRes.hitPointWorld.y; stuckT = 0;
+    spawnAt(p.x, p.z, headingOf(), topY + 1.0); repairCar(false); camSnap = true;
+    toast('Pulled out of the scenery', 1800);
+  }
+}
+function currentBrightness() { return lowMode ? brightLow : brightHigh; }
 function applyQuality(low) {
   renderer.shadowMap.enabled = !low; sun.castShadow = !low;
   renderer.setPixelRatio(low ? Math.min(window.devicePixelRatio || 1, 1) * 0.8 : Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(innerWidth, innerHeight);
   sky.visible = !low; scene.background = low ? new THREE.Color(0x9ec5ea) : null;
   scene.environment = low ? null : envTex;
-  hemi.intensity = low ? 1.0 : 0.35; renderer.toneMappingExposure = low ? 0.8 : 0.55;
+  applyBrightness();
   scene.fog = low ? FOG_LOW : FOG_HIGH;
   camera.far = low ? 1500 : 6000; camera.updateProjectionMatrix();
   treeMeshes.forEach(m => {                              // trees stay (they have collision) but use fewer polygons in low-end mode
@@ -425,10 +466,12 @@ function geometryFromConvex(verts, faces, uvScale = 0.25) {
   g.computeVertexNormals();
   return g;
 }
-function addPrism(profile, hw, x, z, yaw, material, y0 = 0) {
-  const { verts, faces } = prismFromProfile(profile, hw);
+const DEEP = 4;   // collision solids reach well below the ground, so a car that bottoms out is always pushed up and out, never down into a thin wedge
+function addPrism(profile, hw, x, z, yaw, material, y0 = 0, physProfile = null) {
+  const vis = prismFromProfile(profile, hw), ph = physProfile ? prismFromProfile(physProfile, hw) : vis;
+  const verts = vis.verts, faces = vis.faces;
   const body = new CANNON.Body({ mass: 0, material: mGround });
-  body.addShape(new CANNON.ConvexPolyhedron({ vertices: verts, faces }));
+  body.addShape(new CANNON.ConvexPolyhedron({ vertices: ph.verts, faces: ph.faces }));
   body.position.set(x, y0, z); body.quaternion.setFromEuler(0, yaw, 0);
   world.addBody(body);
   const mesh = new THREE.Mesh(geometryFromConvex(verts, faces), material);
@@ -436,12 +479,13 @@ function addPrism(profile, hw, x, z, yaw, material, y0 = 0) {
   scene.add(mesh);
 }
 const SINK = 0.2;   // wedges are sunk below ground so their thin edge is flush with the road
-function addRamp(x, z, yaw, L, H, hw, mat) { addPrism([[0, -SINK], [L, -SINK], [L, H]], hw, x, z, yaw, mat); }
+function addRamp(x, z, yaw, L, H, hw, mat) { addPrism([[0, -SINK], [L, -SINK], [L, H]], hw, x, z, yaw, mat, 0, [[0, -SINK], [L, H], [L, -DEEP], [0, -DEEP]]); }
 function addQuarterPipe(x, z, yaw, R, hw, mat, segs = 14) {
   const pts = [];
   for (let i = 0; i <= segs; i++) { const a = (i / segs) * Math.PI / 2; pts.push([R * Math.sin(a), R * (1 - Math.cos(a))]); }
   for (let i = 0; i < segs; i++)
-    addPrism([[pts[i][0], pts[i][1]], [pts[i + 1][0], pts[i + 1][1]], [pts[i + 1][0], -SINK], [pts[i][0], -SINK]], hw, x, z, yaw, mat);
+    addPrism([[pts[i][0], pts[i][1]], [pts[i + 1][0], pts[i + 1][1]], [pts[i + 1][0], -SINK], [pts[i][0], -SINK]], hw, x, z, yaw, mat, 0,
+      [[pts[i][0], pts[i][1]], [pts[i + 1][0], pts[i + 1][1]], [pts[i + 1][0], -DEEP], [pts[i][0], -DEEP]]);
 }
 
 /* instanced dynamic objects (crates, cones) */
@@ -599,7 +643,7 @@ function buildArena() {
   addRamp(160, -50, Math.PI, 14, 2.6, 5, rampMat);
 
   /* 3. Whoops (rumble humps) in the lot */
-  for (let i = 0; i < 10; i++) addPrism([[0, -SINK], [4.5, -SINK], [2.25, 0.7]], 7, 22 + i * 7, 40, 0, rampMat);
+  for (let i = 0; i < 10; i++) addPrism([[0, -SINK], [4.5, -SINK], [2.25, 0.7]], 7, 22 + i * 7, 40, 0, rampMat, 0, [[0, -SINK], [2.25, 0.7], [4.5, -SINK], [4.5, -DEEP], [0, -DEEP]]);
 
   /* 4. Big hill with a platform to drive over */
   addRamp(0, 95, 0, 44, 9, 9, rampMat);
@@ -902,12 +946,15 @@ addEventListener('keydown', e => {
       case 'KeyR': uprightHere(); break;
       case 'KeyP': toggleMods(); break;
       case 'KeyL': toggleLowEnd(); break;
+      case 'BracketLeft': setBrightness(currentBrightness() - 0.1); toast('Brightness ' + Math.round(currentBrightness() * 100) + '%', 700); break;
+      case 'BracketRight': setBrightness(currentBrightness() + 0.1); toast('Brightness ' + Math.round(currentBrightness() * 100) + '%', 700); break;
       case 'KeyO': toggleNet(); break;
       case 'KeyF': repairCar(true); break;
       case 'Enter': case 'Backspace': resetToSpawn(); break;
       case 'KeyC': camMode = (camMode + 1) % 3; camSnap = true; toast(['Chase camera', 'Far camera', 'Hood camera'][camMode]); break;
       case 'KeyV': colorIdx = (colorIdx + 1) % CAR_COLORS.length; carMaterials.body.color.setHex(CAR_COLORS[colorIdx]); break;
       case 'KeyM': muted = !muted; toast(muted ? 'Sound off' : 'Sound on'); break;
+      case 'KeyN': setEngineMuted(!engineMuted, true); break;
       case 'KeyH': $('help').classList.toggle('hidden'); break;
     }
   }
@@ -1006,6 +1053,7 @@ function applyControls(dt) {
     let force = mag * sgn * (front ? TUNE.engineFront : TUNE.engineRear);
     let brake = brk * brakeBase * (front ? 1.25 : 0.75);
     if (force !== 0) brake = 0;
+    if (wheelGone[i]) { force = 0; brake = 0; }
     vehicle.applyEngineForce(calib.drive * force, i);
     vehicle.setBrake(brake, i);
     const wi = vehicle.wheelInfos[i];
@@ -1072,6 +1120,14 @@ function trackAirtime(dt) {
 
 /* ------------------------------------------------------------------ audio (tiny synthesised engine) */
 let actx = null, eng = null, muted = false;
+let engineMuted = false;                               // personal setting: silences only the motor / rev noise (crash sounds stay)
+try { engineMuted = localStorage.getItem('apexEngMute') === '1'; } catch (e) {}
+function setEngineMuted(on, announce) {
+  engineMuted = !!on;
+  try { localStorage.setItem('apexEngMute', engineMuted ? '1' : '0'); } catch (e) {}
+  const cb = document.getElementById('engMute'); if (cb) cb.checked = engineMuted;
+  if (announce) toast(engineMuted ? 'Engine noise off' : 'Engine noise on', 1000);
+}
 function initAudio() {
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
   try {
@@ -1085,7 +1141,7 @@ function initAudio() {
 function updateAudio(rpm, thr) {
   if (!eng) return;
   const t = actx.currentTime;
-  if (muted) { eng.g.gain.setTargetAtTime(0, t, 0.05); return; }
+  if (muted || engineMuted) { eng.g.gain.setTargetAtTime(0, t, 0.05); return; }
   const f = 36 + rpm * 150;
   eng.o1.frequency.setTargetAtTime(f, t, 0.05); eng.o2.frequency.setTargetAtTime(f * 0.5, t, 0.05);
   eng.lp.frequency.setTargetAtTime(450 + rpm * 1700 + thr * 700, t, 0.08);
@@ -1192,6 +1248,7 @@ function processCrashes() {
   crashQueue.sort((a, b) => b.sev - a.sev);
   const list = crashQueue.splice(0, crashQueue.length).slice(0, 4);
   for (const q of list) handleCrash(q);
+  checkWheels();
 }
 function handleCrash(q) {
   if (q.vertical && q.sev < 6) return;                                // ordinary landings and respawn drops are free
@@ -1213,13 +1270,75 @@ function handleCrash(q) {
   playCrash(q.sev);
   if (damage > 0.6 && !damageWarned) { damageWarned = true; toast('Heavy damage! Press F to repair', 2600); }
 }
+
+/* ------------------------------------------------------------------ wheels that fall off after heavy damage */
+const wheelGone = [false, false, false, false];
+const MOUNT_R = 0.95;                                   // metres around the hub that count as "the wheel's mounting area"
+let mounts = null;
+function buildMounts() {
+  carRoot.updateMatrixWorld(true); _carInv.copy(carRoot.matrixWorld).invert();
+  const minD0 = [1e9, 1e9, 1e9, 1e9];
+  const list = deformables.map(mesh => {
+    const M = new THREE.Matrix4().multiplyMatrices(_carInv, mesh.matrixWorld), e = M.elements.slice(), o = mesh.userData.dm.orig, lists = [[], [], [], []];
+    for (let i = 0; i < o.length; i += 3) {
+      const x = e[0] * o[i] + e[4] * o[i + 1] + e[8] * o[i + 2] + e[12], y = e[1] * o[i] + e[5] * o[i + 1] + e[9] * o[i + 2] + e[13], z = e[2] * o[i] + e[6] * o[i + 1] + e[10] * o[i + 2] + e[14];
+      for (let w = 0; w < 4; w++) { const h = rigs[w].rest, d = Math.hypot(x - h.x, y - h.y, z - h.z); if (d < MOUNT_R) { lists[w].push(i); if (d < minD0[w]) minD0[w] = d; } }
+    }
+    return { mesh, e, lists: lists.map(a => Uint32Array.from(a)) };
+  });
+  mounts = { list, minD0 };
+}
+function wheelIntegrity(w) {                            // how far has the bodywork around this wheel been pushed out of place?
+  let n = 0, sum = 0, minD = 1e9; const h = rigs[w].rest;
+  for (const m of mounts.list) {
+    const L = m.lists[w]; if (!L.length) continue;
+    const pos = m.mesh.geometry.attributes.position.array, o = m.mesh.userData.dm.orig, e = m.e;
+    for (let k = 0; k < L.length; k++) {
+      const i = L[k], lx = pos[i], ly = pos[i + 1], lz = pos[i + 2];
+      const dx = lx - o[i], dy = ly - o[i + 1], dz = lz - o[i + 2];
+      const mx = e[0] * dx + e[4] * dy + e[8] * dz, my = e[1] * dx + e[5] * dy + e[9] * dz, mz = e[2] * dx + e[6] * dy + e[10] * dz;
+      sum += Math.sqrt(mx * mx + my * my + mz * mz); n++;
+      const x = e[0] * lx + e[4] * ly + e[8] * lz + e[12], y = e[1] * lx + e[5] * ly + e[9] * lz + e[13], z = e[2] * lx + e[6] * ly + e[10] * lz + e[14];
+      const d = Math.hypot(x - h.x, y - h.y, z - h.z); if (d < minD) minD = d;
+    }
+  }
+  return n ? { mean: sum / n, gap: minD - mounts.minD0[w] } : { mean: 0, gap: 0 };
+}
+function checkWheels() {                                // called after crashes: a wheel whose mounting area is crushed or torn away drops off
+  if (damage < 0.3 || !rigs.length) return;
+  if (!mounts) buildMounts();
+  for (let w = 0; w < 4; w++) {
+    if (wheelGone[w]) continue;
+    const r = wheelIntegrity(w);
+    if (r.mean > 0.2 || r.gap > 0.3) detachWheel(w);
+  }
+}
+function detachWheel(i) {
+  if (wheelGone[i]) return;
+  wheelGone[i] = true;
+  const r = rigs[i], wp = new THREE.Vector3(), wq = new THREE.Quaternion();
+  r.spinner.getWorldPosition(wp); r.spinner.getWorldQuaternion(wq);
+  r.pivot.visible = false; applyMods();                 // that corner now has no suspension and no grip
+  const side = Math.sign(r.rest.z) || 1, out = chassis.quaternion.vmult(new CANNON.Vec3(0, 0, side)), cv = chassis.velocity;
+  const w = chassis.quaternion.vmult(new CANNON.Vec3(0, 0, -r.rate));
+  const it = { p: [r2(wp.x), r2(wp.y), r2(wp.z)], q: [r3(wq.x), r3(wq.y), r3(wq.z), r3(wq.w)], v: [r2(cv.x + out.x * 3), r2(cv.y + 2.5), r2(cv.z + out.z * 3)],
+    w: [r2(w.x + chassis.angularVelocity.x), r2(w.y + chassis.angularVelocity.y), r2(w.z + chassis.angularVelocity.z)] };
+  if (MP.joined && MP.ws && MP.ws.readyState === 1) MP.ws.send(JSON.stringify({ t: 'wh', it }));
+  else createSummon('wheel', SUMMON.localSid++, it.p, it.q, undefined, it.v, it.w);
+  toast('🛞 A wheel fell off!', 2400);
+}
+function restoreWheels() {
+  if (!wheelGone.some(Boolean)) return;
+  wheelGone.fill(false); rigs.forEach(r => { r.pivot.visible = true; }); applyMods();
+}
+
 function repairCar(announce) {
   for (const mesh of deformables) {
     const g = mesh.geometry, dm = mesh.userData.dm;
     g.attributes.position.array.set(dm.orig); g.attributes.position.needsUpdate = true;
     if (dm.normOrig && g.attributes.normal) { g.attributes.normal.array.set(dm.normOrig); g.attributes.normal.needsUpdate = true; }
   }
-  damage = 0; damageWarned = false; shake = 0; wheelToe.fill(0); crashQueue.length = 0;
+  damage = 0; damageWarned = false; shake = 0; wheelToe.fill(0); crashQueue.length = 0; restoreWheels();
   if (announce) toast('Car repaired');
 }
 function playCrash(sev) {
@@ -1350,9 +1469,10 @@ function applyMods() {
   if (!chassis || !vehicle) return;
   chassis.mass = TUNE.mass; chassis.invMass = 1 / TUNE.mass; chassis.angularDamping = TUNE.angDamp;
   const dRest = TUNE.rest - appliedRest; appliedRest = TUNE.rest;
-  vehicle.wheelInfos.forEach(w => {
-    w.suspensionStiffness = TUNE.stiffness; w.suspensionRestLength = TUNE.rest; w.maxSuspensionTravel = TUNE.travel;
-    w.dampingRelaxation = TUNE.relax; w.dampingCompression = TUNE.comp; w.rollInfluence = TUNE.roll;
+  vehicle.wheelInfos.forEach((w, wi) => {
+    const gone = wheelGone[wi];                                         // a lost wheel gives no support, no grip, no drive
+    w.suspensionStiffness = gone ? 0 : TUNE.stiffness; w.suspensionRestLength = TUNE.rest; w.maxSuspensionTravel = TUNE.travel;
+    w.dampingRelaxation = gone ? 0 : TUNE.relax; w.dampingCompression = gone ? 0 : TUNE.comp; w.rollInfluence = TUNE.roll;
     if (dRest) w.chassisConnectionPointLocal.y += dRest;
   });
 }
@@ -1362,6 +1482,20 @@ function buildMods() {
   const head = document.createElement('div'); head.className = 'mh';
   head.innerHTML = '<span>⚙ Mod menu</span><span><button data-a="close">Close</button></span>';
   root.appendChild(head);
+  const me = document.createElement('div'); me.id = 'modsMe';
+  me.innerHTML = '<div class="sub">Just for you</div><div class="note">Only affects your screen and sound. The room leader cannot change these.</div>' +
+    '<div class="row" id="brightRow"><label for="brightSlider">☀ Brightness</label><span class="bval" id="brightVal">100%</span>' +
+    '<input id="brightSlider" type="range" min="0.4" max="3" step="0.05"></div>' +
+    '<div class="row bool"><label for="engMute">Mute engine / rev noise</label><input id="engMute" type="checkbox"></div>';
+  root.appendChild(me);
+  const bs = me.querySelector('#brightSlider');
+  bs.value = currentBrightness();
+  bs.addEventListener('input', () => setBrightness(parseFloat(bs.value)));
+  ['change', 'pointerup'].forEach(ev => bs.addEventListener(ev, () => bs.blur()));   // keep arrow keys / space for driving
+  me.querySelector('#brightRow').addEventListener('dblclick', () => setBrightness(lowMode ? 1.3 : 1.0));
+  const em = me.querySelector('#engMute'); em.checked = engineMuted;
+  em.addEventListener('change', () => { setEngineMuted(em.checked, false); em.blur(); });
+  applyBrightness();
   const note = document.createElement('div'); note.id = 'modsNote'; note.className = 'hidden'; note.textContent = '🔒 Only the room leader can change the car physics.'; root.appendChild(note);
   const phys = document.createElement('div'); phys.id = 'modsPhys'; root.appendChild(phys);
   const pre = document.createElement('div'); pre.className = 'pre';
@@ -1425,19 +1559,36 @@ const SUMMON_KINDS = {
   cone: { label: 'Cone', mass: 3, gap: 1.0, geo: () => new THREE.ConeGeometry(0.3, 0.7, 14), shape: () => new CANNON.Box(new CANNON.Vec3(.22, .35, .22)), mat: () => coneMatG },
   ball: { label: 'Big ball', mass: 25, gap: 3.0, geo: () => new THREE.SphereGeometry(1.2, 20, 14), shape: () => new CANNON.Sphere(1.2),
     mat: () => ballMat || (ballMat = new THREE.MeshStandardMaterial({ color: 0x3aa0ff, roughness: 0.35, metalness: 0.2 })) },
+  wheel: { label: 'Wheel', mass: 18, gap: 2, hidden: true,
+    visual: () => {
+      const R = CAR_RADIUS || 0.36, g = new THREE.Group();
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.3, 20), new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.9 }));
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.62, R * 0.62, 0.32, 16), new THREE.MeshStandardMaterial({ color: 0xc8ccd2, roughness: 0.35, metalness: 0.85 }));
+      tire.rotation.x = rim.rotation.x = Math.PI / 2; tire.castShadow = true; g.add(tire, rim); return g;
+    },
+    shape: () => {
+      const R = CAR_RADIUS || 0.36, sh = new CANNON.Cylinder(R, R, 0.3, 14), ext = [0, 0, 0];
+      for (let a = 0; a < 3; a++) { let lo = 1e9, hi = -1e9; sh.vertices.forEach(v => { const c = a === 0 ? v.x : a === 1 ? v.y : v.z; lo = Math.min(lo, c); hi = Math.max(hi, c); }); ext[a] = hi - lo; }
+      const axis = ext.indexOf(Math.min(...ext)), q = new CANNON.Quaternion();   // the thin axis is the cylinder axis; turn it onto the axle (local z)
+      if (axis === 1) q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2); else if (axis === 0) q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -Math.PI / 2);
+      return { shape: sh, off: new CANNON.Vec3(), q };
+    } },
   heavy: { label: 'Heavy block', mass: 900, gap: 2.6, geo: () => new THREE.BoxGeometry(1.8, 1.8, 1.8), shape: () => new CANNON.Box(new CANNON.Vec3(.9, .9, .9)),
     mat: () => heavyMat || (heavyMat = new THREE.MeshStandardMaterial({ color: 0x555a63, roughness: 0.5, metalness: 0.7 })) }
 };
-function createSummon(kind, sid, p, q, by) {
+function createSummon(kind, sid, p, q, by, v, w) {
   const K = SUMMON_KINDS[kind]; if (!K || SUMMON.map.has(sid)) return;
   const b = new CANNON.Body({ mass: K.mass, material: mCrate, allowSleep: true, sleepSpeedLimit: 0.35, sleepTimeLimit: 0.6 });
-  b.addShape(K.shape()); b.position.set(p[0], p[1], p[2]); b.quaternion.set(q[0], q[1], q[2], q[3]);
+  const sh = K.shape(); if (sh.shape) b.addShape(sh.shape, sh.off, sh.q); else b.addShape(sh);
+  b.position.set(p[0], p[1], p[2]); b.quaternion.set(q[0], q[1], q[2], q[3]);
+  if (v) b.velocity.set(v[0], v[1], v[2]); if (w) b.angularVelocity.set(w[0], w[1], w[2]);
   b.linearDamping = 0.05; b.angularDamping = 0.1; b.mpId = 1000 + sid; world.addBody(b);
-  const mesh = new THREE.Mesh(K.g || (K.g = K.geo()), K.mat()); mesh.castShadow = mesh.receiveShadow = true;
+  const mesh = K.visual ? K.visual() : new THREE.Mesh(K.g || (K.g = K.geo()), K.mat()); if (!K.visual) mesh.castShadow = mesh.receiveShadow = true;
   mesh.position.set(p[0], p[1], p[2]); mesh.quaternion.set(q[0], q[1], q[2], q[3]); scene.add(mesh);
-  SUMMON.map.set(sid, { b, mesh }); SUMMON.order.push(sid);
+  SUMMON.map.set(sid, { b, mesh, kind }); SUMMON.order.push(sid);
+  if (kind === 'wheel') { const ws = SUMMON.order.filter(x => SUMMON.map.get(x).kind === 'wheel'); while (ws.length > 10) removeSummon(ws.shift()); }   // at most 10 loose wheels in the world
   if (by !== undefined) { MP.owner[b.mpId] = by; MP.seqs[b.mpId] = 1; if (by === MP.id) MP.owned.add(b.mpId); }   // the summoner simulates it first
-  while (SUMMON.order.length > 40) removeSummon(SUMMON.order[0]);
+  while (SUMMON.order.length > 40) removeSummon(SUMMON.order[0]);   // (wheels count towards this too)
 }
 function removeSummon(sid) {
   const e = SUMMON.map.get(sid); if (!e) return;
@@ -1479,7 +1630,7 @@ function buildAdmin(root) {
         '<div class="ab"><select id="admTarget"></select><input id="admStr" type="text" value="45" title="Fling speed (m/s)"><button id="admFling">Fling</button></div>' +
         '<div class="ab"><button id="admPhysAll">Set my physics for everyone</button></div></div>' +
       '<div class="as">Summon in front of you</div>' +
-      '<div class="ab"><select id="admKind">' + Object.keys(SUMMON_KINDS).map(k => '<option value="' + k + '">' + SUMMON_KINDS[k].label + '</option>').join('') + '</select>' +
+      '<div class="ab"><select id="admKind">' + Object.keys(SUMMON_KINDS).filter(k => !SUMMON_KINDS[k].hidden).map(k => '<option value="' + k + '">' + SUMMON_KINDS[k].label + '</option>').join('') + '</select>' +
         '<input id="admAmt" type="text" value="3" title="How many (1-12)"><button id="admSummon">Summon</button><button id="admClear">Clear</button></div>' +
     '</div>';
   root.appendChild(d);
@@ -1500,7 +1651,7 @@ function buildAdmin(root) {
     if (to === 'me') flingMe(s); else if (MP.ws && MP.ws.readyState === 1) MP.ws.send(JSON.stringify({ t: 'fl', to, s }));
     e.currentTarget.blur();
   });
-  g('admPhysAll').addEventListener('click', e => { if (canAdmin() && MP.joined) { pushPhys(); toast('Your physics were sent to everyone', 1500); } e.currentTarget.blur(); });
+  g('admPhysAll').addEventListener('click', e => { if (canAdmin() && MP.joined) { pushPhys(true); toast('Your physics were sent to everyone', 1500); } e.currentTarget.blur(); });
   g('admSummon').addEventListener('click', e => {
     if (!canAdmin() || !chassis) return;
     const kind = g('admKind').value, n = Math.max(1, Math.min(12, parseInt(g('admAmt').value, 10) || 1)), items = summonItems(kind, n);
@@ -1581,7 +1732,7 @@ function cullTick(now) {
    Every player simulates their own car locally. We send our car 10x per second, other cars are drawn ~150 ms in the past and interpolated.
    Other cars are also kinematic bodies in the physics world, so you can bump into each other. Crates and cones are shared by "ownership":
    whoever touches a prop last simulates it and broadcasts its state (a sequence number settles conflicts). */
-const MP = { ws: null, id: null, leader: null, racingRemote: false, adminOpen: false, joined: false, room: '', name: 'Driver', peers: new Map(), lastSend: 0, lastCrate: 0, owner: [], seqs: [], owned: new Set(), lastColor: -1 };
+const MP = { ws: null, id: null, leader: null, racingRemote: false, adminOpen: false, perPlayer: false, joined: false, room: '', name: 'Driver', peers: new Map(), lastSend: 0, lastCrate: 0, owner: [], seqs: [], owned: new Set(), lastColor: -1 };
 const DEFAULT_SERVER = 'https://apex-arena.pfeiferblaise.workers.dev/';
 let dynList = null;
 function getDyn() { if (!dynList) { dynList = dynamicGroups.flatMap(g => g.bodies); dynList.forEach((b, i) => { b.mpId = i; }); } return dynList; }
@@ -1710,7 +1861,7 @@ function netTick(now) {
     MP.lastSend = now; MP.lastColor = colorIdx;
     const p = chassis.position, q = chassis.quaternion, v = chassis.velocity;
     MP.ws.send(JSON.stringify({ t: 's', p: [r2(p.x), r2(p.y), r2(p.z)], q: [r3(q.x), r3(q.y), r3(q.z), r3(q.w)], v: [r2(v.x), r2(v.y), r2(v.z)],
-      st: r2(vehicle.wheelInfos[0].steering), c: colorIdx }));
+      st: r2(vehicle.wheelInfos[0].steering), c: colorIdx, wg: (wheelGone[0] ? 1 : 0) | (wheelGone[1] ? 2 : 0) | (wheelGone[2] ? 4 : 0) | (wheelGone[3] ? 8 : 0) }));
   }
   if (MP.owned.size && now - MP.lastCrate >= 100) { MP.lastCrate = now; sendCrates(); }
 }
@@ -1744,7 +1895,7 @@ function updatePeers(dt) {
     _fw.set(1, 0, 0).applyQuaternion(_qa);
     const fs = mx === null ? (vx * _fw.x + vy * _fw.y + vz * _fw.z) : (mx * _fw.x + my * _fw.y + mz * _fw.z);
     pr.spin += fs / 0.36 * dt;
-    pr.vis.wheels.forEach(w => { if (w.front) w.pivot.rotation.y = st; w.spinner.rotation.z = -pr.spin; });
+    pr.vis.wheels.forEach((w, wi) => { if (w.front) w.pivot.rotation.y = st; w.spinner.rotation.z = -pr.spin; w.pivot.visible = !((pr.wg >> wi) & 1); });
   });
 }
 
@@ -1754,9 +1905,10 @@ function mpMessage(ev) {
     case 'w':
       MP.id = m.id; MP.leader = m.leader; MP.racingRemote = !!m.racing; MP.joined = true; MP.lastColor = -1;
       (m.players || []).forEach(p => addPeer(p.id, p.name, p.ci));
-      MP.adminOpen = !!m.adminOpen; clearSummons(); (m.summons || []).forEach(x => createSummon(x.kind, x.sid, x.p, x.q));
+      MP.adminOpen = !!m.adminOpen; MP.perPlayer = !!m.perPlayer; clearSummons(); (m.summons || []).forEach(x => createSummon(x.kind, x.sid, x.p, x.q));
       (m.crates || []).forEach(c => applyCrate(c, ''));
-      if (MP.leader === MP.id) mpSendPhys(true); else applyPhys(m.phys || TUNE_DEFAULT);          // the leader's physics settings rule the room
+      if (MP.leader === MP.id) mpSendPhys(true); else applyPhys(m.phys || TUNE_DEFAULT);          // (with per-player physics you start with the room's values and may then change them)
+               // the leader's physics settings rule the room
       setNet('Connected to room “' + MP.room + '” – ' + (MP.peers.size + 1) + ' in room'); updateNetBtn(); renderPlayers(); lockMods(); updateRaceUi();
       toast('Joined room “' + MP.room + '”', 1800); break;
     case 'j': addPeer(m.id, m.name, m.ci); toast((m.name || 'Someone') + ' joined', 1500); break;
@@ -1764,15 +1916,17 @@ function mpMessage(ev) {
     case 's': {
       const p = MP.peers.get(m.i); if (!p || !m.p || !m.q || !m.v) return;
       if (m.c !== undefined && m.c !== p.ci) { p.ci = m.c; p.vis.paint.color.setHex(CAR_COLORS[m.c % CAR_COLORS.length]); renderPlayers(); }
+      p.wg = m.wg | 0;
       p.snaps.push({ t: performance.now(), p: m.p, q: m.q, v: m.v, st: m.st || 0 }); if (p.snaps.length > 30) p.snaps.shift(); break;
     }
     case 'k': (m.c || []).forEach(c => applyCrate(c, m.i)); break;
     case 'full': setNet('That room is full (8 players max)'); break;
     case 'ld': MP.leader = m.id; if (m.id === MP.id) toast('You are now the room leader', 2200); renderPlayers(); lockMods(); updateRaceUi(); break;
-    case 'ph': applyPhys(m.v); break;
+    case 'ph': if (!MP.perPlayer || m.f) applyPhys(m.v); break;          // forced pushes (admin) always apply
+    case 'pp': MP.perPlayer = !!m.on; toast(MP.perPlayer ? 'Everyone can now set their own physics' : 'Physics are controlled by the room leader again', 2400); if (isLeader() && !MP.perPlayer) mpSendPhys(true); lockMods(); updateRaceUi(); break;
     case 'am': MP.adminOpen = !!m.open; toast(MP.adminOpen ? 'Admin menu enabled for everyone' : 'Admin menu restricted to the leader', 2000); updateAdminUi(); lockMods(); break;
     case 'fl': flingMe(+m.s || 45); break;
-    case 'sm': (m.items || []).forEach(it => createSummon(m.kind, it.sid, it.p, it.q, m.by)); break;
+    case 'sm': (m.items || []).forEach(it => createSummon(m.kind, it.sid, it.p, it.q, m.by, it.v, it.w)); break;
     case 'sc': clearSummons(); break;
     case 'rs': MP.racingRemote = true; startRace(m); break;
     case 'rp': race.prog[m.i] = { lap: m.lap, cp: m.cp, tm: m.tm }; break;
@@ -1787,14 +1941,14 @@ const PHYS_KEYS = MOD_GROUPS.flatMap(g => g[1].map(it => it[0]));
 let physTimer = 0;
 function isLeader() { return MP.joined && MP.leader === MP.id; }
 function mpSendPhys(now) {
-  if (!isLeader()) return;
+  if (!isLeader() || MP.perPlayer) return;                // with per-player physics everybody keeps their own settings
   clearTimeout(physTimer);
-  physTimer = setTimeout(pushPhys, now ? 0 : 120);
+  physTimer = setTimeout(() => pushPhys(false), now ? 0 : 120);
 }
-function pushPhys() {                                  // send my physics settings to everybody in the room
+function pushPhys(force) {                             // send my physics settings to everybody in the room
   if (!MP.ws || MP.ws.readyState !== 1) return;
   const v = {}; PHYS_KEYS.forEach(k => { v[k] = TUNE[k]; });
-  MP.ws.send(JSON.stringify({ t: 'ph', v }));
+  MP.ws.send(JSON.stringify({ t: 'ph', v, f: force ? 1 : 0 }));
 }
 function applyPhys(v) {
   if (!v) return;
@@ -1802,7 +1956,7 @@ function applyPhys(v) {
   applyMods();
 }
 function lockMods() {
-  const locked = MP.joined && !isLeader() && !canAdmin(), root = $('mods'), note = $('modsNote');
+  const locked = MP.joined && !isLeader() && !canAdmin() && !MP.perPlayer, root = $('mods'), note = $('modsNote');
   if (note) note.classList.toggle('hidden', !locked);
   root.querySelectorAll('#modsPhys input, #modsPhys .pre button').forEach(el => { el.disabled = locked; });
 }
@@ -1907,8 +2061,11 @@ function updateRaceUi() {
   $('raceBox').classList.toggle('hidden', !MP.joined);
   const leader = isLeader(), busy = race.active || MP.racingRemote;
   $('raceStart').disabled = !leader || busy; $('raceStop').disabled = !leader || !busy; $('raceLaps').disabled = !leader || busy;
+  $('ppRow').classList.toggle('hidden', !leader); $('ppBox').checked = MP.perPlayer;
+  $('ppNote').textContent = leader ? '' : (MP.perPlayer ? 'Per-player physics is ON: you can set your own physics in the mod menu.' : '');
   $('raceNote').textContent = busy ? 'A race is in progress…' : leader ? 'You are the room leader (👑): you start races and set the car physics in the mod menu.' : 'Only the room leader (👑) can start races and change car physics.';
 }
+$('ppBox').addEventListener('change', e => { if (MP.ws && isLeader()) MP.ws.send(JSON.stringify({ t: 'pp', on: e.target.checked ? 1 : 0 })); e.target.blur(); });
 $('raceStart').addEventListener('click', e => { if (MP.ws && isLeader()) MP.ws.send(JSON.stringify({ t: 'rc', a: 'start', laps: +$('raceLaps').value })); e.currentTarget.blur(); });
 $('raceStop').addEventListener('click', e => { if (MP.ws && isLeader()) MP.ws.send(JSON.stringify({ t: 'rc', a: 'stop' })); e.currentTarget.blur(); });
 
@@ -1934,7 +2091,7 @@ function serverBase() {
 function mpLeave() {
   const ws = MP.ws; MP.ws = null; MP.joined = false; MP.id = null;
   if (ws) { ws.onclose = ws.onmessage = ws.onerror = null; try { ws.close(); } catch (e) {} }
-  [...MP.peers.keys()].forEach(removePeer); MP.leader = null; MP.racingRemote = false; MP.adminOpen = false; clearSummons();
+  [...MP.peers.keys()].forEach(removePeer); MP.leader = null; MP.racingRemote = false; MP.adminOpen = false; MP.perPlayer = false; clearSummons();
   MP.owner = []; MP.seqs = []; MP.owned.clear(); renderPlayers(); updateNetBtn(); race.active = race.lock = false; setNextGate(-1);
   $('raceHud').classList.add('hidden'); $('raceCount').classList.remove('show'); lockMods(); updateRaceUi();
 }
@@ -1998,6 +2155,7 @@ function frame(now) {
 
   const p = chassis.position;
   if (!isFinite(p.x + p.y + p.z) || p.y < -30) { spawnAt(0, 0, 0); camSnap = true; }
+  else unstickTick(dt);
 
   syncCar(dt);
   processCrashes();
