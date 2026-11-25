@@ -68,7 +68,7 @@
   <div class="keybox" id="keybox">
     <p>Paste the address of your Cloudflare Worker. It only fetches the folder list and file text; everything you open still shows inside this page.</p>
     <div class="row">
-      <input id="key" type="text" placeholder="https://drived.blaisepfeifer.workers.dev" autocomplete="off" spellcheck="false">
+      <input id="key" type="text" placeholder="https://fulldrive.meisjanky.workers.dev" autocomplete="off" spellcheck="false">
       <button class="btn" id="save">Load folder</button>
     </div>
     <div class="row" style="margin-top:8px">
@@ -94,7 +94,7 @@
 
 <script>
 (function(){
-  var DEFAULT_WORKER = "https://drived.blaisepfeifer.workers.dev";
+  var DEFAULT_WORKER = "https://fulldrive.meisjanky.workers.dev";
   var DEFAULT_FOLDER = "1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T";
     var $ = function(id){ return document.getElementById(id); };
 
@@ -309,7 +309,7 @@
     var folder = parseFolderId($("folder").value) || DEFAULT_FOLDER;
     if(!/^https?:\/\//i.test(key)){ showError("Enter your Worker address, starting with https://"); return; }
     key = key.replace(/\/+$/, "");
-    lsSet("dv_worker", key); lsSet("dv_folder", folder);
+    lsSet("dv_worker2", key); lsSet("dv_folder", folder);
     state.key = key; state.cache = {};
     state.stack = [{id:folder, name:"Folder"}];
     loadCurrent();
@@ -318,7 +318,7 @@
   $("key").addEventListener("keydown", function(e){ if(e.key==="Enter") start(); });
 
   $("folder").value = lsGet("dv_folder") || DEFAULT_FOLDER;
-  var saved = lsGet("dv_worker") || DEFAULT_WORKER;
+  var saved = lsGet("dv_worker2") || DEFAULT_WORKER;
   $("key").value = saved;
   start();
 })();
