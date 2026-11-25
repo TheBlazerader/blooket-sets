@@ -62,7 +62,23 @@
   .items.grid .cell .newtab{top:auto;bottom:6px;transform:none;right:8px}
   .items.grid .cell .item .name{min-height:46px;display:flex;align-items:center}
   .items.grid .cell.has-tab .item .name{padding-right:52px}
-  #viewer{position:fixed;inset:0;background:#fff;display:none}
+
+  [hidden]{display:none !important}
+  .sech{font-size:1.05rem;font-weight:600;margin:10px 0 10px}
+  .savetab{position:absolute;top:50%;right:52px;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer;padding:0}
+  .savetab:hover{color:var(--accent);border-color:var(--accent)}
+  .savetab.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+  .savetab.busy{opacity:.45;pointer-events:none}
+  .savetab svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .cell.has-tab.has-save .item{padding-right:98px}
+  .items.grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .items.grid .cell .savetab{top:auto;bottom:6px;transform:none;right:50px}
+  .items.grid .cell.has-tab.has-save .item{padding-right:0}
+  .items.grid .cell.has-tab.has-save .item .name{padding-right:94px}
+  #savedWrap{margin-bottom:22px}
+  #scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+  #scroller.locked{overflow:hidden}
+    #viewer{overscroll-behavior:contain;position:fixed;inset:0;background:#fff;display:none}
   #viewer.on{display:block}
   #frame{width:100%;height:100%;border:0;background:#fff}
   #close{position:fixed;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(0,0,0,.25);background:rgba(20,24,29,.85);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:10;display:grid;place-items:center}
@@ -73,6 +89,7 @@
 </head>
 <body>
 
+<div id="scroller">
 <main id="list">
   <h1>Folder files</h1>
   <p class="sub" id="status">Not loaded yet</p>
@@ -94,9 +111,15 @@
     <div class="seg" role="group" aria-label="Layout"><button id="vList" aria-pressed="true">List</button><button id="vGrid" aria-pressed="false">Grid</button></div>
   </div>
   <label class="opts"><input type="checkbox" id="storage"> Compatibility mode: let pages use storage and let the viewer fix page sizing (less isolated)</label>
+  <section id="savedWrap" hidden>
+    <h2 class="sech">Saved Pages</h2>
+    <div class="items" id="savedItems"></div>
+  </section>
+  <h2 class="sech" id="allHead" hidden>All files</h2>
   <div class="items" id="items"></div>
   <p class="note" id="note"></p>
 </main>
+</div>
 
 <div id="viewer">
   <button id="close" aria-label="Close and return to the list" title="Close (Esc)">&times;</button>
@@ -113,7 +136,7 @@
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 
-  var state = { key:"", stack:[], entries:[], cache:{}, view: (lsGet("dv_view2") === "list" ? "list" : "grid") };
+  var state = { key:"", stack:[], entries:[], cache:{}, saved:[], savedIds:{}, canSave:false, view: (lsGet("dv_view2") === "list" ? "list" : "grid") };
 
   function parseFolderId(s){
     s = (s||"").trim();
@@ -133,7 +156,9 @@
 
   async function listFolder(id){
     if(state.cache[id]) return state.cache[id];
-    var r = await fetch(state.key + "/list?id=" + encodeURIComponent(id));
+    var r;
+    try { r = await fetch(state.key + "/list?id=" + encodeURIComponent(id)); }
+    catch(e){ throw new Error("Couldn't reach the Worker. Are you offline?" + (state.saved.length ? " Your saved pages below still work." : "")); }
     var j = null;
     try { j = await r.json(); } catch(e){}
     if(!r.ok || !Array.isArray(j)){
@@ -149,71 +174,217 @@
   function isFolder(f){ return !!f.folder; }
   function isHtml(f){ return /\.html?$/i.test(f.name); }
 
+  var ICON_NEW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+  var ICON_SAVE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 19h14"/></svg>';
+  var ICON_SAVED = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var ICON_TRASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>';
+
+  function iconBtn(cls, icon, title, label, fn){
+    var b = document.createElement("button");
+    b.className = cls; b.type = "button"; b.title = title; b.setAttribute("aria-label", label);
+    b.innerHTML = icon;
+    b.addEventListener("click", function(e){ e.stopPropagation(); fn(b); });
+    return b;
+  }
+
+  function applyView(){
+    var cls = "items" + (state.view === "grid" ? " grid" : "");
+    $("items").className = cls;
+    $("savedItems").className = cls;
+    $("list").classList.toggle("wide", state.view === "grid");
+    $("vList").setAttribute("aria-pressed", state.view !== "grid");
+    $("vGrid").setAttribute("aria-pressed", state.view === "grid");
+  }
+
+  function makeCell(f, inSaved){
+    var folder = !inSaved && isFolder(f);
+    var b = document.createElement("button");
+    b.className = "item" + (folder ? " folder" : "");
+    var title = f.name.replace(/\.html?$/i,"");
+    var name = document.createElement("span"); name.className = "name"; name.textContent = title;
+    if(state.view === "grid"){
+      var th = document.createElement("span"); th.className = "thumb";
+      if(folder){
+        var fi = document.createElement("span"); fi.className = "ico"; th.appendChild(fi);
+      } else {
+        var letter = document.createElement("span"); letter.className = "letter"; letter.textContent = (title.charAt(0) || "?").toUpperCase();
+        th.appendChild(letter);
+        var img = new Image();
+        img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+        img.style.visibility = "hidden";
+        img.onload = function(){
+          // Drive answers with a tiny generic icon when a file has no preview; keep the letter in that case.
+          if(img.naturalWidth >= 120) img.style.visibility = "visible"; else img.remove();
+        };
+        img.onerror = function(){ img.remove(); };
+        th.appendChild(img);
+        img.src = "https://drive.google.com/thumbnail?id=" + encodeURIComponent(f.id) + "&sz=w400";
+      }
+      b.append(th, name);
+    } else {
+      var ico = null;
+      if(folder){ ico = document.createElement("span"); ico.className = "ico"; }
+      var meta = document.createElement("span"); meta.className = "meta";
+      meta.textContent = folder ? "Folder" : "";
+      if(ico) b.append(ico);
+      b.append(name, meta);
+    }
+    b.addEventListener("click", function(){ folder ? enterFolder(f) : openFile(f); });
+    var cell = document.createElement("div"); cell.className = "cell";
+    cell.appendChild(b);
+    if(!folder){
+      cell.classList.add("has-tab");
+      cell.appendChild(iconBtn("newtab", ICON_NEW, "Open in a new tab", "Open " + title + " in a new tab", function(){ openInTab(f); }));
+      if(state.canSave){
+        cell.classList.add("has-save");
+        if(inSaved){
+          cell.appendChild(iconBtn("savetab", ICON_TRASH, "Remove saved copy", "Remove saved copy of " + title, function(){ unsaveGame(f); }));
+        } else if(state.savedIds[f.id]){
+          cell.appendChild(iconBtn("savetab on", ICON_SAVED, "Saved for offline use (click to remove)", "Remove saved copy of " + title, function(){ unsaveGame(f); }));
+        } else {
+          cell.appendChild(iconBtn("savetab", ICON_SAVE, "Save for offline use", "Save " + title + " for offline use", function(btn){ saveGame(f, btn); }));
+        }
+      }
+    }
+    return cell;
+  }
+
+  function renderSaved(){
+    var q = $("search").value.trim().toLowerCase();
+    var box = $("savedItems");
+    box.innerHTML = "";
+    var shown = 0;
+    state.saved.forEach(function(m){
+      if(q && m.name.toLowerCase().indexOf(q) === -1) return;
+      shown++;
+      box.appendChild(makeCell(m, true));
+    });
+    $("savedWrap").hidden = !state.saved.length || !shown;
+    $("allHead").hidden = !(shown && state.entries.length);
+  }
+
   function render(){
     var q = $("search").value.trim().toLowerCase();
     var items = $("items");
     items.innerHTML = "";
-    items.className = "items" + (state.view === "grid" ? " grid" : "");
-    $("list").classList.toggle("wide", state.view === "grid");
-    $("vList").setAttribute("aria-pressed", state.view !== "grid");
-    $("vGrid").setAttribute("aria-pressed", state.view === "grid");
+    applyView();
     var hidden = 0, shown = 0;
     state.entries.forEach(function(f){
       var folder = isFolder(f);
       if(!folder && !isHtml(f)){ hidden++; return; }
       if(q && f.name.toLowerCase().indexOf(q) === -1) return;
       shown++;
-      var b = document.createElement("button");
-      b.className = "item" + (folder ? " folder" : "");
-      var title = f.name.replace(/\.html?$/i,"");
-      var name = document.createElement("span"); name.className = "name"; name.textContent = title;
-      if(state.view === "grid"){
-        var th = document.createElement("span"); th.className = "thumb";
-        if(folder){
-          var fi = document.createElement("span"); fi.className = "ico"; th.appendChild(fi);
-        } else {
-          var letter = document.createElement("span"); letter.className = "letter"; letter.textContent = (title.charAt(0) || "?").toUpperCase();
-          th.appendChild(letter);
-          var img = new Image();
-          img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
-          img.style.visibility = "hidden";
-          img.onload = function(){
-            // Drive answers with a tiny generic icon when a file has no preview; keep the letter in that case.
-            if(img.naturalWidth >= 120) img.style.visibility = "visible"; else img.remove();
-          };
-          img.onerror = function(){ img.remove(); };
-          th.appendChild(img);
-          img.src = "https://drive.google.com/thumbnail?id=" + encodeURIComponent(f.id) + "&sz=w400";
-        }
-        b.append(th, name);
-      } else {
-        var ico = null;
-        if(folder){ ico = document.createElement("span"); ico.className = "ico"; }
-        var meta = document.createElement("span"); meta.className = "meta";
-        meta.textContent = folder ? "Folder" : "";
-        if(ico) b.append(ico);
-        b.append(name, meta);
-      }
-      b.addEventListener("click", function(){ folder ? enterFolder(f) : openFile(f); });
-      var cell = document.createElement("div"); cell.className = "cell";
-      cell.appendChild(b);
-      if(!folder){
-        cell.classList.add("has-tab");
-        var nt = document.createElement("button");
-        nt.className = "newtab"; nt.type = "button";
-        nt.title = "Open in a new tab"; nt.setAttribute("aria-label", "Open " + title + " in a new tab");
-        nt.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
-        nt.addEventListener("click", function(e){ e.stopPropagation(); openInTab(f); });
-        cell.appendChild(nt);
-      }
-      items.appendChild(cell);
+      items.appendChild(makeCell(f, false));
     });
+    renderSaved();
     var note = [];
     if(!shown) note.push(q ? "Nothing matches that filter." : "No HTML files here.");
     if(hidden) note.push(hidden + " non-HTML file" + (hidden>1?"s":"") + " hidden.");
     $("note").textContent = note.join(" ");
     var count = state.entries.filter(isHtml).length;
     $("status").textContent = count + " HTML file" + (count===1?"":"s") + " in this folder";
+  }
+
+  // ---- saved pages (kept in IndexedDB so they work offline) ----
+  var dbp = null;
+  function db(){
+    if(!dbp) dbp = new Promise(function(res, rej){
+      if(!window.indexedDB){ rej(new Error("IndexedDB unavailable")); return; }
+      var r = indexedDB.open("dv_saved", 1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore("meta", {keyPath:"id"}); r.result.createObjectStore("html", {keyPath:"id"}); };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+    return dbp;
+  }
+  function idb(store, mode, method, arg){
+    return db().then(function(d){
+      return new Promise(function(res, rej){
+        var r = d.transaction(store, mode).objectStore(store)[method](arg);
+        r.onsuccess = function(){ res(r.result); };
+        r.onerror = function(){ rej(r.error); };
+      });
+    });
+  }
+  function sortSaved(){ state.saved.sort(function(a,b){ return a.name.localeCompare(b.name, undefined, {numeric:true}); }); }
+
+  async function loadSaved(){
+    try {
+      state.saved = (await idb("meta", "readonly", "getAll")) || [];
+      state.canSave = true;
+    } catch(e){ state.saved = []; state.canSave = false; }
+    state.savedIds = {};
+    state.saved.forEach(function(m){ state.savedIds[m.id] = true; });
+    sortSaved();
+    applyView();
+    renderSaved();
+  }
+
+  function saveError(e, f){
+    if(e && e.name === "QuotaExceededError") return "Not enough browser storage to save " + f.name + ".";
+    if(e instanceof TypeError) return "Couldn't reach the Worker to save " + f.name + ". Are you offline?";
+    return e && e.message ? e.message : "Couldn't save " + f.name + ".";
+  }
+
+  async function saveGame(f, btn){
+    if(btn) btn.classList.add("busy");
+    try {
+      var r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id));
+      if(!r.ok) throw new Error("Worker returned " + r.status + " when saving " + f.name);
+      var html = await r.text();
+      if(!html.trim()) throw new Error("The file came back empty, so it wasn't saved.");
+      await idb("html", "readwrite", "put", {id:f.id, html:html});
+      var meta = {id:f.id, name:f.name, savedAt:Date.now(), size:html.length};
+      await idb("meta", "readwrite", "put", meta);
+      state.saved = state.saved.filter(function(m){ return m.id !== f.id; }).concat(meta);
+      state.savedIds[f.id] = true;
+      sortSaved();
+      try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+    } catch(e){
+      showError(saveError(e, f));
+      $("scroller").scrollTop = 0;
+    }
+    render();
+  }
+
+  async function unsaveGame(f){
+    try {
+      await idb("meta", "readwrite", "delete", f.id);
+      await idb("html", "readwrite", "delete", f.id);
+    } catch(e){ showError("Couldn't remove the saved copy."); }
+    state.saved = state.saved.filter(function(m){ return m.id !== f.id; });
+    delete state.savedIds[f.id];
+    render();
+  }
+
+  // Each visit, quietly re-download saved pages so the local copies stay current.
+  async function refreshSaved(){
+    if(navigator.onLine === false || !state.key) return;
+    var list = state.saved.slice();
+    for(var i=0;i<list.length;i++){
+      var m = list[i];
+      try {
+        var r = await fetch(state.key + "/file?id=" + encodeURIComponent(m.id));
+        if(!r.ok) continue;
+        var t = await r.text();
+        if(!state.savedIds[m.id]) continue;
+        var old = await idb("html", "readonly", "get", m.id);
+        if(!t.trim() || (old && old.html && t.length < old.html.length * 0.5)) continue;
+        await idb("html", "readwrite", "put", {id:m.id, html:t});
+        await idb("meta", "readwrite", "put", {id:m.id, name:m.name, savedAt:Date.now(), size:t.length});
+      } catch(e){ if(e instanceof TypeError) break; }
+    }
+  }
+
+  async function getGameHtml(f){
+    if(state.savedIds[f.id]){
+      try { var rec = await idb("html", "readonly", "get", f.id); if(rec && rec.html) return rec.html; } catch(e){}
+    }
+    var r;
+    try { r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id)); }
+    catch(e){ throw new Error("Couldn't reach the Worker to open " + f.name + ". Are you offline? Saved pages still open without a connection."); }
+    if(!r.ok) throw new Error("Worker returned " + r.status + " when opening " + f.name);
+    return await r.text();
   }
 
   function renderCrumbs(){
@@ -241,6 +412,8 @@
       render();
     } catch(e){
       $("keybox").style.display = "";
+      state.entries = [];
+      applyView(); renderSaved();
       $("status").textContent = "Could not load the folder";
       showError(e.message);
     }
@@ -255,9 +428,7 @@
   async function openFile(f){
     $("loading").classList.add("on");
     try {
-      var r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id));
-      if(!r.ok) throw new Error("Worker returned " + r.status + " when opening " + f.name);
-      var html = await r.text();
+      var html = await getGameHtml(f);
       var frame = $("frame");
       var sb = "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-downloads";
       if($("storage").checked) sb += " allow-same-origin";
@@ -265,10 +436,11 @@
       currentName = f.name;
       frame.srcdoc = html;
       $("viewer").classList.add("on");
+      $("scroller").classList.add("locked");
       $("close").focus();
     } catch(e){
       showError(e.message);
-      window.scrollTo(0,0);
+      $("scroller").scrollTop = 0;
     } finally {
       $("loading").classList.remove("on");
     }
@@ -276,6 +448,7 @@
 
   function closeViewer(){
     $("viewer").classList.remove("on");
+    $("scroller").classList.remove("locked");
     $("frame").removeAttribute("srcdoc");
     $("frame").src = "about:blank";
   }
@@ -308,12 +481,10 @@
   async function openInTab(f){
     // Open the tab right away (inside the click) so popup blockers allow it, then fill it in.
     var w = window.open("about:blank", "_blank");
-    if(!w){ showError("The browser blocked the new tab. Allow pop-ups for this page and try again."); window.scrollTo(0,0); return; }
+    if(!w){ showError("The browser blocked the new tab. Allow pop-ups for this page and try again."); $("scroller").scrollTop = 0; return; }
     try { w.document.title = f.name.replace(/\.html?$/i, ""); w.document.body.textContent = "Loading…"; } catch(e){}
     try {
-      var r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id));
-      if(!r.ok) throw new Error("Worker returned " + r.status + " when opening " + f.name);
-      var html = await r.text();
+      var html = await getGameHtml(f);
       // Keep the tab on about:blank and run the game inside a full-screen frame, which handles pages that rewrite themselves.
       var wd = w.document;
       wd.body.textContent = "";
@@ -331,7 +502,7 @@
     } catch(e){
       try { w.close(); } catch(x){}
       showError(e.message);
-      window.scrollTo(0,0);
+      $("scroller").scrollTop = 0;
     }
   }
   function checkFrame(){
@@ -341,7 +512,7 @@
     if(d && d.body && pageIsBlank(d)){
       closeViewer();
       showError("There was an error with the file \"" + currentName + "\". It loaded as just \"]]>\", so it was closed.");
-      window.scrollTo(0,0);
+      $("scroller").scrollTop = 0;
     }
   }
   $("frame").addEventListener("load", function(){
@@ -375,7 +546,7 @@
   $("folder").value = lsGet("dv_folder") || DEFAULT_FOLDER;
   var saved = lsGet("dv_worker2") || DEFAULT_WORKER;
   $("key").value = saved;
-  start();
+  loadSaved().then(function(){ start(); refreshSaved(); });
 })();
 </script>
 </body>
