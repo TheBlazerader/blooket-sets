@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drive folder viewer (Worker)</title>
+<title>Game folder viewer</title>
 <style>
   :root{
     --bg:#eef1f4; --surface:#ffffff; --ink:#1b2430; --muted:#64707e; --line:#d5dbe2; --accent:#1f5fd6; --accent-ink:#fff; --danger:#b3261e;
@@ -76,6 +76,10 @@
   .items.grid .cell.has-tab.has-save .item{padding-right:0}
   .items.grid .cell.has-tab.has-save .item .name{padding-right:94px}
   #savedWrap{margin-bottom:22px}
+
+  .srcrow{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:6px 0 12px;font-family:system-ui,sans-serif}
+  .srcrow .seg button{padding:9px 16px}
+  .linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:.85rem}
   #scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
   #scroller.locked{overflow:hidden}
     #viewer{overscroll-behavior:contain;position:fixed;inset:0;background:#fff;display:none}
@@ -92,16 +96,32 @@
 <div id="scroller">
 <main id="list">
   <h1>Folder files</h1>
+  <div class="srcrow">
+    <div class="seg" role="group" aria-label="Source"><button id="srcDrive" aria-pressed="true">Google Drive</button><button id="srcGh" aria-pressed="false">GitHub</button></div>
+    <button class="linkbtn" id="cfgToggle" type="button">Source settings</button>
+  </div>
   <p class="sub" id="status">Not loaded yet</p>
 
   <div class="keybox" id="keybox">
-    <p>Paste the address of your Cloudflare Worker. It only fetches the folder list and file text; everything you open still shows inside this page.</p>
-    <div class="row">
-      <input id="key" type="text" placeholder="https://fulldrive.meisjanky.workers.dev" autocomplete="off" spellcheck="false">
-      <button class="btn" id="save">Load folder</button>
+    <div id="cfgDrive">
+      <p>Paste the address of your Cloudflare Worker. It only fetches the folder list and file text; everything you open still shows inside this page.</p>
+      <div class="row">
+        <input id="key" type="text" placeholder="https://fulldrive.meisjanky.workers.dev" autocomplete="off" spellcheck="false">
+        <button class="btn" id="save">Load folder</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="folder" type="text" placeholder="Folder ID or URL" spellcheck="false">
+      </div>
     </div>
-    <div class="row" style="margin-top:8px">
-      <input id="folder" type="text" placeholder="Folder ID or URL" spellcheck="false">
+    <div id="cfgGh" hidden>
+      <p>Paste a link to a public GitHub repo or to a folder inside it. A Worker is optional: it raises GitHub's hourly request limit.</p>
+      <div class="row">
+        <input id="repo" type="text" placeholder="https://github.com/owner/repo/tree/branch/folder" autocomplete="off" spellcheck="false">
+        <button class="btn" id="ghLoad">Load repo</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="ghWorker" type="text" placeholder="https://gitted.meisjanky.workers.dev" autocomplete="off" spellcheck="false">
+      </div>
     </div>
   </div>
 
@@ -130,13 +150,15 @@
 <script>
 (function(){
   var DEFAULT_WORKER = "https://fulldrive.meisjanky.workers.dev";
+  var DEFAULT_GH_WORKER = "https://gitted.meisjanky.workers.dev";
+  var DEFAULT_REPO = "https://github.com/CoolDude2349/Offline-HTML-Games-Pack/tree/master/offline";
   var DEFAULT_FOLDER = "1Gg7fmesMNF7J5hTrGl2ZOHTQVsm9V93T";
     var $ = function(id){ return document.getElementById(id); };
 
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 
-  var state = { key:"", stack:[], entries:[], cache:{}, saved:[], savedIds:{}, canSave:false, view: (lsGet("dv_view2") === "list" ? "list" : "grid") };
+  var state = { ghWorker:"", source: (lsGet("dv_source") === "github" ? "github" : "drive"), gh:null, key:"", stack:[], entries:[], cache:{}, saved:[], savedIds:{}, canSave:false, view: (lsGet("dv_view2") === "list" ? "list" : "grid") };
 
   function parseFolderId(s){
     s = (s||"").trim();
@@ -154,7 +176,140 @@
     box.appendChild(d);
   }
 
-  async function listFolder(id){
+  function listFolder(id){ return state.source === "github" ? listGh(id) : listDrive(id); }
+
+  function parseRepo(txt){
+    var t = (txt || "").trim().replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "").replace(/[?#].*$/, "").replace(/\.git$/i, "");
+    var p = t.split("/").filter(Boolean).map(function(x){ try { return decodeURIComponent(x); } catch(e){ return x; } });
+    if(p.length < 2) return null;
+    var g = { owner:p[0], repo:p[1].replace(/\.git$/i, ""), ref:"", path:"" };
+    if((p[2] === "tree" || p[2] === "blob") && p[3]){ g.ref = p[3]; g.path = p.slice(4).join("/"); }
+    return g;
+  }
+
+  async function ghJson(url){
+    var r;
+    try { r = await fetch(url); }
+    catch(e){
+      var ne = new Error("Couldn't reach api.github.com. You may be offline, or your network may block GitHub." + (state.saved.length ? " Your saved pages below still work." : ""));
+      ne.network = true; throw ne;
+    }
+    if(!r.ok){
+      var limited = r.status === 429 || (r.status === 403 && r.headers.get("x-ratelimit-remaining") === "0");
+      var err = new Error(limited
+        ? "GitHub's limit for anonymous requests was reached. Wait a while (it resets hourly) and try again."
+        : r.status === 404
+        ? "GitHub couldn't find that repo, branch or folder (404). Check the link, and that the repo is public."
+        : r.status === 403
+        ? "GitHub refused the request (403). You may have hit its hourly limit for anonymous requests, or your network blocks the GitHub API."
+        : "GitHub returned " + r.status);
+      err.status = r.status; err.limited = limited || r.status === 403;
+      throw err;
+    }
+    return await r.json();
+  }
+
+  function ghEnc(x){ return x.split("/").map(encodeURIComponent).join("/"); }
+  function ghCacheGet(k, maxAge){
+    try {
+      var o = JSON.parse(lsGet(k) || "null");
+      if(o && Array.isArray(o.l) && (!maxAge || Date.now() - o.t < maxAge)) return o.l;
+    } catch(e){}
+    return null;
+  }
+  function ghCacheSet(k, l){ lsSet(k, JSON.stringify({t:Date.now(), l:l})); }
+
+  // Backup listing source: jsDelivr's file index (no hourly limit, but only works for repos under its size cap).
+  async function listJsd(g, ref, path){
+    var u = "https://data.jsdelivr.com/v1/packages/gh/" + encodeURIComponent(g.owner) + "/" + encodeURIComponent(g.repo) +
+            (ref && ref !== "HEAD" ? "@" + encodeURIComponent(ref) : "") + "?structure=flat";
+    var r = await fetch(u);
+    if(!r.ok) throw new Error("jsDelivr returned " + r.status);
+    var j = await r.json(), pre = path ? "/" + path + "/" : "/", seen = {}, out = [];
+    (j.files || []).forEach(function(f){
+      if(f.name.indexOf(pre) !== 0) return;
+      var rest = f.name.slice(pre.length), i = rest.indexOf("/");
+      var nm = i === -1 ? rest : rest.slice(0, i), isF = i !== -1;
+      if(!nm || seen[nm + "|" + isF]) return;
+      seen[nm + "|" + isF] = 1; out.push([nm, isF]);
+    });
+    return out;
+  }
+
+  async function listGh(path){
+    var g = state.gh, key = "gh|" + path;
+    if(state.cache[key]) return state.cache[key];
+    var o = encodeURIComponent(g.owner), rp = encodeURIComponent(g.repo);
+    var base = "https://api.github.com/repos/" + o + "/" + rp;
+
+    var ref = g.ref, brKey = "dv_ghb|" + g.owner + "/" + g.repo;
+    if(!ref) ref = lsGet(brKey) || "";
+    var ck = function(){ return "dv_ghc|" + g.owner + "/" + g.repo + "@" + ref + "|" + path; };
+    var list = ref ? ghCacheGet(ck(), 60 * 60 * 1000) : null, firstErr = null;   // fresh copy (< 1 hour old): no network needed
+
+    // Optional GitHub Worker (higher rate limit). If it's missing or fails, fall through to direct GitHub calls.
+    if(!list && state.ghWorker){
+      try {
+        var wr = await fetch(state.ghWorker + "/list?" + new URLSearchParams({owner:g.owner, repo:g.repo, ref:ref, path:path}).toString());
+        var wj = null;
+        try { wj = await wr.json(); } catch(e){}
+        if(wr.ok && wj && Array.isArray(wj.list)){
+          list = wj.list;
+          if(wj.ref){ ref = wj.ref; g.ref = ref; lsSet(brKey, ref); }
+        } else {
+          firstErr = new Error((wj && wj.error) || ("The GitHub Worker returned " + wr.status));
+          firstErr.status = wr.status; firstErr.limited = !!(wj && wj.limited);
+        }
+      } catch(e){ /* Worker unreachable: use direct calls */ }
+    }
+
+    // Work out the branch if we still don't know it (remembered per repo so later loads don't spend an API call).
+    if(!ref){
+      try { ref = (await ghJson(base)).default_branch; lsSet(brKey, ref); }
+      catch(e){ ref = "HEAD"; firstErr = firstErr || e; }
+      if(ref !== "HEAD") g.ref = ref;
+      if(!list) list = ghCacheGet(ck(), 60 * 60 * 1000);
+    }
+
+    if(!list){
+      try {
+        var t = await ghJson(base + "/git/trees/" + encodeURIComponent(ref) + (path ? ":" + ghEnc(path) : ""));
+        list = (t.tree || []).filter(function(e){ return e.type === "blob" || e.type === "tree"; })
+                             .map(function(e){ return [e.path, e.type === "tree"]; });
+      } catch(e){ firstErr = e; }
+    }
+    if(!list && firstErr && !firstErr.network && !firstErr.limited){
+      try {
+        var c = await ghJson(base + "/contents" + (path ? "/" + ghEnc(path) : "") + "?ref=" + encodeURIComponent(ref));
+        list = (Array.isArray(c) ? c : []).filter(function(e){ return e.type === "dir" || e.type === "file"; })
+                                          .map(function(e){ return [e.name, e.type === "dir"]; });
+      } catch(e){}
+    }
+    if(!list){
+      try { var jl = await listJsd(g, ref, path); if(jl.length) list = jl; } catch(e){}
+    }
+    if(!list) list = ghCacheGet(ck(), 0);                              // stale copy beats an error
+    if(!list) throw (firstErr || new Error("Couldn't load that GitHub folder."));
+    if(!list.length) throw new Error("No files found in that GitHub folder.");
+    ghCacheSet(ck(), list);
+
+    var rawBase = "https://raw.githubusercontent.com/" + o + "/" + rp + "/" + ghEnc(ref) + "/";
+    var join = function(name){ return path ? path + "/" + name : name; };
+    var items = list.map(function(e){
+      var full = join(e[0]);
+      return e[1]
+        ? { id: full, name: e[0], folder: true, src: "github" }
+        : { id: "gh:" + g.owner + "/" + g.repo + "/" + full, name: e[0], folder: false, src: "github",
+            raw: rawBase + ghEnc(full),
+            alts: ["https://cdn.jsdelivr.net/gh/" + o + "/" + rp + (ref !== "HEAD" ? "@" + encodeURIComponent(ref) : "") + "/" + ghEnc(full)],
+            lfs: "https://media.githubusercontent.com/media/" + o + "/" + rp + "/" + ghEnc(ref) + "/" + ghEnc(full) };
+    });
+    items.sort(function(x,y){ return (y.folder - x.folder) || x.name.localeCompare(y.name, undefined, {numeric:true}); });
+    state.cache[key] = items;
+    return items;
+  }
+
+  async function listDrive(id){
     if(state.cache[id]) return state.cache[id];
     var r;
     try { r = await fetch(state.key + "/list?id=" + encodeURIComponent(id)); }
@@ -209,7 +364,8 @@
       } else {
         var letter = document.createElement("span"); letter.className = "letter"; letter.textContent = (title.charAt(0) || "?").toUpperCase();
         th.appendChild(letter);
-        var img = new Image();
+        var img = (f.src === "github" || String(f.id).indexOf("gh:") === 0) ? null : new Image();
+        if(img){
         img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
         img.style.visibility = "hidden";
         img.onload = function(){
@@ -219,6 +375,7 @@
         img.onerror = function(){ img.remove(); };
         th.appendChild(img);
         img.src = "https://drive.google.com/thumbnail?id=" + encodeURIComponent(f.id) + "&sz=w400";
+        }
       }
       b.append(th, name);
     } else {
@@ -322,16 +479,14 @@
 
   function saveError(e, f){
     if(e && e.name === "QuotaExceededError") return "Not enough browser storage to save " + f.name + ".";
-    if(e instanceof TypeError) return "Couldn't reach the Worker to save " + f.name + ". Are you offline?";
+    if(e instanceof TypeError) return "Couldn't reach " + (f.raw ? "GitHub" : "the Worker") + " to save " + f.name + ". Are you offline?";
     return e && e.message ? e.message : "Couldn't save " + f.name + ".";
   }
 
   async function saveGame(f, btn){
     if(btn) btn.classList.add("busy");
     try {
-      var r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id));
-      if(!r.ok) throw new Error("Worker returned " + r.status + " when saving " + f.name);
-      var html = await r.text();
+      var html = await fetchRemoteHtml(f);
       if(!html.trim()) throw new Error("The file came back empty, so it wasn't saved.");
       await idb("html", "readwrite", "put", {id:f.id, html:html});
       var meta = {id:f.id, name:f.name, savedAt:Date.now(), size:html.length};
@@ -357,33 +512,51 @@
     render();
   }
 
-  // Each visit, quietly re-download saved pages so the local copies stay current.
-  async function refreshSaved(){
-    if(navigator.onLine === false || !state.key) return;
-    var list = state.saved.slice();
-    for(var i=0;i<list.length;i++){
-      var m = list[i];
-      try {
-        var r = await fetch(state.key + "/file?id=" + encodeURIComponent(m.id));
-        if(!r.ok) continue;
-        var t = await r.text();
-        if(!state.savedIds[m.id]) continue;
-        var old = await idb("html", "readonly", "get", m.id);
-        if(!t.trim() || (old && old.html && t.length < old.html.length * 0.5)) continue;
-        await idb("html", "readwrite", "put", {id:m.id, html:t});
-        await idb("meta", "readwrite", "put", {id:m.id, name:m.name, savedAt:Date.now(), size:t.length});
-      } catch(e){ if(e instanceof TypeError) break; }
-    }
-  }
-
   async function getGameHtml(f){
     if(state.savedIds[f.id]){
       try { var rec = await idb("html", "readonly", "get", f.id); if(rec && rec.html) return rec.html; } catch(e){}
     }
+    return await fetchRemoteHtml(f);
+  }
+
+  // Reads a response body as text, showing progress in the overlay (games here can be many MB).
+  async function readText(r){
+    if(!r.body || !r.body.getReader) return await r.text();
+    var total = +r.headers.get("content-length") || 0, got = 0, s = "", el = $("loading");
+    var rd = r.body.getReader(), dec = new TextDecoder();
+    for(;;){
+      var c = await rd.read();
+      if(c.done) break;
+      got += c.value.length;
+      s += dec.decode(c.value, {stream:true});
+      el.textContent = "Opening… " + (total ? Math.min(100, Math.round(got / total * 100)) + "%" : (got / 1048576).toFixed(1) + " MB");
+    }
+    return s + dec.decode();
+  }
+  function isLfsPointer(t){ return t.length < 1024 && /^version https:\/\/git-lfs\.github\.com\/spec/.test(t); }
+
+  async function fetchGhHtml(f){
+    var urls = [f.raw].concat(f.alts || []), lastErr = null;
+    for(var i = 0; i < urls.length; i++){
+      var host = urls[i].replace(/^https?:\/\//, "").split("/")[0], r;
+      try { r = await fetch(urls[i]); }
+      catch(e){ lastErr = new Error("couldn't reach " + host); continue; }
+      if(!r.ok){ lastErr = new Error(host + " returned " + r.status); continue; }
+      var text = await readText(r);
+      if(isLfsPointer(text) && f.lfs){
+        try { var r2 = await fetch(f.lfs); if(r2.ok) text = await readText(r2); } catch(e){}
+      }
+      return text;
+    }
+    throw new Error("Couldn't load " + f.name + " from GitHub (" + (lastErr ? lastErr.message : "unknown error") + "). Saved pages still open without a connection.");
+  }
+
+  async function fetchRemoteHtml(f){
+    if(f.raw) return await fetchGhHtml(f);
     var r;
     try { r = await fetch(state.key + "/file?id=" + encodeURIComponent(f.id)); }
-    catch(e){ throw new Error("Couldn't reach the Worker to open " + f.name + ". Are you offline? Saved pages still open without a connection."); }
-    if(!r.ok) throw new Error("Worker returned " + r.status + " when opening " + f.name);
+    catch(e){ throw new Error("Couldn't reach the Worker to load " + f.name + ". Are you offline? Saved pages still open without a connection."); }
+    if(!r.ok) throw new Error("Worker returned " + r.status + " when loading " + f.name);
     return await r.text();
   }
 
@@ -426,6 +599,7 @@
   }
 
   async function openFile(f){
+    $("loading").textContent = "Opening…";
     $("loading").classList.add("on");
     try {
       var html = await getGameHtml(f);
@@ -530,7 +704,20 @@
   $("storage").checked = lsGet("dv_compat") !== "0";
   $("storage").addEventListener("change", function(){ lsSet("dv_compat", this.checked ? "1" : "0"); });
 
+  function startGh(){
+    var g = parseRepo($("repo").value);
+    if(!g){ showError("Enter a GitHub link like https://github.com/owner/repo/tree/branch/folder"); return; }
+    var gw = $("ghWorker").value.trim().replace(/\/+$/, "");
+    if(gw && !/^https?:\/\//i.test(gw)){ showError("The GitHub Worker address must start with https://"); return; }
+    lsSet("dv_ghworker", gw); state.ghWorker = gw;
+    lsSet("dv_repo", $("repo").value.trim());
+    state.gh = g; state.cache = {};
+    state.stack = [{id:g.path, name: g.path ? g.path.split("/").pop() : g.repo}];
+    loadCurrent();
+  }
+
   function start(){
+    if(state.source === "github"){ startGh(); return; }
     var key = $("key").value.trim();
     var folder = parseFolderId($("folder").value) || DEFAULT_FOLDER;
     if(!/^https?:\/\//i.test(key)){ showError("Enter your Worker address, starting with https://"); return; }
@@ -540,13 +727,39 @@
     state.stack = [{id:folder, name:"Folder"}];
     loadCurrent();
   }
+  function syncSource(){
+    var gh = state.source === "github";
+    $("srcDrive").setAttribute("aria-pressed", !gh);
+    $("srcGh").setAttribute("aria-pressed", gh);
+    $("cfgDrive").hidden = gh;
+    $("cfgGh").hidden = !gh;
+  }
+  function setSource(src){
+    if(state.source === src) return;
+    state.source = src; lsSet("dv_source", src);
+    state.entries = []; state.cache = {};
+    $("items").innerHTML = ""; $("note").textContent = ""; $("crumbs").innerHTML = "";
+    showError("");
+    syncSource();
+    start();
+  }
+  $("srcDrive").addEventListener("click", function(){ setSource("drive"); });
+  $("srcGh").addEventListener("click", function(){ setSource("github"); });
+  $("cfgToggle").addEventListener("click", function(){ var kb = $("keybox"); kb.style.display = kb.style.display === "none" ? "" : "none"; });
+  $("ghLoad").addEventListener("click", start);
+  $("repo").addEventListener("keydown", function(e){ if(e.key === "Enter") start(); });
   $("save").addEventListener("click", start);
   $("key").addEventListener("keydown", function(e){ if(e.key==="Enter") start(); });
 
+  $("repo").value = lsGet("dv_repo") || DEFAULT_REPO;
+  var gwSaved = lsGet("dv_ghworker");
+  $("ghWorker").value = gwSaved === null ? DEFAULT_GH_WORKER : gwSaved;
+  $("ghWorker").addEventListener("keydown", function(e){ if(e.key === "Enter") start(); });
+  syncSource();
   $("folder").value = lsGet("dv_folder") || DEFAULT_FOLDER;
   var saved = lsGet("dv_worker2") || DEFAULT_WORKER;
   $("key").value = saved;
-  loadSaved().then(function(){ start(); refreshSaved(); });
+  loadSaved().then(start);
 })();
 </script>
 </body>
