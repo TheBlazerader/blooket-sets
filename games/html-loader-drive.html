@@ -20,7 +20,8 @@
   .sub{color:var(--muted);margin:0 0 24px;font-family:system-ui,sans-serif;font-size:.9rem}
   .bar{display:flex;gap:8px;margin-bottom:16px;font-family:system-ui,sans-serif}
   .bar input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
-  .bar input:focus,button:focus-visible,.item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .bar select{padding:10px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:inherit;font:inherit;max-width:42%}
+  .bar input:focus,.bar select:focus-visible,button:focus-visible,.item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .crumbs{font-family:system-ui,sans-serif;font-size:.9rem;margin-bottom:12px;color:var(--muted)}
   .crumbs button{background:none;border:0;padding:0;color:var(--accent);cursor:pointer}
   .items{display:grid;gap:8px}
@@ -63,6 +64,8 @@
   .items.grid .cell .item .name{min-height:46px;display:flex;align-items:center}
   .items.grid .cell.has-tab .item .name{padding-right:52px}
 
+  .sz{color:var(--muted);font:.8rem system-ui,sans-serif;white-space:nowrap}
+  .items.grid .sz{padding:0 12px 10px;margin-top:-4px}
   [hidden]{display:none !important}
   .sech{font-size:1.05rem;font-weight:600;margin:10px 0 10px}
   .savetab{position:absolute;top:50%;right:52px;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer;padding:0}
@@ -101,6 +104,7 @@
     <button class="linkbtn" id="cfgToggle" type="button">Source settings</button>
   </div>
   <p class="sub" id="status">Not loaded yet</p>
+  <label class="opts" style="margin:0 0 12px"><input type="checkbox" id="replace"> Replace this page with the game instead of embedding it (no close button; refresh the page to come back)</label>
 
   <div class="keybox" id="keybox">
     <div id="cfgDrive">
@@ -127,7 +131,8 @@
 
   <div id="error"></div>
   <div class="crumbs" id="crumbs"></div>
-  <div class="bar"><input id="search" type="search" placeholder="Filter by name" aria-label="Filter files">
+  <div class="bar"><input id="search" type="search" placeholder="Search..." aria-label="Search files">
+    <select id="sort" aria-label="Sort files"><option value="">Default order</option><option value="desc">Size: big to small</option><option value="asc">Size: small to big</option></select>
     <div class="seg" role="group" aria-label="Layout"><button id="vList" aria-pressed="true">List</button><button id="vGrid" aria-pressed="false">Grid</button></div>
   </div>
   <label class="opts"><input type="checkbox" id="storage"> Compatibility mode: let pages use storage and let the viewer fix page sizing (less isolated)</label>
@@ -231,7 +236,7 @@
       var rest = f.name.slice(pre.length), i = rest.indexOf("/");
       var nm = i === -1 ? rest : rest.slice(0, i), isF = i !== -1;
       if(!nm || seen[nm + "|" + isF]) return;
-      seen[nm + "|" + isF] = 1; out.push([nm, isF]);
+      seen[nm + "|" + isF] = 1; out.push([nm, isF, isF ? 0 : (f.size || 0)]);
     });
     return out;
   }
@@ -244,7 +249,7 @@
 
     var ref = g.ref, brKey = "dv_ghb|" + g.owner + "/" + g.repo;
     if(!ref) ref = lsGet(brKey) || "";
-    var ck = function(){ return "dv_ghc|" + g.owner + "/" + g.repo + "@" + ref + "|" + path; };
+    var ck = function(){ return "dv_ghc2|" + g.owner + "/" + g.repo + "@" + ref + "|" + path; };
     var list = ref ? ghCacheGet(ck(), 60 * 60 * 1000) : null, firstErr = null;   // fresh copy (< 1 hour old): no network needed
 
     // Optional GitHub Worker (higher rate limit). If it's missing or fails, fall through to direct GitHub calls.
@@ -275,14 +280,14 @@
       try {
         var t = await ghJson(base + "/git/trees/" + encodeURIComponent(ref) + (path ? ":" + ghEnc(path) : ""));
         list = (t.tree || []).filter(function(e){ return e.type === "blob" || e.type === "tree"; })
-                             .map(function(e){ return [e.path, e.type === "tree"]; });
+                             .map(function(e){ return [e.path, e.type === "tree", e.size || 0]; });
       } catch(e){ firstErr = e; }
     }
     if(!list && firstErr && !firstErr.network && !firstErr.limited){
       try {
         var c = await ghJson(base + "/contents" + (path ? "/" + ghEnc(path) : "") + "?ref=" + encodeURIComponent(ref));
         list = (Array.isArray(c) ? c : []).filter(function(e){ return e.type === "dir" || e.type === "file"; })
-                                          .map(function(e){ return [e.name, e.type === "dir"]; });
+                                          .map(function(e){ return [e.name, e.type === "dir", e.size || 0]; });
       } catch(e){}
     }
     if(!list){
@@ -299,7 +304,7 @@
       var full = join(e[0]);
       return e[1]
         ? { id: full, name: e[0], folder: true, src: "github" }
-        : { id: "gh:" + g.owner + "/" + g.repo + "/" + full, name: e[0], folder: false, src: "github",
+        : { id: "gh:" + g.owner + "/" + g.repo + "/" + full, name: e[0], folder: false, src: "github", size: e[2] || 0,
             raw: rawBase + ghEnc(full),
             alts: ["https://cdn.jsdelivr.net/gh/" + o + "/" + rp + (ref !== "HEAD" ? "@" + encodeURIComponent(ref) : "") + "/" + ghEnc(full)],
             lfs: "https://media.githubusercontent.com/media/" + o + "/" + rp + "/" + ghEnc(ref) + "/" + ghEnc(full) };
@@ -351,12 +356,62 @@
     $("vGrid").setAttribute("aria-pressed", state.view === "grid");
   }
 
+  function fmtSize(n){
+    n = +n || 0;
+    if(!n) return "";
+    if(n < 1024) return n + " B";
+    if(n < 1048576) return Math.round(n / 1024) + " KB";
+    if(n < 1073741824) return (n / 1048576).toFixed(1) + " MB";
+    return (n / 1073741824).toFixed(2) + " GB";
+  }
+  // Update size labels already on screen (Drive sizes arrive after the list is shown).
+  function applySizes(map){
+    var els = document.querySelectorAll("[data-sid]");
+    for(var i = 0; i < els.length; i++){
+      var v = map[els[i].getAttribute("data-sid")];
+      if(v) els[i].textContent = fmtSize(v);
+    }
+  }
+  var sizeRun = 0;
+  async function loadDriveSizes(entries){
+    var cache = {}, run = ++sizeRun, need = [], known = {}, dirty = false;
+    try { cache = JSON.parse(lsGet("dv_dsz") || "{}") || {}; } catch(e){ cache = {}; }
+    var save = function(){ if(dirty){ lsSet("dv_dsz", JSON.stringify(cache)); dirty = false; } };
+    entries.forEach(function(f){
+      if(f.folder || !isHtml(f)) return;
+      if(f.id in cache){                       // already fetched before (0 = Drive didn't report a size): never ask again
+        if(cache[f.id]){ f.size = cache[f.id]; known[f.id] = f.size; }
+      } else need.push(f);
+    });
+    applySizes(known);
+    if($("sort").value && Object.keys(known).length) render();
+    for(var i = 0; i < need.length; i += 40){
+      if(run !== sizeRun || state.source !== "drive"){ save(); return; }   // left this folder: keep what we have
+      var batch = need.slice(i, i + 40), got = {}, j;
+      try {
+        var r = await fetch(state.key + "/sizes?ids=" + batch.map(function(f){ return encodeURIComponent(f.id); }).join(","));
+        if(!r.ok){ save(); return; }       // Worker without /sizes: try again next time
+        j = await r.json();
+      } catch(e){ save(); return; }        // network hiccup: try again next time
+      batch.forEach(function(f){
+        if(!(f.id in j)) return;
+        cache[f.id] = j[f.id] || 0; dirty = true;
+        if(j[f.id]){ f.size = j[f.id]; got[f.id] = j[f.id]; }
+      });
+      applySizes(got);
+      if($("sort").value) render();
+    }
+    save();                                // all done: store them for next time
+  }
+
   function makeCell(f, inSaved){
     var folder = !inSaved && isFolder(f);
     var b = document.createElement("button");
     b.className = "item" + (folder ? " folder" : "");
     var title = f.name.replace(/\.html?$/i,"");
     var name = document.createElement("span"); name.className = "name"; name.textContent = title;
+    var sz = null;
+    if(!folder){ sz = document.createElement("span"); sz.className = (state.view === "grid" ? "" : "meta ") + "sz"; sz.setAttribute("data-sid", f.id); sz.textContent = fmtSize(f.size); }
     if(state.view === "grid"){
       var th = document.createElement("span"); th.className = "thumb";
       if(folder){
@@ -378,13 +433,14 @@
         }
       }
       b.append(th, name);
+      if(sz) b.append(sz);
     } else {
       var ico = null;
       if(folder){ ico = document.createElement("span"); ico.className = "ico"; }
       var meta = document.createElement("span"); meta.className = "meta";
-      meta.textContent = folder ? "Folder" : "";
+      meta.textContent = "Folder";
       if(ico) b.append(ico);
-      b.append(name, meta);
+      b.append(name, folder ? meta : sz);
     }
     b.addEventListener("click", function(){ folder ? enterFolder(f) : openFile(f); });
     var cell = document.createElement("div"); cell.className = "cell";
@@ -426,7 +482,19 @@
     items.innerHTML = "";
     applyView();
     var hidden = 0, shown = 0;
-    state.entries.forEach(function(f){
+    var order = $("sort").value, list = state.entries.slice();
+    if(order){
+      var dir = order === "asc" ? 1 : -1;
+      list.sort(function(x, y){
+        var fx = isFolder(x), fy = isFolder(y);
+        if(fx !== fy) return fx ? -1 : 1;                 // folders stay on top
+        if(fx) return 0;
+        var sx = +x.size || 0, sy = +y.size || 0;
+        if(!sx !== !sy) return sx ? -1 : 1;               // unknown sizes go last
+        return (sx - sy) * dir || x.name.localeCompare(y.name, undefined, {numeric:true});
+      });
+    }
+    list.forEach(function(f){
       var folder = isFolder(f);
       if(!folder && !isHtml(f)){ hidden++; return; }
       if(q && f.name.toLowerCase().indexOf(q) === -1) return;
@@ -435,7 +503,7 @@
     });
     renderSaved();
     var note = [];
-    if(!shown) note.push(q ? "Nothing matches that filter." : "No HTML files here.");
+    if(!shown) note.push(q ? "Nothing matches that search." : "No HTML files here.");
     if(hidden) note.push(hidden + " non-HTML file" + (hidden>1?"s":"") + " hidden.");
     $("note").textContent = note.join(" ");
     var count = state.entries.filter(isHtml).length;
@@ -583,6 +651,7 @@
       $("keybox").style.display = "none";
       renderCrumbs();
       render();
+      if(state.source === "drive") loadDriveSizes(state.entries);
     } catch(e){
       $("keybox").style.display = "";
       state.entries = [];
@@ -601,8 +670,18 @@
   async function openFile(f){
     $("loading").textContent = "Opening…";
     $("loading").classList.add("on");
+    var replaced = false;
     try {
       var html = await getGameHtml(f);
+      if($("replace").checked){
+        // Nothing can be undone once the page is replaced, so refuse empty/broken files first.
+        if(/^\s*(\]\]>)?\s*$/.test(html)) throw new Error("There was an error with the file \"" + f.name + "\". It loaded as empty, so it wasn't opened.");
+        replaced = true;
+        document.open();
+        document.write(html);
+        document.close();
+        return;
+      }
       var frame = $("frame");
       var sb = "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-downloads";
       if($("storage").checked) sb += " allow-same-origin";
@@ -616,7 +695,7 @@
       showError(e.message);
       $("scroller").scrollTop = 0;
     } finally {
-      $("loading").classList.remove("on");
+      if(!replaced) $("loading").classList.remove("on");
     }
   }
 
@@ -696,11 +775,16 @@
     setTimeout(checkFrame, 3500);
   });
   $("close").addEventListener("click", closeViewer);
-  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && $("viewer").classList.contains("on")) closeViewer(); });
+  document.addEventListener("keydown", function(e){ var v = $("viewer"); if(v && e.key === "Escape" && v.classList.contains("on")) closeViewer(); });
   $("search").addEventListener("input", render);
+  var savedSort = lsGet("dv_sort");
+  $("sort").value = (savedSort === "asc" || savedSort === "desc") ? savedSort : "";
+  $("sort").addEventListener("change", function(){ lsSet("dv_sort", $("sort").value); render(); });
   function setView(v){ state.view = v; lsSet("dv_view2", v); render(); }
   $("vList").addEventListener("click", function(){ setView("list"); });
   $("vGrid").addEventListener("click", function(){ setView("grid"); });
+  $("replace").checked = lsGet("dv_replace") === "1";
+  $("replace").addEventListener("change", function(){ lsSet("dv_replace", this.checked ? "1" : "0"); });
   $("storage").checked = lsGet("dv_compat") !== "0";
   $("storage").addEventListener("change", function(){ lsSet("dv_compat", this.checked ? "1" : "0"); });
 
